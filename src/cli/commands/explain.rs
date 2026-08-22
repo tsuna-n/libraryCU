@@ -1,7 +1,52 @@
-use anyhow::{Result, bail};
+use std::{
+    fs,
+    io::{self, IsTerminal, Read},
+};
+
+use anyhow::{Context, Result, bail};
 
 use crate::cli::args::ExplainArgs;
+use crate::{config, diagnostics, output, security};
 
-pub fn run(_args: ExplainArgs) -> Result<()> {
-    bail!("error explanation is not available yet")
+const MAX_ERROR_INPUT_BYTES: u64 = 2 * 1024 * 1024;
+
+pub fn run(args: ExplainArgs) -> Result<()> {
+    let input = read_error_input(&args)?;
+    let input = security::redact_sensitive(&input);
+    if input.trim().is_empty() {
+        bail!("error input is empty");
+    }
+    let loaded = config::load()?;
+    let report = diagnostics::explain(&input, &args.project, &loaded.config.scanner)?;
+    if args.json {
+        println!("{}", serde_json::to_string_pretty(&report)?);
+    } else {
+        output::print_explanation(&report, args.verbose);
+    }
+    Ok(())
+}
+
+fn read_error_input(args: &ExplainArgs) -> Result<String> {
+    if let Some(path) = &args.file {
+        let metadata = fs::metadata(path)
+            .with_context(|| format!("failed to inspect error log {}", path.display()))?;
+        if metadata.len() > MAX_ERROR_INPUT_BYTES {
+            bail!("error log is larger than 2 MB: {}", path.display());
+        }
+        return fs::read_to_string(path)
+            .with_context(|| format!("failed to read error log {}", path.display()));
+    }
+    if args.stdin || !io::stdin().is_terminal() {
+        let mut input = String::new();
+        io::stdin()
+            .lock()
+            .take(MAX_ERROR_INPUT_BYTES + 1)
+            .read_to_string(&mut input)
+            .context("failed to read error input from stdin")?;
+        if input.len() as u64 > MAX_ERROR_INPUT_BYTES {
+            bail!("stdin error input is larger than 2 MB");
+        }
+        return Ok(input);
+    }
+    bail!("provide an error log file or pipe error output to `lcu explain`")
 }

@@ -4,6 +4,7 @@ pub mod diagnostics;
 pub mod knowledge;
 pub mod output;
 pub mod scanner;
+pub mod security;
 
 use clap::Parser;
 

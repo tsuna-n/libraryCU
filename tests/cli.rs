@@ -1,4 +1,5 @@
-use std::process::Command;
+use std::io::Write;
+use std::process::{Command, Stdio};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 fn lcu() -> Command {
@@ -73,4 +74,30 @@ fn search_finds_exact_rust_error_code() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("Rust E0382"));
     assert!(stdout.contains("exact error code"));
+}
+
+#[test]
+fn explain_reads_rust_error_from_a_pipeline() {
+    let mut child = lcu()
+        .arg("explain")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("lcu explain should start");
+    let mut stdin = child.stdin.take().expect("stdin should be piped");
+    stdin
+        .write_all(
+            b"error[E0382]: borrow of moved value: `name`\n --> src/main.rs:10:5\n value moved here\n",
+        )
+        .expect("error input should be written");
+    drop(stdin);
+    let output = child.wait_with_output().expect("lcu explain should finish");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("LCU Diagnostic"));
+    assert!(stdout.contains("E0382"));
+    assert!(stdout.contains("Evidence"));
+    assert!(stdout.contains("Suggested fix"));
+    assert!(stdout.contains("cargo check"));
+    assert!(stdout.contains("Known diagnostic rule"));
 }
