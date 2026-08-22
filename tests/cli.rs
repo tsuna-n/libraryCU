@@ -101,3 +101,14 @@ fn explain_reads_rust_error_from_a_pipeline() {
     assert!(stdout.contains("cargo check"));
     assert!(stdout.contains("Known diagnostic rule"));
 }
+
+#[test]
+fn doctor_checks_local_components_without_ai() {
+    let output = lcu().arg("doctor").output().expect("lcu doctor should run");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Configuration"));
+    assert!(stdout.contains("Project detection"));
+    assert!(stdout.contains("Local knowledge"));
+    assert!(stdout.contains("healthy"));
+}
