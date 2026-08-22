@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::{config::LoadedConfig, scanner::ScanReport};
+use crate::{config::LoadedConfig, knowledge::SearchResult, scanner::ScanReport};
 
 pub fn print_config(loaded: &LoadedConfig) {
     println!("LCU Configuration\n");
@@ -135,5 +135,20 @@ fn print_tree_children(node: &TreeNode, prefix: &str) {
         println!("{prefix}{branch} {name}{suffix}");
         let child_prefix = format!("{prefix}{}   ", if last { " " } else { "│" });
         print_tree_children(child, &child_prefix);
+    }
+}
+
+pub fn print_search(query: &str, results: &[SearchResult]) {
+    println!("Knowledge Search\n");
+    println!("Query\n  {query}\n");
+    println!("Results");
+    if results.is_empty() {
+        println!("\n  No local knowledge matched this query.");
+        return;
+    }
+    for (index, result) in results.iter().take(10).enumerate() {
+        println!("\n{}. {}", index + 1, result.document.title);
+        println!("   Match: {}", result.match_reason);
+        println!("   Knowledge: {}", result.document.path);
     }
 }

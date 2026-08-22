@@ -62,3 +62,15 @@ fn scan_detects_this_rust_project() {
     assert!(stdout.contains("Cargo"));
     assert!(stdout.contains("Scan Summary"));
 }
+
+#[test]
+fn search_finds_exact_rust_error_code() {
+    let output = lcu()
+        .args(["search", "E0382"])
+        .output()
+        .expect("lcu search should run");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Rust E0382"));
+    assert!(stdout.contains("exact error code"));
+}
