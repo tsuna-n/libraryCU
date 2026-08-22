@@ -1,0 +1,100 @@
+use std::path::PathBuf;
+
+use clap::{Args, Parser, Subcommand};
+
+#[derive(Debug, Parser)]
+#[command(
+    name = "lcu",
+    version,
+    about = "LibraryCU - Developer Diagnostic Toolkit",
+    propagate_version = true
+)]
+pub struct Cli {
+    #[command(subcommand)]
+    pub command: Command,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum Command {
+    /// Inspect the current project
+    Scan(ScanArgs),
+    /// Explain compiler or runtime errors
+    Explain(ExplainArgs),
+    /// Search local technical knowledge
+    Search(SearchArgs),
+    /// View or modify LCU configuration
+    Config {
+        #[command(subcommand)]
+        command: ConfigCommand,
+    },
+    /// Check the LCU environment
+    Doctor(DoctorArgs),
+}
+
+#[derive(Debug, Args)]
+pub struct ScanArgs {
+    /// Project path to inspect
+    #[arg(long, default_value = ".")]
+    pub path: PathBuf,
+    /// Display the project file tree
+    #[arg(long)]
+    pub tree: bool,
+    /// Output machine-readable JSON
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct ExplainArgs {
+    /// Error log file
+    #[arg(value_name = "FILE", conflicts_with = "stdin")]
+    pub file: Option<PathBuf>,
+    /// Read error from stdin
+    #[arg(long)]
+    pub stdin: bool,
+    /// Show detailed explanation
+    #[arg(long)]
+    pub verbose: bool,
+    /// Output machine-readable JSON
+    #[arg(long)]
+    pub json: bool,
+    /// Project path used for contextual evidence
+    #[arg(long, default_value = ".")]
+    pub project: PathBuf,
+}
+
+#[derive(Debug, Args)]
+pub struct SearchArgs {
+    /// Error code or technical keywords
+    pub query: String,
+    /// Project path containing optional knowledge documents
+    #[arg(long, default_value = ".")]
+    pub project: PathBuf,
+    /// Output machine-readable JSON
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum ConfigCommand {
+    /// Show the effective configuration
+    Show {
+        /// Output machine-readable JSON
+        #[arg(long)]
+        json: bool,
+    },
+    /// Set a supported configuration value
+    Set {
+        /// Setting name, for example scanner.max_file_size_kb
+        key: String,
+        /// New setting value
+        value: String,
+    },
+}
+
+#[derive(Debug, Args)]
+pub struct DoctorArgs {
+    /// Output machine-readable JSON
+    #[arg(long)]
+    pub json: bool,
+}
