@@ -48,3 +48,17 @@ fn config_show_uses_defaults_when_file_is_missing() {
     assert!(stdout.contains("Language:        auto"));
     assert!(stdout.contains("Max file size:   256 KB"));
 }
+
+#[test]
+fn scan_detects_this_rust_project() {
+    let output = lcu()
+        .args(["scan", "--path", env!("CARGO_MANIFEST_DIR")])
+        .output()
+        .expect("lcu scan should run");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Project detected"));
+    assert!(stdout.contains("Rust"));
+    assert!(stdout.contains("Cargo"));
+    assert!(stdout.contains("Scan Summary"));
+}
