@@ -51,6 +51,36 @@ fn config_show_uses_defaults_when_file_is_missing() {
 }
 
 #[test]
+fn config_set_shows_and_persists_the_requested_change() {
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_nanos())
+        .unwrap_or_default();
+    let directory = std::env::temp_dir().join(format!("lcu-config-set-{nonce}"));
+    let config_path = directory.join("config.toml");
+    let output = lcu()
+        .args(["config", "set", "scanner.max_file_size_kb", "512"])
+        .env("LCU_CONFIG", &config_path)
+        .output()
+        .expect("lcu config set should run");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Proposed configuration change"));
+    assert!(stdout.contains("scanner.max_file_size_kb = 512"));
+
+    let output = lcu()
+        .args(["config", "show", "--json"])
+        .env("LCU_CONFIG", &config_path)
+        .output()
+        .expect("lcu config show should read the saved value");
+    assert!(output.status.success());
+    let config: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("config output should be valid JSON");
+    assert_eq!(config["scanner"]["max_file_size_kb"], 512);
+    std::fs::remove_dir_all(directory).expect("temporary config directory should be removable");
+}
+
+#[test]
 fn scan_detects_this_rust_project() {
     let output = lcu()
         .args(["scan", "--path", env!("CARGO_MANIFEST_DIR")])

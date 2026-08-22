@@ -14,6 +14,7 @@ pub fn run(command: ConfigCommand) -> Result<()> {
             }
         }
         ConfigCommand::Set { key, value } => {
+            println!("Proposed configuration change\n  {key} = {value}\n");
             let path = config::set_value(&key, &value)?;
             println!("✓ Set {key}\n\nConfig file\n  {}", path.display());
         }
