@@ -76,6 +76,14 @@ pub fn scan_project(path: &std::path::Path, config: &ScannerConfig) -> Result<Sc
             Ok(path) => path.to_path_buf(),
             Err(_) => continue,
         };
+        if config.ignore_hidden
+            && relative
+                .file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.starts_with('.'))
+        {
+            continue;
+        }
         report.entries.push(ScanEntry {
             path: relative.clone(),
             is_directory: entry.file_type().is_dir(),
@@ -172,6 +180,7 @@ mod tests {
         fs::write(root.join("src/main.rs"), "fn main() {}")?;
         fs::create_dir(root.join("target"))?;
         fs::write(root.join("target/generated.rs"), "generated")?;
+        fs::write(root.join(".env"), "SECRET=do-not-scan")?;
         fs::write(root.join("large.log"), vec![0_u8; 2048])?;
 
         let report = scan_project(
@@ -189,6 +198,12 @@ mod tests {
                 .entries
                 .iter()
                 .any(|entry| entry.path.starts_with("target"))
+        );
+        assert!(
+            !report
+                .entries
+                .iter()
+                .any(|entry| entry.path.as_os_str() == ".env")
         );
         fs::remove_dir_all(&root)
             .with_context(|| format!("failed to remove {}", root.display()))?;
