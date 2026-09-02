@@ -58,6 +58,9 @@ pub struct ExplainArgs {
     /// Output machine-readable JSON
     #[arg(long)]
     pub json: bool,
+    /// Extend the deterministic analysis with the configured AI provider
+    #[arg(long)]
+    pub ai: bool,
     /// Project path used for contextual evidence
     #[arg(long, default_value = ".")]
     pub project: PathBuf,

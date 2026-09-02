@@ -56,5 +56,10 @@ pub fn print_explanation(report: &ExplanationReport, verbose: bool) {
             println!("  Frameworks: {}", report.project.frameworks.join(", "));
         }
     }
+    if let Some(ai) = &report.ai {
+        println!("\nAI analysis ({} / {})", ai.provider, ai.model);
+        println!("  {}", ai.analysis.replace('\n', "\n  "));
+        println!("\nAI confidence\n  {}", ai.confidence);
+    }
     println!("\nConfidence\n  {}", report.confidence);
 }

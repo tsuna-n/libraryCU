@@ -28,6 +28,17 @@ pub fn print_config(loaded: &LoadedConfig) {
     );
     println!("Memory");
     println!("  Mode:            {}", loaded.config.memory.mode);
+    println!("\nAI");
+    match loaded.config.ai.provider.as_str() {
+        "off" => println!("  Provider:        off (deterministic mode)"),
+        provider => {
+            println!("  Provider:        {provider}");
+            println!("  Model:           {}", loaded.config.ai.model);
+            if provider == "openai-compat" {
+                println!("  Base URL:        {}", loaded.config.ai.base_url);
+            }
+        }
+    }
 }
 
 pub fn print_scan(report: &ScanReport, show_tree: bool) {

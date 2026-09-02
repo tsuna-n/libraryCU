@@ -36,6 +36,8 @@ pub struct ExplanationReport {
     pub knowledge: Vec<KnowledgeReference>,
     pub confidence: Confidence,
     pub files_inspected: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ai: Option<crate::ai::AiContribution>,
 }
 
 pub fn explain(
@@ -87,6 +89,7 @@ pub fn explain(
         knowledge,
         confidence,
         files_inspected: scan.files_inspected,
+        ai: None,
     })
 }
 

@@ -6,7 +6,7 @@ use std::{
 use anyhow::{Context, Result, bail};
 
 use crate::cli::args::ExplainArgs;
-use crate::{config, diagnostics, output, security};
+use crate::{ai, config, diagnostics, output, security};
 
 const MAX_ERROR_INPUT_BYTES: u64 = 2 * 1024 * 1024;
 
@@ -17,7 +17,17 @@ pub fn run(args: ExplainArgs) -> Result<()> {
         bail!("error input is empty");
     }
     let loaded = config::load()?;
-    let report = diagnostics::explain(&input, &args.project, &loaded.config.scanner)?;
+    let mut report = diagnostics::explain(&input, &args.project, &loaded.config.scanner)?;
+    if args.ai {
+        match ai::enhance(&mut report, &input, &loaded.config.ai) {
+            Ok(()) => {}
+            Err(error) => {
+                eprintln!(
+                    "! AI enhancement failed; showing the deterministic explanation instead.\n  Reason: {error:#}"
+                );
+            }
+        }
+    }
     if args.json {
         println!("{}", serde_json::to_string_pretty(&report)?);
     } else {

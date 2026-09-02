@@ -4,7 +4,54 @@ use anyhow::Result;
 use serde::Serialize;
 
 use crate::cli::args::DoctorArgs;
+use crate::config::AiConfig;
 use crate::{config, knowledge, scanner};
+
+fn ai_check(ai: &AiConfig) -> DoctorCheck {
+    match ai.provider.as_str() {
+        "off" => DoctorCheck {
+            name: "AI provider".to_owned(),
+            ok: true,
+            detail: "off (deterministic mode); set ai.provider to enable AI explanations"
+                .to_owned(),
+        },
+        "openrouter" => {
+            let key_set = std::env::var_os("OPENROUTER_API_KEY").is_some();
+            DoctorCheck {
+                name: "AI provider".to_owned(),
+                ok: key_set,
+                detail: if key_set {
+                    format!("openrouter with model {} (API key detected)", ai.model)
+                } else {
+                    format!(
+                        "openrouter with model {} but OPENROUTER_API_KEY is not set",
+                        ai.model
+                    )
+                },
+            }
+        }
+        "openai-compat" => {
+            let key_status = if std::env::var_os("OPENAI_API_KEY").is_some() {
+                "API key detected"
+            } else {
+                "no API key (fine for local servers such as Ollama)"
+            };
+            DoctorCheck {
+                name: "AI provider".to_owned(),
+                ok: true,
+                detail: format!(
+                    "openai-compat with model {} at {} ({key_status})",
+                    ai.model, ai.base_url
+                ),
+            }
+        }
+        other => DoctorCheck {
+            name: "AI provider".to_owned(),
+            ok: false,
+            detail: format!("unsupported provider {other:?}"),
+        },
+    }
+}
 
 #[derive(Debug, Serialize)]
 struct DoctorCheck {
@@ -76,6 +123,11 @@ pub fn run(args: DoctorArgs) -> Result<()> {
             detail: "project root is unavailable".to_owned(),
         },
     });
+
+    let ai_config = config::load()
+        .map(|loaded| loaded.config.ai)
+        .unwrap_or_default();
+    checks.push(ai_check(&ai_config));
 
     let report = DoctorReport {
         healthy: checks.iter().all(|check| check.ok),

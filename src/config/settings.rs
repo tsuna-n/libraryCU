@@ -9,6 +9,7 @@ pub struct Config {
     pub output: OutputConfig,
     pub scanner: ScannerConfig,
     pub memory: MemoryConfig,
+    pub ai: AiConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -28,6 +29,14 @@ pub struct ScannerConfig {
 #[serde(default)]
 pub struct MemoryConfig {
     pub mode: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct AiConfig {
+    pub provider: String,
+    pub model: String,
+    pub base_url: String,
 }
 
 #[derive(Debug, Clone)]
@@ -58,6 +67,16 @@ impl Default for MemoryConfig {
     fn default() -> Self {
         Self {
             mode: "session".to_owned(),
+        }
+    }
+}
+
+impl Default for AiConfig {
+    fn default() -> Self {
+        Self {
+            provider: "off".to_owned(),
+            model: String::new(),
+            base_url: String::new(),
         }
     }
 }
@@ -118,8 +137,11 @@ pub fn set_value(key: &str, value: &str) -> Result<PathBuf> {
                 .with_context(|| format!("{key} must be true or false"))?;
         }
         "memory.mode" => config.memory.mode = value.to_owned(),
+        "ai.provider" => config.ai.provider = value.to_owned(),
+        "ai.model" => config.ai.model = value.to_owned(),
+        "ai.base_url" => config.ai.base_url = value.to_owned(),
         _ => bail!(
-            "unsupported setting {key:?}; supported settings: output.language, scanner.max_file_size_kb, scanner.ignore_hidden, memory.mode"
+            "unsupported setting {key:?}; supported settings: output.language, scanner.max_file_size_kb, scanner.ignore_hidden, memory.mode, ai.provider, ai.model, ai.base_url"
         ),
     }
     validate(&config)?;
@@ -140,6 +162,23 @@ fn validate(config: &Config) -> Result<()> {
     }
     if !matches!(config.memory.mode.as_str(), "session" | "persistent") {
         bail!("memory.mode must be session or persistent");
+    }
+    match config.ai.provider.as_str() {
+        "off" => {}
+        "openrouter" => {
+            if config.ai.model.trim().is_empty() {
+                bail!("ai.model must be set when ai.provider is openrouter");
+            }
+        }
+        "openai-compat" => {
+            if config.ai.model.trim().is_empty() {
+                bail!("ai.model must be set when ai.provider is openai-compat");
+            }
+            if config.ai.base_url.trim().is_empty() {
+                bail!("ai.base_url must be set when ai.provider is openai-compat");
+            }
+        }
+        other => bail!("ai.provider must be off, openrouter, or openai-compat (found {other:?})"),
     }
     Ok(())
 }
@@ -174,6 +213,32 @@ mod tests {
         let loaded = load_from(path.clone())?;
         assert_eq!(loaded.config.output.language, "th");
         assert!(loaded.config.scanner.ignore_hidden);
+        fs::remove_file(path)?;
+        Ok(())
+    }
+
+    #[test]
+    fn ai_defaults_to_the_deterministic_mode() -> Result<()> {
+        let loaded = load_from(temporary_path("ai-default"))?;
+        assert_eq!(loaded.config.ai.provider, "off");
+        assert!(loaded.config.ai.model.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn openai_compat_requires_a_base_url_and_model() -> Result<()> {
+        let path = temporary_path("ai-compat");
+        fs::write(
+            &path,
+            "[ai]\nprovider = \"openai-compat\"\nmodel = \"llama3\"\n",
+        )?;
+        assert!(load_from(path.clone()).is_err());
+        fs::write(
+            &path,
+            "[ai]\nprovider = \"openai-compat\"\nmodel = \"llama3\"\nbase_url = \"http://127.0.0.1:11434/v1\"\n",
+        )?;
+        let loaded = load_from(path.clone())?;
+        assert_eq!(loaded.config.ai.provider, "openai-compat");
         fs::remove_file(path)?;
         Ok(())
     }
