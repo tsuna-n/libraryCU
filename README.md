@@ -1,6 +1,6 @@
 # LibraryCU
 
-LibraryCU (`lcu`) is a read-only developer diagnostic toolkit for the terminal. Version 0.1 detects project types, scans repository metadata safely, parses Rust compiler errors, searches local knowledge, and explains known diagnostics without an AI service.
+LibraryCU (`lcu`) is a read-only developer diagnostic toolkit for the terminal. Version 0.2 detects project types, scans repository metadata safely, parses Rust compiler errors, searches local knowledge, and explains known diagnostics without an AI service. When configured, it can optionally extend the deterministic analysis with an AI provider such as OpenRouter or a local OpenAI-compatible server (Ollama, LM Studio, vLLM).
 
 Its diagnostic flow is:
 
@@ -106,6 +106,29 @@ lcu config set scanner.max_file_size_kb 512
 lcu config set scanner.ignore_hidden false
 ```
 
+### AI explanations (optional, v0.2)
+
+The deterministic report is always computed first. With `--ai`, LCU builds a compact context (diagnostic, project stack, evidence, knowledge references, redacted error output) and sends it to the configured provider:
+
+```bash
+lcu explain error.log --ai
+cargo check 2>&1 | lcu explain --ai
+```
+
+Configure the provider in `config.toml`; API keys are read from the environment and are never written to disk:
+
+```toml
+[ai]
+provider = "openai-compat"          # off | openrouter | openai-compat
+model = "qwen2.5-coder:7b"
+base_url = "http://localhost:11434/v1"
+```
+
+- `openrouter` requires `OPENROUTER_API_KEY`.
+- `openai-compat` works with any OpenAI-compatible endpoint; `OPENAI_API_KEY` is optional (local servers such as Ollama need none).
+- The provider is asked to end its answer with a `Confidence:` marker, which LCU parses and reports.
+- If the AI call fails, LCU prints the reason to stderr and falls back to the deterministic explanation; the command still succeeds. Only titles and paths from local knowledge are sent to the provider, never the knowledge database.
+
 ## Development
 
 Required validation for Rust changes:
@@ -117,4 +140,4 @@ cargo clippy --all-targets --all-features -- -D warnings
 cargo test
 ```
 
-LibraryCU v0.1 does not require an API key, network access, an LLM, or a vector database.
+LibraryCU v0.2 does not require an API key, network access, an LLM, or a vector database; AI remains an optional layer.
