@@ -1,10 +1,10 @@
 use std::process::ExitCode;
 
 fn main() -> ExitCode {
-    match librarycu::run() {
+    match librarycube::run() {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => {
-            eprintln!("lcu: {error:#}");
+            eprintln!("lbc: {error:#}");
             ExitCode::FAILURE
         }
     }

@@ -4,7 +4,7 @@ use super::provider::{AiRequest, CONFIDENCE_MARKER};
 pub const MAX_ERROR_CONTEXT_CHARS: usize = 8_000;
 
 const SYSTEM_PROMPT: &str = "\
-You are LCU, a deterministic developer diagnostic assistant. \
+You are LBC, a deterministic developer diagnostic assistant. \
 You extend an offline analysis with reasoning; you never invent APIs, files, or commands. \
 Ground every claim in the provided evidence. \
 If the evidence is insufficient, say so plainly and set a low confidence. \

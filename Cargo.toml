@@ -1,16 +1,16 @@
 [package]
-name = "libraryCU"
+name = "librarycube"
 version = "0.2.0"
 edition = "2024"
 description = "A deterministic developer diagnostic toolkit"
 license = "MIT"
 
 [lib]
-name = "librarycu"
+name = "librarycube"
 path = "src/lib.rs"
 
 [[bin]]
-name = "lcu"
+name = "lbc"
 path = "src/main.rs"
 
 [dependencies]

@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use crate::{config::LoadedConfig, knowledge::SearchResult, scanner::ScanReport};
 
 pub fn print_config(loaded: &LoadedConfig) {
-    println!("LCU Configuration\n");
+    println!("LBC Configuration\n");
     println!("Config file");
     if loaded.found {
         println!("  {}\n", loaded.path.display());

@@ -168,7 +168,7 @@ mod tests {
             .duration_since(SystemTime::UNIX_EPOCH)
             .map(|duration| duration.as_nanos())
             .unwrap_or_default();
-        let path = std::env::temp_dir().join(format!("lcu-scan-{}-{nonce}", std::process::id()));
+        let path = std::env::temp_dir().join(format!("lbc-scan-{}-{nonce}", std::process::id()));
         fs::create_dir_all(path.join("src"))?;
         Ok(path)
     }

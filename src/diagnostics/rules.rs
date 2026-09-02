@@ -104,7 +104,7 @@ fn unresolved_import_rule(diagnostic: &Diagnostic, project_root: &Path) -> RuleO
         },
         None => RuleOutcome {
             evidence: vec![format!("The diagnostic references `{crate_name}`.")],
-            cause: "Rust could not resolve the crate or module, but LCU could not read a Cargo manifest to verify whether the dependency is missing.".to_owned(),
+            cause: "Rust could not resolve the crate or module, but LBC could not read a Cargo manifest to verify whether the dependency is missing.".to_owned(),
             suggested_fixes: vec!["Check Cargo.toml, import spelling, local module declarations, and enabled features.".to_owned()],
             verification: vec!["cargo check".to_owned()],
             next_steps: Vec::new(),
@@ -130,7 +130,7 @@ fn multiple_mutable_borrows_rule(diagnostic: &Diagnostic) -> RuleOutcome {
 fn unknown_rule(diagnostic: &Diagnostic) -> RuleOutcome {
     RuleOutcome {
         evidence: vec![format!("Detected message: {}", diagnostic.message)],
-        cause: "LCU could not determine a verified root cause from the available error and project evidence.".to_owned(),
+        cause: "LBC could not determine a verified root cause from the available error and project evidence.".to_owned(),
         suggested_fixes: Vec::new(),
         verification: Vec::new(),
         next_steps: vec![
@@ -202,7 +202,7 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .map(|duration| duration.as_nanos())
             .unwrap_or_default();
-        let root = std::env::temp_dir().join(format!("lcu-rule-{}-{nonce}", std::process::id()));
+        let root = std::env::temp_dir().join(format!("lbc-rule-{}-{nonce}", std::process::id()));
         fs::create_dir_all(&root)?;
         fs::write(
             root.join("Cargo.toml"),

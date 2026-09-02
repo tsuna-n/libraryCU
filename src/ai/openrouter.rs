@@ -29,7 +29,7 @@ impl AiProvider for OpenRouterProvider {
             .http
             .post(OPENROUTER_ENDPOINT)
             .bearer_auth(&self.api_key)
-            .header("X-Title", "LibraryCU")
+            .header("X-Title", "LibraryCube")
             .json(&build_chat_body(&request))
             .send()
             .await

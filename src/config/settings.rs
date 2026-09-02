@@ -82,16 +82,16 @@ impl Default for AiConfig {
 }
 
 pub fn config_path() -> PathBuf {
-    if let Some(path) = env::var_os("LCU_CONFIG") {
+    if let Some(path) = env::var_os("LBC_CONFIG") {
         return PathBuf::from(path);
     }
     if let Some(path) = env::var_os("XDG_CONFIG_HOME") {
-        return PathBuf::from(path).join("lcu/config.toml");
+        return PathBuf::from(path).join("lbc/config.toml");
     }
     if let Some(home) = env::var_os("HOME") {
-        return PathBuf::from(home).join(".config/lcu/config.toml");
+        return PathBuf::from(home).join(".config/lbc/config.toml");
     }
-    PathBuf::from(".config/lcu/config.toml")
+    PathBuf::from(".config/lbc/config.toml")
 }
 
 pub fn load() -> Result<LoadedConfig> {
@@ -194,7 +194,7 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .map(|duration| duration.as_nanos())
             .unwrap_or_default();
-        env::temp_dir().join(format!("lcu-{name}-{}-{nonce}", std::process::id()))
+        env::temp_dir().join(format!("lbc-{name}-{}-{nonce}", std::process::id()))
     }
 
     #[test]

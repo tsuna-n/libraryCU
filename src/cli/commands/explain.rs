@@ -58,5 +58,5 @@ fn read_error_input(args: &ExplainArgs) -> Result<String> {
         }
         return Ok(input);
     }
-    bail!("provide an error log file or pipe error output to `lcu explain`")
+    bail!("provide an error log file or pipe error output to `lbc explain`")
 }

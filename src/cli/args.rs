@@ -4,9 +4,9 @@ use clap::{Args, Parser, Subcommand};
 
 #[derive(Debug, Parser)]
 #[command(
-    name = "lcu",
+    name = "lbc",
     version,
-    about = "LibraryCU - Developer Diagnostic Toolkit",
+    about = "LibraryCube - Developer Diagnostic Toolkit",
     propagate_version = true
 )]
 pub struct Cli {
@@ -22,12 +22,12 @@ pub enum Command {
     Explain(ExplainArgs),
     /// Search local technical knowledge
     Search(SearchArgs),
-    /// View or modify LCU configuration
+    /// View or modify LBC configuration
     Config {
         #[command(subcommand)]
         command: ConfigCommand,
     },
-    /// Check the LCU environment
+    /// Check the LBC environment
     Doctor(DoctorArgs),
 }
 

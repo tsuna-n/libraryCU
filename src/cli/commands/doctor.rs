@@ -136,7 +136,7 @@ pub fn run(args: DoctorArgs) -> Result<()> {
     if args.json {
         println!("{}", serde_json::to_string_pretty(&report)?);
     } else {
-        println!("LCU Doctor\n");
+        println!("LBC Doctor\n");
         for check in &report.checks {
             println!(
                 "{} {}\n  {}\n",

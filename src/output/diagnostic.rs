@@ -2,7 +2,7 @@ use crate::diagnostics::ExplanationReport;
 
 pub fn print_explanation(report: &ExplanationReport, verbose: bool) {
     let code = report.diagnostic.code.as_deref().unwrap_or("Unknown error");
-    println!("LCU Diagnostic\n");
+    println!("LBC Diagnostic\n");
     println!("✗ {code} - {}\n", report.diagnostic.message);
     println!("Project\n  {}\n", report.project.stack_label());
     if let Some(file) = &report.diagnostic.file {
