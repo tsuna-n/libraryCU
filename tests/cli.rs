@@ -250,3 +250,143 @@ fn explain_json_omits_ai_when_not_requested() {
     );
     assert_eq!(report["confidence"], "known_rule");
 }
+
+#[test]
+fn help_lists_the_knowledge_command() {
+    let output = lbc().arg("--help").output().expect("lbc --help should run");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("knowledge"), "help did not list knowledge");
+}
+
+#[test]
+fn search_covers_linux_git_and_docker_knowledge() {
+    for (query, expected) in [
+        ("merge conflict", "Git - Merge conflict"),
+        ("detached head", "Git - Detached HEAD"),
+        ("permission denied", "Permission denied"),
+        ("docker daemon", "Docker daemon"),
+    ] {
+        let output = lbc()
+            .args(["search", query])
+            .output()
+            .expect("lbc search should run");
+        assert!(output.status.success());
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(
+            stdout.contains(expected),
+            "searching {query:?} should surface {expected:?}: {stdout}"
+        );
+    }
+}
+
+#[test]
+fn knowledge_install_list_remove_roundtrip() {
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_nanos())
+        .unwrap_or_default();
+    let home = std::env::temp_dir().join(format!("lbc-cli-pkg-{nonce}"));
+    let data_home = home.join("data");
+    let package = home.join("team-rules");
+    std::fs::create_dir_all(&package).expect("package directory should be creatable");
+    std::fs::write(
+        package.join("package.toml"),
+        "name = \"team-rules\"\nversion = \"1.0.0\"\ndescription = \"Team conventions\"\n",
+    )
+    .expect("manifest should be writable");
+    std::fs::write(
+        package.join("rule.md"),
+        "---\nid: team-format\ntitle: Team formatting rule\n---\n# Team formatting rule\n\nAlways run cargo fmt.\n",
+    )
+    .expect("document should be writable");
+
+    let install = lbc()
+        .args(["knowledge", "install"])
+        .arg(&package)
+        .env("XDG_DATA_HOME", &data_home)
+        .output()
+        .expect("lbc knowledge install should run");
+    assert!(
+        install.status.success(),
+        "install failed: {}",
+        String::from_utf8_lossy(&install.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&install.stdout);
+    assert!(stdout.contains("team-rules"));
+    assert!(stdout.contains("Documents:"));
+
+    let list = lbc()
+        .args(["knowledge", "list"])
+        .env("XDG_DATA_HOME", &data_home)
+        .output()
+        .expect("lbc knowledge list should run");
+    assert!(list.status.success());
+    let stdout = String::from_utf8_lossy(&list.stdout);
+    assert!(stdout.contains("team-rules 1.0.0"));
+    assert!(stdout.contains("Team conventions"));
+
+    let search = lbc()
+        .args(["search", "team formatting"])
+        .env("XDG_DATA_HOME", &data_home)
+        .output()
+        .expect("lbc search should see installed packages");
+    assert!(search.status.success());
+    let stdout = String::from_utf8_lossy(&search.stdout);
+    assert!(
+        stdout.contains("Team formatting rule"),
+        "installed doc should be searchable: {stdout}"
+    );
+
+    let remove = lbc()
+        .args(["knowledge", "remove", "team-rules"])
+        .env("XDG_DATA_HOME", &data_home)
+        .output()
+        .expect("lbc knowledge remove should run");
+    assert!(
+        remove.status.success(),
+        "remove failed: {}",
+        String::from_utf8_lossy(&remove.stderr)
+    );
+    let list = lbc()
+        .args(["knowledge", "list"])
+        .env("XDG_DATA_HOME", &data_home)
+        .output()
+        .expect("lbc knowledge list should run");
+    assert!(String::from_utf8_lossy(&list.stdout).contains("No knowledge packages installed"));
+
+    std::fs::remove_dir_all(home).expect("temporary directories should be removable");
+}
+
+#[test]
+fn knowledge_install_rejects_an_invalid_package() {
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_nanos())
+        .unwrap_or_default();
+    let home = std::env::temp_dir().join(format!("lbc-cli-badpkg-{nonce}"));
+    let package = home.join("bad");
+    std::fs::create_dir_all(&package).expect("package directory should be creatable");
+    std::fs::write(
+        package.join("package.toml"),
+        "name = \"BAD NAME\"\nversion = \"1.0.0\"\n",
+    )
+    .expect("manifest should be writable");
+
+    let output = lbc()
+        .args(["knowledge", "install"])
+        .arg(&package)
+        .env("XDG_DATA_HOME", home.join("data"))
+        .output()
+        .expect("lbc knowledge install should run");
+    assert!(
+        !output.status.success(),
+        "invalid packages must be rejected"
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("invalid"),
+        "stderr should explain: {stderr}"
+    );
+    std::fs::remove_dir_all(home).expect("temporary directories should be removable");
+}

@@ -48,8 +48,8 @@ pub fn explain(
     let diagnostic = parse_primary(input).context("no error input was provided")?;
     let scan = scan_project(project_path, scanner_config)?;
     let query = diagnostic.code.as_deref().unwrap_or(&diagnostic.message);
-    let documents = knowledge::load_documents(&scan.project.root)?;
-    let matches = knowledge::search(&documents, query);
+    let index = knowledge::KnowledgeIndex::build(knowledge::load_documents(&scan.project.root)?);
+    let matches = index.search(query);
     let RuleOutcome {
         mut evidence,
         cause,

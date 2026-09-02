@@ -29,6 +29,11 @@ pub enum Command {
     },
     /// Check the LBC environment
     Doctor(DoctorArgs),
+    /// Manage installable knowledge packages
+    Knowledge {
+        #[command(subcommand)]
+        command: KnowledgeCommand,
+    },
 }
 
 #[derive(Debug, Args)]
@@ -100,4 +105,20 @@ pub struct DoctorArgs {
     /// Output machine-readable JSON
     #[arg(long)]
     pub json: bool,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum KnowledgeCommand {
+    /// Install a knowledge package from a local directory
+    Install {
+        /// Directory containing package.toml and markdown documents
+        source: PathBuf,
+    },
+    /// List installed knowledge packages
+    List,
+    /// Remove an installed knowledge package
+    Remove {
+        /// Package name shown by `lbc knowledge list`
+        name: String,
+    },
 }

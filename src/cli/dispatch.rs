@@ -12,5 +12,6 @@ pub fn dispatch(cli: Cli) -> Result<()> {
         Command::Search(args) => commands::search::run(args),
         Command::Config { command } => commands::config::run(command),
         Command::Doctor(args) => commands::doctor::run(args),
+        Command::Knowledge { command } => commands::knowledge::run(command),
     }
 }

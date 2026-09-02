@@ -1,6 +1,6 @@
 # LibraryCube
 
-LibraryCube (`lbc`) is a read-only developer diagnostic toolkit for the terminal. Version 0.2 detects project types, scans repository metadata safely, parses Rust compiler errors, searches local knowledge, and explains known diagnostics without an AI service. When configured, it can optionally extend the deterministic analysis with an AI provider such as OpenRouter or a local OpenAI-compatible server (Ollama, LM Studio, vLLM).
+LibraryCube (`lbc`) is a read-only developer diagnostic toolkit for the terminal. Version 0.3 detects project types, scans repository metadata safely, parses Rust compiler errors, searches an indexed local knowledge store covering Rust, Linux, Git, and Docker, and explains known diagnostics without an AI service. When configured, it can optionally extend the deterministic analysis with an AI provider such as OpenRouter or a local OpenAI-compatible server (Ollama, LM Studio, vLLM).
 
 Its diagnostic flow is:
 
@@ -30,6 +30,7 @@ lbc explain error.log
 cargo check 2>&1 | lbc explain
 lbc config show
 lbc doctor
+lbc knowledge list
 ```
 
 `scan`, `search`, `explain`, and `doctor` are read-only. They do not modify project files.
@@ -79,7 +80,27 @@ lbc search "borrow checker"
 lbc search E0432 --json
 ```
 
-V0.1 ranks exact error codes first, followed by title, metadata, and keyword matches. Built-in documents are under `knowledge/`; a project's own valid Markdown knowledge documents can extend the store without replacing built-in IDs.
+V0.3 searches a prebuilt in-memory index: exact error codes rank first, followed by title, tag/keyword/category/tool metadata, and keyword-frequency matches in document bodies. Built-in documents cover Rust, Linux, Git, and Docker under `knowledge/`; a project's own valid Markdown knowledge documents can extend the store without replacing built-in IDs.
+
+### Knowledge packages (v0.3)
+
+Bundle knowledge as a directory with a `package.toml` manifest plus Markdown documents:
+
+```toml
+name = "team-rules"
+version = "1.0.0"
+description = "Team conventions"
+```
+
+Install, list, and remove packages:
+
+```bash
+lbc knowledge install ./team-rules
+lbc knowledge list
+lbc knowledge remove team-rules
+```
+
+Packages install into `$XDG_DATA_HOME/lbc/knowledge` (default `~/.local/share/lbc/knowledge`). Every document is validated before install; package names are restricted to lowercase letters, digits, `-`, and `_`; installed documents extend the store but can never replace built-in IDs.
 
 ### Configuration
 
@@ -140,4 +161,4 @@ cargo clippy --all-targets --all-features -- -D warnings
 cargo test
 ```
 
-LibraryCube v0.2 does not require an API key, network access, an LLM, or a vector database; AI remains an optional layer.
+LibraryCube v0.3 does not require an API key, network access, an LLM, or a vector database; AI remains an optional layer.
