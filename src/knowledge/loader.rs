@@ -130,7 +130,14 @@ fn load_all_documents_with_roots(
         &mut documents,
         &mut invalid,
     );
-    if let Ok(entries) = fs::read_dir(package_dir) {
+    let package_root_valid = crate::security::files::reject_symlinks(package_dir);
+    if let Err(error) = &package_root_valid {
+        invalid.push(InvalidDocument {
+            path: package_dir.display().to_string(),
+            error: error.to_string(),
+        });
+    }
+    if let Ok(entries) = package_root_valid.and_then(|()| Ok(fs::read_dir(package_dir)?)) {
         let mut entries: Vec<_> = entries
             .flatten()
             .filter(|entry| entry.path().is_dir())
@@ -138,7 +145,7 @@ fn load_all_documents_with_roots(
         entries.sort_by_key(|entry| entry.file_name());
         for entry in entries {
             let manifest_path = entry.path().join("package.toml");
-            let manifest = fs::read_to_string(&manifest_path)
+            let manifest = crate::security::files::read_text(&manifest_path, MAX_DOCUMENT_BYTES)
                 .with_context(|| format!("failed to read {}", manifest_path.display()))
                 .and_then(|content| packages::parse_manifest(&content));
             let manifest = match manifest {
@@ -198,6 +205,13 @@ fn collect_source(
     documents: &mut Vec<KnowledgeDocument>,
     invalid: &mut Vec<InvalidDocument>,
 ) {
+    if let Err(error) = crate::security::files::reject_symlinks(root) {
+        invalid.push(InvalidDocument {
+            path: root.display().to_string(),
+            error: error.to_string(),
+        });
+        return;
+    }
     if !root.is_dir() {
         return;
     }
@@ -227,7 +241,7 @@ fn collect_source(
             if entry.metadata()?.len() > MAX_DOCUMENT_BYTES {
                 anyhow::bail!("document is larger than 256 KB");
             }
-            let content = fs::read_to_string(path)?;
+            let content = crate::security::files::read_text(path, MAX_DOCUMENT_BYTES)?;
             let relative = path
                 .strip_prefix(locator_root)
                 .unwrap_or(path)
@@ -346,6 +360,9 @@ pub fn parse_document_for_source(
     locator: &str,
     writable: bool,
 ) -> Result<KnowledgeDocument> {
+    if content.len() as u64 > MAX_DOCUMENT_BYTES {
+        anyhow::bail!("knowledge document including metadata exceeds 256 KB");
+    }
     let content = content.replace('\r', "");
     let Some(after_opening) = content.strip_prefix("---\n") else {
         anyhow::bail!("missing YAML frontmatter");

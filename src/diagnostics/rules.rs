@@ -170,7 +170,7 @@ fn dependency_is_declared(path: &Path, crate_name: &str) -> Option<bool> {
     if !canonical.starts_with(root) {
         return None;
     }
-    let content = fs::read_to_string(path).ok()?;
+    let content = crate::security::files::read_text(path, 256 * 1024).ok()?;
     let manifest = toml::from_str::<toml::Value>(&content).ok()?;
     let candidates = [crate_name.to_owned(), crate_name.replace('_', "-")];
     let direct = ["dependencies", "dev-dependencies", "build-dependencies"]

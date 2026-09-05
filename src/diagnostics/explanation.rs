@@ -98,9 +98,9 @@ pub fn explain(
         .into_iter()
         .take(3)
         .map(|result| KnowledgeReference {
-            source_id: result.document.source_id,
-            title: result.document.title,
-            path: result.document.path,
+            source_id: crate::security::redact_sensitive(&result.document.source_id),
+            title: crate::security::redact_sensitive(&result.document.title),
+            path: crate::security::redact_sensitive(&result.document.path),
             match_reason: result.match_reason,
             excerpt: result.excerpt,
             score: result.score,

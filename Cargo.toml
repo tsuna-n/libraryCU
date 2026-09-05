@@ -36,3 +36,8 @@ colored = "3"
 dialoguer = "0.11"
 
 libc = "0.2"
+
+# Private temporary files with atomic publication and automatic failure cleanup.
+tempfile = "3"
+# Parse quoted editor arguments without invoking a shell.
+shell-words = "1"

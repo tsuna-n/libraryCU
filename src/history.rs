@@ -26,6 +26,7 @@ pub fn history_path() -> PathBuf {
 
 pub fn load() -> Result<Vec<String>> {
     let path = history_path();
+    crate::security::files::reject_symlinks(&path)?;
     if !path.exists() {
         return Ok(Vec::new());
     }
@@ -35,7 +36,7 @@ pub fn load() -> Result<Vec<String>> {
     if fs::metadata(&path)?.len() > MAX_HISTORY_BYTES {
         bail!("history file is larger than 256 KB");
     }
-    let content = fs::read_to_string(&path)
+    let content = crate::security::files::read_text(&path, MAX_HISTORY_BYTES)
         .with_context(|| format!("failed to read history at {}", path.display()))?;
     let mut messages: Vec<String> =
         serde_json::from_str(&content).context("invalid persistent history")?;
@@ -49,6 +50,7 @@ pub fn load() -> Result<Vec<String>> {
 pub fn save(messages: &[String]) -> Result<PathBuf> {
     let path = history_path();
     let parent = path.parent().context("history path has no parent")?;
+    crate::security::files::reject_symlinks(&path)?;
     fs::create_dir_all(parent)?;
     if fs::symlink_metadata(parent)?.file_type().is_symlink() {
         bail!("refusing to use symlinked history directory");
@@ -83,6 +85,7 @@ pub fn save(messages: &[String]) -> Result<PathBuf> {
 
 pub fn clear() -> Result<bool> {
     let path = history_path();
+    crate::security::files::reject_symlinks(&path)?;
     if !path.exists() {
         return Ok(false);
     }

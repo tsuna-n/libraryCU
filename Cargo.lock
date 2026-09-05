@@ -708,6 +708,8 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
+ "shell-words",
+ "tempfile",
  "tokio",
  "toml",
  "walkdir",

@@ -15,7 +15,10 @@ fn main() -> ExitCode {
     match librarycube::run() {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => {
-            eprintln!("lbc: {error:#}");
+            eprintln!(
+                "lbc: {}",
+                librarycube::security::redact_sensitive(&format!("{error:#}"))
+            );
             ExitCode::FAILURE
         }
     }

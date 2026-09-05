@@ -1,4 +1,4 @@
-use std::io::{self, Write};
+use std::io::{self, BufRead, Read, Write};
 
 use anyhow::Result;
 
@@ -21,8 +21,16 @@ pub fn run(args: ChatArgs) -> Result<()> {
         print!("> ");
         io::stdout().flush()?;
         let mut line = String::new();
-        if io::stdin().read_line(&mut line)? == 0 {
+        let count = io::stdin()
+            .lock()
+            .take((crate::knowledge::retrieval::MAX_QUERY_BYTES + 2) as u64)
+            .read_line(&mut line)?;
+        if count == 0 {
             break;
+        }
+        if line.trim_end_matches(['\r', '\n']).len() > crate::knowledge::retrieval::MAX_QUERY_BYTES
+        {
+            anyhow::bail!("chat question exceeds 8 KB; use a shorter question");
         }
         let question = line.trim();
         if question == "/exit" {
@@ -61,7 +69,10 @@ pub fn run(args: ChatArgs) -> Result<()> {
         for warning in &report.warnings {
             eprintln!("! Invalid knowledge document: {warning}");
         }
-        session_history.push(format!("User: {question}"));
+        session_history.push(format!(
+            "User: {}",
+            crate::security::redact_sensitive(question)
+        ));
         session_history.push(format!(
             "Assistant: {}",
             report

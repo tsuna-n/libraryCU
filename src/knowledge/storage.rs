@@ -1,4 +1,5 @@
 use std::{
+    collections::HashSet,
     env, fs,
     io::Write,
     path::{Path, PathBuf},
@@ -39,6 +40,13 @@ pub fn notes_dir() -> PathBuf {
 }
 
 pub fn add_entry(input: AddEntry<'_>) -> Result<KnowledgeDocument> {
+    add_entry_with_metadata(input, None)
+}
+
+fn add_entry_with_metadata(
+    input: AddEntry<'_>,
+    template: Option<&KnowledgeDocument>,
+) -> Result<KnowledgeDocument> {
     if input.title.trim().is_empty() {
         bail!("title must not be empty");
     }
@@ -65,6 +73,7 @@ pub fn add_entry(input: AddEntry<'_>) -> Result<KnowledgeDocument> {
             .to_path_buf();
         (root, anchor)
     };
+    crate::security::files::reject_symlinks(&root)?;
     fs::create_dir_all(&root).with_context(|| format!("failed to create {}", root.display()))?;
     ensure_store_is_safe(&root, &anchor)?;
     let base = input
@@ -72,10 +81,19 @@ pub fn add_entry(input: AddEntry<'_>) -> Result<KnowledgeDocument> {
         .map(str::to_owned)
         .unwrap_or_else(|| slug(input.title));
     validate_id(&base)?;
+    let mut ids = stored_ids(&root)?;
+    if input.project.is_some() {
+        ids.extend(stored_ids(&anchor.join("knowledge"))?);
+    }
     let id = if input.id.is_some() {
+        if ids.contains(&base) {
+            bail!(
+                "entry ID {base:?} already exists in this source; use edit or choose a different ID"
+            );
+        }
         base
     } else {
-        unique_id(&root, &base)
+        unique_id(&root, &base, &ids)
     };
     let target = root.join(format!("{id}.md"));
     if target.exists() {
@@ -84,7 +102,15 @@ pub fn add_entry(input: AddEntry<'_>) -> Result<KnowledgeDocument> {
             target.display()
         );
     }
-    let encoded = encode(&id, input.title, input.kind, input.overrides, input.body)?;
+    let encoded = if let Some(template) = template {
+        let mut document = template.clone();
+        document.metadata.id = id.clone();
+        document.metadata.overrides = input.overrides.map(str::to_owned);
+        document.verification_status = "unverified".to_owned();
+        encode_existing(&document, input.body)?
+    } else {
+        encode(&id, input.title, input.kind, input.overrides, input.body)?
+    };
     let source = if input.project.is_some() {
         "project"
     } else {
@@ -145,9 +171,20 @@ pub fn edit_entry(input: EditEntry<'_>) -> Result<KnowledgeDocument> {
     if !original.writable && !input.create_override {
         bail!("{} is read-only", original.source_id);
     }
+    let report = if input.create_override {
+        Some(load_all_documents(input.project)?)
+    } else {
+        None
+    };
+    let existing_override = report.as_ref().and_then(|report| {
+        report.documents.iter().find(|document| {
+            document.source == "user"
+                && document.metadata.overrides.as_deref() == Some(&original.source_id)
+        })
+    });
     let body = match input.replacement {
         Some(body) => body.to_owned(),
-        None => edit_with_editor(&original.body)?,
+        None => edit_with_editor(&existing_override.unwrap_or(&original).body)?,
     };
     if body.trim().is_empty() {
         bail!("replacement body must not be empty; original entry was preserved");
@@ -156,11 +193,7 @@ pub fn edit_entry(input: EditEntry<'_>) -> Result<KnowledgeDocument> {
         bail!("replacement is larger than 256 KB; original entry was preserved");
     }
     if input.create_override {
-        let report = load_all_documents(input.project)?;
-        if let Some(existing) = report.documents.iter().find(|document| {
-            document.source == "user"
-                && document.metadata.overrides.as_deref() == Some(&original.source_id)
-        }) {
+        if let Some(existing) = existing_override {
             let target = PathBuf::from(&existing.path);
             ensure_existing_target_is_safe(&target)?;
             let encoded = encode_existing(existing, &body)?;
@@ -169,14 +202,17 @@ pub fn edit_entry(input: EditEntry<'_>) -> Result<KnowledgeDocument> {
             atomic_replace(&target, encoded.as_bytes())?;
             return inspect_entry(&existing.source_id, input.project);
         }
-        return add_entry(AddEntry {
-            id: Some(&original.metadata.id),
-            title: &original.title,
-            kind: &original.kind,
-            body: &body,
-            project: None,
-            overrides: Some(&original.source_id),
-        });
+        return add_entry_with_metadata(
+            AddEntry {
+                id: Some(&original.metadata.id),
+                title: &original.title,
+                kind: &original.kind,
+                body: &body,
+                project: None,
+                overrides: Some(&original.source_id),
+            },
+            Some(&original),
+        );
     }
     let target = PathBuf::from(&original.path);
     ensure_existing_target_is_safe(&target)?;
@@ -221,7 +257,11 @@ fn encode_existing(document: &KnowledgeDocument, body: &str) -> Result<String> {
     let mut metadata = document.metadata.clone();
     metadata.title = Some(document.title.clone());
     metadata.kind = Some(document.kind.clone());
-    metadata.verification_status = Some(document.verification_status.clone());
+    metadata.verification_status = Some(if body.trim() == document.body.trim() {
+        document.verification_status.clone()
+    } else {
+        "unverified".to_owned()
+    });
     let frontmatter = serde_yaml::to_string(&metadata)?
         .trim_start_matches("---\n")
         .trim_end()
@@ -252,76 +292,84 @@ fn slug(title: &str) -> String {
         value.chars().take(64).collect()
     }
 }
-fn unique_id(root: &Path, base: &str) -> String {
-    if !root.join(format!("{base}.md")).exists() {
+fn unique_id(root: &Path, base: &str, ids: &HashSet<String>) -> String {
+    if !root.join(format!("{base}.md")).exists() && !ids.contains(base) {
         return base.to_owned();
     }
     let stamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_millis())
+        .map(|duration| duration.as_nanos())
         .unwrap_or_default();
     format!("{base}-{stamp}")
+}
+
+fn stored_ids(root: &Path) -> Result<HashSet<String>> {
+    crate::security::files::reject_symlinks(root)?;
+    let mut ids = HashSet::new();
+    if !root.exists() {
+        return Ok(ids);
+    }
+    for entry in walkdir::WalkDir::new(root).follow_links(false) {
+        let entry = entry?;
+        if !entry.file_type().is_file()
+            || entry.path().extension().and_then(|s| s.to_str()) != Some("md")
+        {
+            continue;
+        }
+        let content = crate::security::files::read_text(entry.path(), MAX_NOTE_BYTES)?;
+        if let Ok(document) =
+            super::loader::parse_document(&entry.path().display().to_string(), &content)
+        {
+            ids.insert(document.metadata.id);
+        }
+    }
+    Ok(ids)
 }
 fn edit_with_editor(original: &str) -> Result<String> {
     let editor = env::var("VISUAL")
         .or_else(|_| env::var("EDITOR"))
         .context("set VISUAL or EDITOR, or pass --file")?;
-    let mut parts = editor.split_whitespace();
+    let parts = shell_words::split(&editor).context("invalid quoting in VISUAL or EDITOR")?;
     let program = parts
-        .next()
+        .first()
         .filter(|part| !part.is_empty())
         .context("editor command is empty")?;
-    let temp = env::temp_dir().join(format!(
-        "lbc-edit-{}-{}.md",
-        std::process::id(),
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|duration| duration.as_nanos())
-            .unwrap_or_default()
-    ));
-    atomic_write_new(&temp, original.as_bytes())?;
+    let mut temp = tempfile::Builder::new()
+        .prefix("lbc-edit-")
+        .suffix(".md")
+        .tempfile()?;
+    temp.write_all(original.as_bytes())?;
+    temp.as_file().sync_all()?;
     let status = Command::new(program)
-        .args(parts)
-        .arg(&temp)
+        .args(&parts[1..])
+        .arg(temp.path())
         .status()
         .with_context(|| format!("failed to launch editor {program:?}"))?;
     if !status.success() {
-        let _ = fs::remove_file(&temp);
         bail!("editor exited without saving; original entry was preserved");
     }
-    let body = fs::read_to_string(&temp)?;
-    let _ = fs::remove_file(&temp);
-    Ok(body)
+    crate::security::files::read_text(temp.path(), MAX_NOTE_BYTES)
 }
 fn atomic_write_new(path: &Path, bytes: &[u8]) -> Result<()> {
-    use std::fs::OpenOptions;
-    let mut options = OpenOptions::new();
-    options.write(true).create_new(true);
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::OpenOptionsExt;
-        options.mode(0o600);
-    }
-    let mut file = options
-        .open(path)
+    let temp = prepared_temp(path, bytes)?;
+    temp.persist_noclobber(path)
         .with_context(|| format!("refusing to overwrite {}", path.display()))?;
-    file.write_all(bytes)?;
-    file.sync_all()?;
     Ok(())
 }
 fn atomic_replace(path: &Path, bytes: &[u8]) -> Result<()> {
-    let parent = path.parent().context("entry has no parent directory")?;
-    let temp = parent.join(format!(
-        ".lbc-edit-{}-{}.tmp",
-        std::process::id(),
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|duration| duration.as_nanos())
-            .unwrap_or_default()
-    ));
-    atomic_write_new(&temp, bytes)?;
-    fs::rename(&temp, path).with_context(|| format!("failed to replace {}", path.display()))?;
+    let temp = prepared_temp(path, bytes)?;
+    temp.persist(path)
+        .with_context(|| format!("failed to replace {}", path.display()))?;
     Ok(())
+}
+fn prepared_temp(path: &Path, bytes: &[u8]) -> Result<tempfile::NamedTempFile> {
+    let parent = path.parent().context("entry has no parent directory")?;
+    let mut temp = tempfile::Builder::new()
+        .prefix(".lbc-write-")
+        .tempfile_in(parent)?;
+    temp.write_all(bytes)?;
+    temp.as_file().sync_all()?;
+    Ok(temp)
 }
 fn ensure_store_is_safe(path: &Path, anchor: &Path) -> Result<()> {
     if fs::symlink_metadata(path)?.file_type().is_symlink() {
@@ -338,6 +386,7 @@ fn ensure_store_is_safe(path: &Path, anchor: &Path) -> Result<()> {
     Ok(())
 }
 fn ensure_existing_target_is_safe(path: &Path) -> Result<()> {
+    crate::security::files::reject_symlinks(path)?;
     if fs::symlink_metadata(path)?.file_type().is_symlink() {
         bail!("refusing to edit symlink {}", path.display());
     }

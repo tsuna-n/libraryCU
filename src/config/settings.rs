@@ -107,7 +107,7 @@ pub fn load_from(path: PathBuf) -> Result<LoadedConfig> {
         });
     }
 
-    let content = fs::read_to_string(&path)
+    let content = crate::security::files::read_text(&path, 256 * 1024)
         .with_context(|| format!("failed to read configuration at {}", path.display()))?;
     let config: Config = toml::from_str(&content)
         .with_context(|| format!("invalid configuration at {}", path.display()))?;
@@ -146,6 +146,7 @@ pub fn set_value(key: &str, value: &str) -> Result<PathBuf> {
     }
     validate(&config)?;
 
+    crate::security::files::reject_symlinks(&path)?;
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)
             .with_context(|| format!("failed to create {}", parent.display()))?;

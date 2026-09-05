@@ -1,7 +1,4 @@
-use std::{
-    fs,
-    io::{self, IsTerminal, Read},
-};
+use std::io::{self, IsTerminal, Read};
 
 use anyhow::{Context, Result, bail};
 
@@ -40,12 +37,7 @@ pub fn run(args: ExplainArgs) -> Result<()> {
 
 fn read_error_input(args: &ExplainArgs) -> Result<String> {
     if let Some(path) = &args.file {
-        let metadata = fs::metadata(path)
-            .with_context(|| format!("failed to inspect error log {}", path.display()))?;
-        if metadata.len() > MAX_ERROR_INPUT_BYTES {
-            bail!("error log is larger than 2 MB: {}", path.display());
-        }
-        return fs::read_to_string(path)
+        return security::files::read_text(path, MAX_ERROR_INPUT_BYTES)
             .with_context(|| format!("failed to read error log {}", path.display()));
     }
     if args.stdin || !io::stdin().is_terminal() {

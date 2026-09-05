@@ -31,11 +31,13 @@ impl AiProvider for OpenRouterProvider {
         let response = self
             .http
             .post(OPENROUTER_ENDPOINT)
+            .timeout(std::time::Duration::from_secs(45))
             .bearer_auth(&self.api_key)
             .header("X-Title", "libraryCube")
             .json(&build_chat_body(&request))
             .send()
             .await
+            .map_err(reqwest::Error::without_url)
             .context("failed to reach the OpenRouter API")?;
         let (status, payload) = read_bounded_response(response).await?;
         if !status.is_success() {

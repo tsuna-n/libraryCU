@@ -1,4 +1,4 @@
-use std::{fs, path::Path};
+use std::path::Path;
 
 use anyhow::{Context, Result};
 
@@ -171,11 +171,7 @@ fn read_json_value(path: &Path) -> Option<serde_json::Value> {
 }
 
 fn read_small_text(path: &Path) -> Result<String> {
-    let metadata = fs::metadata(path)?;
-    if metadata.len() > 256 * 1024 {
-        anyhow::bail!("metadata file is larger than 256 KB");
-    }
-    fs::read_to_string(path).map_err(Into::into)
+    crate::security::files::read_text(path, 256 * 1024)
 }
 
 fn push_unique(items: &mut Vec<String>, value: &str) {
@@ -186,6 +182,7 @@ fn push_unique(items: &mut Vec<String>, value: &str) {
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use super::*;

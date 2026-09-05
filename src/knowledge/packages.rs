@@ -66,8 +66,10 @@ pub fn data_dir() -> PathBuf {
 /// Validate a package directory and copy it into the data directory.
 /// Only markdown documents and the manifest are copied.
 pub fn install_package(source: &Path, data_dir: &Path) -> Result<InstalledPackage> {
+    crate::security::files::reject_symlinks(source)?;
+    crate::security::files::reject_symlinks(data_dir)?;
     let manifest_path = source.join(MANIFEST_FILE);
-    let manifest_content = fs::read_to_string(&manifest_path)
+    let manifest_content = crate::security::files::read_text(&manifest_path, 256 * 1024)
         .with_context(|| format!("failed to read {}", manifest_path.display()))?;
     let manifest = parse_manifest(&manifest_content)?;
 
@@ -88,14 +90,15 @@ pub fn install_package(source: &Path, data_dir: &Path) -> Result<InstalledPackag
         .with_context(|| format!("failed to create {}", target.display()))?;
     fs::write(target.join(MANIFEST_FILE), &manifest_content)
         .with_context(|| format!("failed to write the manifest into {}", target.display()))?;
-    for (relative, _content) in &documents {
+    for (relative, content) in &documents {
         let destination = target.join(relative);
         if let Some(parent) = destination.parent() {
             fs::create_dir_all(parent)
                 .with_context(|| format!("failed to create {}", parent.display()))?;
         }
-        fs::copy(source.join(relative), &destination)
-            .with_context(|| format!("failed to copy {relative}"))?;
+        // Write the validated snapshot; reopening the source could copy a
+        // different (or now symlinked) file after validation.
+        fs::write(&destination, content).with_context(|| format!("failed to copy {relative}"))?;
     }
 
     Ok(InstalledPackage {
@@ -109,6 +112,9 @@ pub fn install_package(source: &Path, data_dir: &Path) -> Result<InstalledPackag
 
 pub fn list_packages(data_dir: &Path) -> Vec<InstalledPackage> {
     let mut packages = Vec::new();
+    if crate::security::files::reject_symlinks(data_dir).is_err() {
+        return packages;
+    }
     let Ok(entries) = fs::read_dir(data_dir) else {
         return packages;
     };
@@ -116,7 +122,9 @@ pub fn list_packages(data_dir: &Path) -> Vec<InstalledPackage> {
         if !entry.path().is_dir() {
             continue;
         }
-        let Ok(content) = fs::read_to_string(entry.path().join(MANIFEST_FILE)) else {
+        let Ok(content) =
+            crate::security::files::read_text(&entry.path().join(MANIFEST_FILE), 256 * 1024)
+        else {
             continue;
         };
         let Ok(manifest) = parse_manifest(&content) else {
@@ -144,6 +152,7 @@ pub fn remove_package(name: &str, data_dir: &Path) -> Result<PathBuf> {
         bail!("invalid package name {name:?}");
     }
     let target = data_dir.join(name);
+    crate::security::files::reject_symlinks(&target)?;
     if !target.is_dir() {
         bail!(
             "package {name:?} is not installed in {}",
@@ -157,6 +166,7 @@ pub fn remove_package(name: &str, data_dir: &Path) -> Result<PathBuf> {
 
 /// Collect and validate every markdown document below the package root.
 fn collect_documents(package_root: &Path) -> Result<Vec<(String, String)>> {
+    crate::security::files::reject_symlinks(package_root)?;
     let mut documents = Vec::new();
     let mut ids = HashSet::new();
     for entry in WalkDir::new(package_root).follow_links(false) {
@@ -166,7 +176,7 @@ fn collect_documents(package_root: &Path) -> Result<Vec<(String, String)>> {
         {
             continue;
         }
-        let content = fs::read_to_string(entry.path())
+        let content = crate::security::files::read_text(entry.path(), 256 * 1024)
             .with_context(|| format!("failed to read {}", entry.path().display()))?;
         let relative = entry
             .path()

@@ -1,10 +1,9 @@
 use std::{
-    fs,
     io::{self, Read},
     path::Path,
 };
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Result, bail};
 use serde::Serialize;
 
 use crate::{
@@ -199,13 +198,5 @@ fn read_input(file: Option<&Path>, stdin: bool) -> Result<String> {
     bail!("provide --file or --stdin")
 }
 fn read_file(path: &Path) -> Result<String> {
-    let metadata = fs::symlink_metadata(path)
-        .with_context(|| format!("failed to inspect {}", path.display()))?;
-    if metadata.file_type().is_symlink() {
-        bail!("refusing to read symlink {}", path.display());
-    }
-    if metadata.len() > MAX_INPUT_BYTES {
-        bail!("input is larger than 256 KB");
-    }
-    fs::read_to_string(path).with_context(|| format!("failed to read {}", path.display()))
+    crate::security::files::read_text(path, MAX_INPUT_BYTES)
 }

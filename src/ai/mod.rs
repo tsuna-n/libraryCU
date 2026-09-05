@@ -2,6 +2,7 @@ pub mod context;
 pub mod enhance;
 pub mod openai_compat;
 pub mod openrouter;
+pub mod prompt;
 pub mod provider;
 
 pub use context::{MAX_ERROR_CONTEXT_CHARS, build_request, build_request_with_language};
@@ -27,19 +28,27 @@ pub struct AiContribution {
 
 /// Resolve the configured provider into a client, or explain why AI is unavailable.
 pub fn resolve_client(ai: &AiConfig) -> anyhow::Result<AiClient> {
+    resolve_client_with_env(ai, |name| std::env::var(name).ok())
+}
+
+fn resolve_client_with_env(
+    ai: &AiConfig,
+    env_value: impl Fn(&str) -> Option<String>,
+) -> anyhow::Result<AiClient> {
     match ai.provider.as_str() {
         "openrouter" => {
-            let api_key = std::env::var("OPENROUTER_API_KEY")
-                .map_err(|_| anyhow::anyhow!("OPENROUTER_API_KEY is not set"))?;
+            let api_key = env_value("OPENROUTER_API_KEY")
+                .filter(|key| !key.trim().is_empty())
+                .ok_or_else(|| anyhow::anyhow!("OPENROUTER_API_KEY is not set or is empty"))?;
             Ok(AiClient::OpenRouter(OpenRouterProvider::new(api_key)))
         }
         "openai-compat" => {
             // Key is optional: local servers need none. Vendor env vars are
             // accepted for convenience (GLM_API_KEY, ZAI_API_KEY, then OPENAI_API_KEY).
-            let api_key = std::env::var("GLM_API_KEY")
-                .or_else(|_| std::env::var("ZAI_API_KEY"))
-                .or_else(|_| std::env::var("OPENAI_API_KEY"))
-                .ok();
+            let api_key = ["GLM_API_KEY", "ZAI_API_KEY", "OPENAI_API_KEY"]
+                .iter()
+                .filter_map(|name| env_value(name))
+                .find(|key| !key.trim().is_empty());
             Ok(AiClient::OpenAiCompat(OpenAiCompatProvider::new(
                 ai.base_url.clone(),
                 api_key,
@@ -62,8 +71,8 @@ mod tests {
             model: "test-model".to_owned(),
             base_url: String::new(),
         };
-        unsafe { std::env::remove_var("OPENROUTER_API_KEY") };
-        assert!(resolve_client(&ai).is_err());
+        assert!(resolve_client_with_env(&ai, |_| None).is_err());
+        assert!(resolve_client_with_env(&ai, |_| Some(" ".into())).is_err());
     }
 
     #[test]
@@ -73,8 +82,8 @@ mod tests {
             model: "test-model".to_owned(),
             base_url: "http://127.0.0.1:11434/v1".to_owned(),
         };
-        unsafe { std::env::remove_var("OPENAI_API_KEY") };
-        let client = resolve_client(&ai).expect("openai-compat should not require a key");
+        let client =
+            resolve_client_with_env(&ai, |_| None).expect("openai-compat should not require a key");
         match client {
             AiClient::OpenAiCompat(provider) => {
                 assert_eq!(

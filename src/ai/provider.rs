@@ -33,11 +33,9 @@ pub async fn read_bounded_response(
         anyhow::bail!("provider response is larger than 2 MB");
     }
     let mut payload = Vec::new();
-    while let Some(chunk) = response
-        .chunk()
-        .await
-        .map_err(|error| anyhow::anyhow!("failed to read provider response: {error}"))?
-    {
+    while let Some(chunk) = response.chunk().await.map_err(|error| {
+        anyhow::anyhow!("failed to read provider response: {}", error.without_url())
+    })? {
         if payload.len().saturating_add(chunk.len()) > MAX_PROVIDER_RESPONSE_BYTES {
             anyhow::bail!("provider response is larger than 2 MB");
         }
@@ -125,7 +123,10 @@ pub fn parse_chat_response(payload: &str, fallback_model: &str) -> anyhow::Resul
             .get("message")
             .and_then(serde_json::Value::as_str)
             .unwrap_or("unknown provider error");
-        anyhow::bail!("provider error: {message}");
+        anyhow::bail!(
+            "provider error: {}",
+            crate::security::redact_sensitive(message)
+        );
     }
     let message = value
         .get("choices")
@@ -155,8 +156,8 @@ pub fn parse_chat_response(payload: &str, fallback_model: &str) -> anyhow::Resul
         .and_then(serde_json::Value::as_str)
         .unwrap_or(fallback_model);
     Ok(AiResponse {
-        content: content.to_owned(),
-        model: model.to_owned(),
+        content: crate::security::redact_sensitive(content),
+        model: crate::security::redact_sensitive(model),
     })
 }
 

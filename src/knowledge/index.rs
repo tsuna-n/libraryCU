@@ -276,6 +276,9 @@ fn is_stopword(term: &str) -> bool {
 }
 
 fn make_excerpt(body: &str, terms: &[String]) -> String {
+    // Detect multiline secrets before paragraph selection can discard their markers.
+    let redacted = crate::security::redact_sensitive(body);
+    let body = redacted.as_str();
     let paragraphs: Vec<_> = body
         .split("\n\n")
         .map(str::trim)

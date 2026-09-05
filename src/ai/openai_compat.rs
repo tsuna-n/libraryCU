@@ -37,7 +37,10 @@ impl AiProvider for OpenAiCompatProvider {
     }
 
     async fn chat(&self, request: AiRequest) -> anyhow::Result<AiResponse> {
-        let mut http = self.http.post(self.endpoint());
+        let mut http = self
+            .http
+            .post(self.endpoint())
+            .timeout(std::time::Duration::from_secs(45));
         if let Some(api_key) = &self.api_key {
             http = http.bearer_auth(api_key);
         }
@@ -45,6 +48,7 @@ impl AiProvider for OpenAiCompatProvider {
             .json(&build_chat_body(&request))
             .send()
             .await
+            .map_err(reqwest::Error::without_url)
             .context("failed to reach the OpenAI-compatible endpoint")?;
         let (status, payload) = read_bounded_response(response).await?;
         if !status.is_success() {

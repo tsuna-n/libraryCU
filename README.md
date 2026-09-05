@@ -172,11 +172,19 @@ lbc config show --json
 lbc doctor --json
 ```
 
-`scan` is a lightweight inventory; it does not imply that every source file was read. JSON commands print one machine-readable value to stdout, while warnings go to stderr.
+`scan` is a lightweight inventory; it does not imply that every source file was read. JSON commands print one machine-readable value to stdout, while warnings go to stderr. `doctor` exits nonzero when any check fails, including with `--json`; the JSON report is still printed.
 
 ## Safety boundaries
 
 `search`, `inspect`, `ask`, `explain`, `scan`, and `doctor` do not change project sources, install packages, run suggested repairs, or execute arbitrary shell commands. Only explicit add/edit/package/config/history-clear operations write their selected data targets. Common keys, bearer values, provider tokens, authorization headers, passwords, database URLs, and known token formats are redacted from remote context and persistent history.
+
+Redaction handles multiple credentials per line, quoted structured keys, URI user information, and Unicode prefixes. Private-key blocks are redacted before passage selection while preserving line numbers. It is pattern-based, not a guarantee that arbitrary secrets are detected: review sensitive notes before opting into remote AI. Config display masks recognizable credentials without changing the saved value.
+
+Input limits: questions/search queries are at most 8 KiB; notes are at most 256 KiB **including serialized metadata**; error-log input is at most 2 MiB. AI user context is limited to 32,000 Unicode characters, with separate per-field limits and retrieved knowledge prioritized ahead of chat history. Each provider request has a 45-second timeout and a 2 MiB response limit.
+
+Note creation publishes a fully written temporary file without overwriting an existing target. Edits atomically replace a validated document; failed editor launches and cancellations clean up temporary files. Builtin overrides preserve retrieval metadata, and changed bodies reset verification to `unverified`. Editor arguments support quoting without launching a shell implicitly. Bounded text readers reject special files and symlinked path components (including parent directories); use real, non-symlinked storage paths.
+
+Production readiness remains **under audit**, especially ignored-file handling, concurrent writers, and complete Thai diagnostic content. See [the readiness audit](docs/readiness-audit.md) before using project context with sensitive repositories.
 
 ## Development
 
@@ -188,6 +196,12 @@ cargo test --locked
 cargo build --locked --release
 ```
 
-Tests use isolated XDG stores and a local mock HTTP provider; CI needs no API key or live service.
+CLI tests use isolated XDG stores and a local mock HTTP provider; CI needs no API key or live service. Socket-restricted environments must allow loopback for provider tests; those tests fail rather than silently skip. The real timeout regression takes approximately 45 seconds.
+
+To repeat the CLI walkthrough against the release binary, outside the source checkout (the fixtures set their own working directories):
+
+```bash
+LBC_TEST_BINARY="$PWD/target/release/lbc" cargo test --locked --test cli add_list_inspect_ask_edit_roundtrip_uses_current_content
+```
 
 Deferred work includes vector search, embedding services, executable plugin SDKs, model training, automatic repair, autonomous agents, GUI/TUI redesign, npm distribution, and broad compiler coverage.

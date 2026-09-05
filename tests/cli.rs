@@ -9,11 +9,14 @@ static DEFAULT_TEST_HOME: LazyLock<std::path::PathBuf> =
     LazyLock::new(|| std::env::temp_dir().join(format!("lbc-test-default-{}", std::process::id())));
 
 fn lbc() -> Command {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_lbc"));
+    let binary =
+        std::env::var_os("LBC_TEST_BINARY").unwrap_or_else(|| env!("CARGO_BIN_EXE_lbc").into());
+    let mut command = Command::new(binary);
     command
         .env("XDG_DATA_HOME", DEFAULT_TEST_HOME.join("data"))
         .env("XDG_CONFIG_HOME", DEFAULT_TEST_HOME.join("config"))
         .env("XDG_CACHE_HOME", DEFAULT_TEST_HOME.join("cache"))
+        .env_remove("LBC_CONFIG")
         .env_remove("OPENROUTER_API_KEY")
         .env_remove("OPENAI_API_KEY")
         .env_remove("GLM_API_KEY")
@@ -24,6 +27,7 @@ fn lbc() -> Command {
 fn isolated_lbc(home: &std::path::Path) -> Command {
     let mut command = lbc();
     command
+        .current_dir(home)
         .env("XDG_DATA_HOME", home.join("data"))
         .env("XDG_CONFIG_HOME", home.join("config"))
         .env("XDG_CACHE_HOME", home.join("cache"))
@@ -556,6 +560,7 @@ fn add_list_inspect_ask_edit_roundtrip_uses_current_content() {
 #[test]
 fn e0308_is_answered_from_builtin_knowledge_without_a_special_rule() {
     let home = temporary_home("e0308");
+    std::fs::create_dir_all(&home).unwrap();
     let mut child = isolated_lbc(&home)
         .arg("explain")
         .stdin(Stdio::piped())
@@ -580,6 +585,28 @@ fn e0308_is_answered_from_builtin_knowledge_without_a_special_rule() {
         stdout.contains("Retrieved knowledge (unverified)"),
         "{stdout}"
     );
+    std::fs::remove_dir_all(home).unwrap();
+}
+
+#[test]
+fn config_and_doctor_mask_url_credentials_without_modifying_config() {
+    let home = tempfile::tempdir().unwrap();
+    let path = home.path().join("config/lbc/config.toml");
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    let content = "[ai]\nprovider = 'openai-compat'\nmodel = 'mock'\nbase_url = 'https://fixture-user:fixture-password@example.invalid/v1'\n";
+    std::fs::write(&path, content).unwrap();
+    for args in [
+        vec!["config", "show"],
+        vec!["config", "show", "--json"],
+        vec!["doctor", "--json"],
+    ] {
+        let result = isolated_lbc(home.path()).args(args).output().unwrap();
+        assert!(result.status.success());
+        let output = String::from_utf8_lossy(&result.stdout);
+        assert!(!output.contains("fixture-user") && !output.contains("fixture-password"));
+        assert!(output.contains("[REDACTED]"));
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), content);
+    }
 }
 
 #[test]
@@ -622,7 +649,124 @@ fn builtin_can_be_inspected_and_explicitly_overridden() {
         !stdout.contains("passing `&str`"),
         "builtin should not remain effective: {stdout}"
     );
+    let inspect = isolated_lbc(&home)
+        .args(["inspect", "user:rust-e0308", "--json"])
+        .output()
+        .unwrap();
+    let document: serde_json::Value = serde_json::from_slice(&inspect.stdout).unwrap();
+    assert_eq!(document["metadata"]["error_code"], "E0308");
+    assert_eq!(document["verification_status"], "unverified");
     std::fs::remove_dir_all(home).unwrap();
+}
+
+#[test]
+fn editing_changed_content_invalidates_previous_verification() {
+    let home = tempfile::tempdir().unwrap();
+    let notes = home.path().join("data/lbc/notes");
+    std::fs::create_dir_all(&notes).unwrap();
+    std::fs::write(notes.join("checked.md"), "---\nid: checked\ntitle: Checked note\nverification_status: user-reported\nerror_code: DEMO42\ntags: [demo]\n---\nPreviously tested instructions.\n").unwrap();
+    let replacement = home.path().join("replacement.md");
+    std::fs::write(
+        &replacement,
+        "Different instructions without a recorded test.\n",
+    )
+    .unwrap();
+    let edit = isolated_lbc(home.path())
+        .args(["edit", "user:checked", "--file"])
+        .arg(&replacement)
+        .output()
+        .unwrap();
+    assert!(
+        edit.status.success(),
+        "{}",
+        String::from_utf8_lossy(&edit.stderr)
+    );
+    let inspect = isolated_lbc(home.path())
+        .args(["inspect", "user:checked", "--json"])
+        .output()
+        .unwrap();
+    let document: serde_json::Value = serde_json::from_slice(&inspect.stdout).unwrap();
+    assert_eq!(document["verification_status"], "unverified");
+    assert_eq!(document["metadata"]["error_code"], "DEMO42");
+    assert_eq!(document["metadata"]["tags"][0], "demo");
+    assert_eq!(
+        std::fs::read_dir(notes).unwrap().count(),
+        1,
+        "temporary file leaked"
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn quoted_editor_uses_existing_override_and_failed_launch_cleans_up() {
+    let home = tempfile::tempdir().unwrap();
+    let replacement = home.path().join("replacement.md");
+    let body = "Retain this distinctive existing override body.\n";
+    std::fs::write(&replacement, body).unwrap();
+    let edit = isolated_lbc(home.path())
+        .args(["edit", "builtin:rust-e0308", "--override", "--file"])
+        .arg(&replacement)
+        .output()
+        .unwrap();
+    assert!(edit.status.success());
+    let editor = home.path().join("editor with spaces.sh");
+    std::fs::write(&editor, "test \"$1\" = 'argument with spaces' || exit 4\ncase \"$(head -n 1 \"$2\")\" in 'Retain this distinctive existing override body.') exit 0;; *) exit 5;; esac\n").unwrap();
+    let temps = home.path().join("editor-temporary");
+    std::fs::create_dir(&temps).unwrap();
+    let edit = isolated_lbc(home.path())
+        .args(["edit", "builtin:rust-e0308", "--override"])
+        .env(
+            "VISUAL",
+            format!("/bin/sh '{}' 'argument with spaces'", editor.display()),
+        )
+        .env("TMPDIR", &temps)
+        .output()
+        .unwrap();
+    assert!(
+        edit.status.success(),
+        "{}",
+        String::from_utf8_lossy(&edit.stderr)
+    );
+    assert_eq!(std::fs::read_dir(&temps).unwrap().count(), 0);
+    let path = home.path().join("data/lbc/notes/rust-e0308.md");
+    let before = std::fs::read(&path).unwrap();
+    for command in ["/no/such/lbc-editor", "/bin/false"] {
+        let edit = isolated_lbc(home.path())
+            .args(["edit", "user:rust-e0308"])
+            .env("VISUAL", command)
+            .env("TMPDIR", &temps)
+            .output()
+            .unwrap();
+        assert!(!edit.status.success());
+        assert_eq!(std::fs::read(&path).unwrap(), before);
+        assert_eq!(std::fs::read_dir(&temps).unwrap().count(), 0);
+    }
+}
+
+#[test]
+fn unhealthy_doctor_emits_json_and_fails() {
+    let home = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(home.path().join("config/lbc")).unwrap();
+    std::fs::write(
+        home.path().join("config/lbc/config.toml"),
+        "[ai]\nprovider = 'openrouter'\nmodel = 'test-model'\n",
+    )
+    .unwrap();
+    let result = isolated_lbc(home.path())
+        .args(["doctor", "--json"])
+        .current_dir(home.path())
+        .output()
+        .unwrap();
+    assert!(!result.status.success());
+    let report: serde_json::Value = serde_json::from_slice(&result.stdout).unwrap();
+    assert_eq!(report["healthy"], false);
+    assert!(
+        report["checks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|check| check["name"] == "AI provider" && check["ok"] == false)
+    );
 }
 
 #[test]
@@ -666,6 +810,26 @@ fn default_chat_does_not_create_history_and_persistent_chat_does() {
     let saved = std::fs::read_to_string(home.join("data/lbc/history/default.json")).unwrap();
     assert!(!saved.contains("history-secret-value"));
     assert!(saved.contains("[REDACTED]"));
+    let mut restored = isolated_lbc(&home)
+        .arg("chat")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::null())
+        .spawn()
+        .unwrap();
+    restored
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(b"second-session-unique\n/exit\n")
+        .unwrap();
+    assert!(restored.wait().unwrap().success());
+    let saved = std::fs::read_to_string(home.join("data/lbc/history/default.json")).unwrap();
+    assert!(
+        saved.contains("User: ownership"),
+        "previous session was not restored"
+    );
+    assert!(saved.contains("second-session-unique"));
+    assert!(!saved.contains("history-secret-value"));
     let cleared = isolated_lbc(&home)
         .args(["history", "clear", "--json"])
         .output()
@@ -673,6 +837,118 @@ fn default_chat_does_not_create_history_and_persistent_chat_does() {
     assert!(cleared.status.success());
     assert!(!home.join("data/lbc/history/default.json").exists());
     std::fs::remove_dir_all(home).unwrap();
+}
+
+#[test]
+fn timed_out_provider_preserves_the_offline_answer() {
+    let home = tempfile::tempdir().unwrap();
+    let listener =
+        TcpListener::bind("127.0.0.1:0").expect("loopback sockets required for timeout regression");
+    listener.set_nonblocking(true).unwrap();
+    let address = listener.local_addr().unwrap();
+    let (stop, stopped) = mpsc::channel();
+    let server = thread::spawn(move || {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        let stream = loop {
+            match listener.accept() {
+                Ok((stream, _)) => break stream,
+                Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                    assert!(
+                        std::time::Instant::now() < deadline,
+                        "provider received no connection"
+                    );
+                    thread::sleep(std::time::Duration::from_millis(10));
+                }
+                Err(error) => panic!("accept failed: {error}"),
+            }
+        };
+        // Deliberately send no HTTP headers. Release the connection after the
+        // client's real 45-second deadline rather than simulating an error.
+        let _ = stopped.recv_timeout(std::time::Duration::from_secs(55));
+        drop(stream);
+    });
+    std::fs::create_dir_all(home.path().join("config/lbc")).unwrap();
+    std::fs::write(
+        home.path().join("config/lbc/config.toml"),
+        format!(
+            "[ai]\nprovider = 'openai-compat'\nmodel = 'mock'\nbase_url = 'http://{address}/v1'\n"
+        ),
+    )
+    .unwrap();
+    let result = isolated_lbc(home.path())
+        .args(["ask", "E0308 mismatched types", "--ai", "--json"])
+        .current_dir(home.path())
+        .output()
+        .unwrap();
+    let _ = stop.send(());
+    server.join().unwrap();
+    assert!(result.status.success());
+    let report: serde_json::Value = serde_json::from_slice(&result.stdout).unwrap();
+    assert!(report.get("ai").is_none());
+    assert!(
+        report["ai_error"].as_str().unwrap().contains("timed out"),
+        "{report}"
+    );
+    assert!(
+        report["offline_answer"]
+            .as_str()
+            .unwrap()
+            .contains("builtin:rust-e0308")
+    );
+    assert!(
+        report["offline_answer"]
+            .as_str()
+            .unwrap()
+            .contains("Mismatched types")
+    );
+}
+
+#[test]
+fn offline_commands_never_connect_to_the_configured_provider() {
+    let home = tempfile::tempdir().unwrap();
+    let listener = TcpListener::bind("127.0.0.1:0")
+        .expect("loopback sockets required for the privacy regression test");
+    listener.set_nonblocking(true).unwrap();
+    std::fs::create_dir_all(home.path().join("config/lbc")).unwrap();
+    std::fs::write(
+        home.path().join("config/lbc/config.toml"),
+        format!(
+            "[ai]\nprovider = 'openai-compat'\nmodel = 'mock'\nbase_url = 'http://{}/v1'\n",
+            listener.local_addr().unwrap()
+        ),
+    )
+    .unwrap();
+    let result = isolated_lbc(home.path())
+        .args(["ask", "E0308", "--json"])
+        .current_dir(home.path())
+        .output()
+        .unwrap();
+    assert!(result.status.success());
+    for (command, input) in [
+        ("explain", "error[E0308]: mismatched types\n"),
+        ("chat", "E0308\n/exit\n"),
+    ] {
+        let mut child = isolated_lbc(home.path())
+            .arg(command)
+            .current_dir(home.path())
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()
+            .unwrap();
+        child
+            .stdin
+            .take()
+            .unwrap()
+            .write_all(input.as_bytes())
+            .unwrap();
+        let result = child.wait_with_output().unwrap();
+        assert!(result.status.success(), "offline {command} failed");
+    }
+    match listener.accept() {
+        Err(error) => assert_eq!(error.kind(), std::io::ErrorKind::WouldBlock),
+        Ok(_) => panic!("a command contacted the provider without --ai"),
+    }
+    assert!(!home.path().join("data/lbc/history").exists());
 }
 
 #[test]
@@ -699,20 +975,30 @@ fn mock_ai_receives_retrieved_passage_and_redacts_secrets() {
         .unwrap();
     assert!(added.status.success());
 
-    let listener = match TcpListener::bind("127.0.0.1:0") {
-        Ok(listener) => listener,
-        Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => {
-            // Some restricted test sandboxes deny loopback sockets. The same
-            // test runs normally in CI and can also be selected standalone.
-            std::fs::remove_dir_all(home).unwrap();
-            return;
-        }
-        Err(error) => panic!("failed to bind mock provider: {error}"),
-    };
+    let listener = TcpListener::bind("127.0.0.1:0").expect(
+        "mock provider requires loopback sockets; rerun outside a socket-restricted sandbox",
+    );
+    listener.set_nonblocking(true).unwrap();
     let address = listener.local_addr().unwrap();
     let (sender, receiver) = mpsc::channel();
     let server = thread::spawn(move || {
-        let (mut stream, _) = listener.accept().unwrap();
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        let (mut stream, _) = loop {
+            match listener.accept() {
+                Ok(connection) => break connection,
+                Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                    assert!(
+                        std::time::Instant::now() < deadline,
+                        "mock provider received no request"
+                    );
+                    thread::sleep(std::time::Duration::from_millis(10));
+                }
+                Err(error) => panic!("mock provider accept failed: {error}"),
+            }
+        };
+        stream
+            .set_read_timeout(Some(std::time::Duration::from_secs(5)))
+            .unwrap();
         let mut request = Vec::new();
         let mut buffer = [0_u8; 4096];
         let mut expected = None;
@@ -945,5 +1231,58 @@ fn index_reports_invalid_documents_while_valid_notes_remain_searchable() {
         .unwrap();
     assert!(search.status.success());
     assert!(String::from_utf8_lossy(&search.stdout).contains("UNIQUE-NEBULA-GUIDANCE"));
+    std::fs::remove_dir_all(home).unwrap();
+}
+
+#[test]
+fn empty_and_oversized_questions_fail_with_actionable_errors() {
+    let home = temporary_home("query-limits");
+    std::fs::create_dir_all(&home).unwrap();
+    for query in [String::new(), "x".repeat(9 * 1024)] {
+        for command in ["ask", "search"] {
+            let output = isolated_lbc(&home)
+                .args([command, &query])
+                .current_dir(&home)
+                .output()
+                .unwrap();
+            assert!(!output.status.success());
+            assert!(output.stdout.is_empty());
+            let error = String::from_utf8_lossy(&output.stderr);
+            assert!(error.contains("empty") || error.contains("8 KB"));
+        }
+    }
+    let mut child = isolated_lbc(&home)
+        .arg("chat")
+        .current_dir(&home)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all("x".repeat(9 * 1024).as_bytes())
+        .unwrap();
+    let output = child.wait_with_output().unwrap();
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("8 KB"));
+    assert!(!home.join("data/lbc/history/default.json").exists());
+    std::fs::remove_dir_all(home).unwrap();
+}
+
+#[test]
+fn offline_ask_json_does_not_echo_question_credentials() {
+    let home = temporary_home("private-question");
+    std::fs::create_dir_all(&home).unwrap();
+    let output = isolated_lbc(&home)
+        .args(["ask", "API_KEY=fixture-question-secret", "--json"])
+        .current_dir(&home)
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    assert!(!String::from_utf8_lossy(&output.stdout).contains("fixture-question-secret"));
+    let _: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     std::fs::remove_dir_all(home).unwrap();
 }

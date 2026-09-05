@@ -81,12 +81,18 @@ pub fn collect_diagnostic_evidence(
             warnings.push(format!("excluded out-of-root evidence {relative_display}"));
             continue;
         }
-        let Ok(content) = fs::read_to_string(&canonical) else {
+        let Ok(content) = crate::security::files::read_text(
+            &canonical,
+            config.max_file_size_kb.saturating_mul(1024),
+        ) else {
             warnings.push(format!(
                 "evidence file {relative_display} is not readable text"
             ));
             continue;
         };
+        // A selected line can lie inside a private key block whose marker is
+        // outside the excerpt. Redact the complete file before slicing it.
+        let content = security::redact_sensitive(&content);
         let lines: Vec<_> = content.lines().collect();
         let (start, end) = if let Some(line) = line {
             let center = line.saturating_sub(1) as usize;
@@ -129,7 +135,8 @@ fn should_exclude_relative(path: &Path, ignore_hidden: bool) -> bool {
 /// A deliberately small subset for common exact paths and ignored directories.
 /// Complex gitignore syntax remains scanner metadata rather than being guessed.
 fn is_gitignored(root: &Path, relative: &Path) -> bool {
-    let Ok(content) = fs::read_to_string(root.join(".gitignore")) else {
+    let Ok(content) = crate::security::files::read_text(&root.join(".gitignore"), 256 * 1024)
+    else {
         return false;
     };
     let candidate = relative.to_string_lossy().replace('\\', "/");
@@ -247,6 +254,36 @@ mod tests {
         );
         assert!(evidence.is_empty());
         assert!(warnings.iter().any(|warning| warning.contains("oversized")));
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn excerpt_inside_private_key_block_retains_correct_line_bounds() {
+        let root = temporary_root();
+        fs::create_dir_all(&root).unwrap();
+        fs::write(
+            root.join("fixture.txt"),
+            format!(
+                "-----BEGIN PRIVATE KEY-----\n{}-----END PRIVATE KEY-----\n",
+                "interior-key-material\n".repeat(20),
+            ),
+        )
+        .unwrap();
+        let diagnostic = Diagnostic {
+            source: None,
+            code: None,
+            message: "fixture".into(),
+            file: Some("fixture.txt".into()),
+            line: Some(10),
+            column: Some(1),
+        };
+        let (evidence, warnings) =
+            collect_diagnostic_evidence(&root, &diagnostic, &ScannerConfig::default());
+        assert!(warnings.is_empty());
+        assert_eq!(evidence.len(), 1);
+        assert_eq!((evidence[0].start_line, evidence[0].end_line), (7, 13));
+        assert!(!evidence[0].content.contains("interior-key-material"));
+        assert!(evidence[0].content.contains("10: [REDACTED PRIVATE KEY]"));
         fs::remove_dir_all(root).unwrap();
     }
 }

@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use anyhow::Result;
+use anyhow::{Result, bail};
 use serde::Serialize;
 
 use crate::cli::args::DoctorArgs;
@@ -16,7 +16,8 @@ fn ai_check(ai: &AiConfig) -> DoctorCheck {
                 .to_owned(),
         },
         "openrouter" => {
-            let key_set = std::env::var_os("OPENROUTER_API_KEY").is_some();
+            let key_set =
+                std::env::var("OPENROUTER_API_KEY").is_ok_and(|key| !key.trim().is_empty());
             DoctorCheck {
                 name: "AI provider".to_owned(),
                 ok: key_set,
@@ -165,6 +166,9 @@ pub fn run(args: DoctorArgs) -> Result<()> {
         },
     });
 
+    for check in &mut checks {
+        check.detail = crate::security::redact_sensitive(&check.detail);
+    }
     let report = DoctorReport {
         healthy: checks.iter().all(|check| check.ok),
         checks,
@@ -189,6 +193,9 @@ pub fn run(args: DoctorArgs) -> Result<()> {
                 "attention required"
             }
         );
+    }
+    if !report.healthy {
+        bail!("doctor found problems; review the checks above");
     }
     Ok(())
 }
