@@ -4,6 +4,9 @@ libraryCube (`lbc`) is a terminal knowledge library. You can save ordinary Markd
 
 The Rust package and crate are named `librarycube`; the executable is `lbc`.
 
+For copy-paste examples covering every command, see the
+[complete usage examples](docs/usage-examples.md).
+
 ## Install
 
 Use a compatible stable Rust toolchain:
