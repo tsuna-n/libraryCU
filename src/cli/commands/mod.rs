@@ -1,6 +1,10 @@
+pub mod ask;
+pub mod chat;
 pub mod config;
 pub mod doctor;
+pub mod entries;
 pub mod explain;
+pub mod history;
 pub mod knowledge;
 pub mod scan;
 pub mod search;

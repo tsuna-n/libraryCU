@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use crate::{config::LoadedConfig, knowledge::SearchResult, scanner::ScanReport};
 
 pub fn print_config(loaded: &LoadedConfig) {
-    println!("LBC Configuration\n");
+    println!("libraryCube configuration\n");
     println!("Config file");
     if loaded.found {
         println!("  {}\n", loaded.path.display());
@@ -28,6 +28,18 @@ pub fn print_config(loaded: &LoadedConfig) {
     );
     println!("Memory");
     println!("  Mode:            {}", loaded.config.memory.mode);
+    println!(
+        "  History:         {}",
+        crate::history::history_path().display()
+    );
+    println!(
+        "  Persistence:     {}",
+        if loaded.config.memory.mode == "persistent" {
+            "explicitly enabled; redacted bounded history is restored"
+        } else {
+            "disabled; chat context exists only in the active process"
+        }
+    );
     println!("\nAI");
     match loaded.config.ai.provider.as_str() {
         "off" => println!("  Provider:        off (deterministic mode)"),
@@ -62,7 +74,11 @@ pub fn print_scan(report: &ScanReport, show_tree: bool) {
 
     println!("Scan Summary\n");
     println!("Project root\n  {}\n", report.project.root.display());
-    println!("Files inspected\n  {}\n", report.files_inspected);
+    println!(
+        "Eligible files inventoried\n  {}\n",
+        report.files_in_inventory
+    );
+    println!("File contents read\n  {}\n", report.file_contents_read);
     println!("Rust source files\n  {}\n", report.rust_source_files);
     println!("Configuration files\n  {}\n", report.configuration_files);
     println!("Knowledge documents\n  {}\n", report.knowledge_documents);
@@ -150,16 +166,42 @@ fn print_tree_children(node: &TreeNode, prefix: &str) {
 }
 
 pub fn print_search(query: &str, results: &[SearchResult]) {
-    println!("Knowledge Search\n");
-    println!("Query\n  {query}\n");
-    println!("Results");
+    print_search_language(query, results, "en");
+}
+
+pub fn print_search_language(query: &str, results: &[SearchResult], language: &str) {
+    if language == "th" {
+        println!("ค้นหาคลังความรู้\n");
+        println!("คำค้น\n  {query}\n");
+        println!("ผลลัพธ์");
+    } else {
+        println!("Knowledge Search\n");
+        println!("Query\n  {query}\n");
+        println!("Results");
+    }
     if results.is_empty() {
-        println!("\n  No local knowledge matched this query.");
+        println!(
+            "\n  {}",
+            if language == "th" {
+                "ไม่พบความรู้ในเครื่องที่ตรงกับคำค้นนี้"
+            } else {
+                "No local knowledge matched this query."
+            }
+        );
         return;
     }
     for (index, result) in results.iter().take(10).enumerate() {
         println!("\n{}. {}", index + 1, result.document.title);
-        println!("   Match: {}", result.match_reason);
-        println!("   Knowledge: {}", result.document.path);
+        if language == "th" {
+            println!("   เหตุผลที่ตรงกัน: {}", result.match_reason);
+            println!("   แหล่งอ้างอิง: {}", result.document.source_id);
+            println!("   ตำแหน่ง: {}", result.document.path);
+            println!("   เนื้อหาที่เกี่ยวข้อง: {}", result.excerpt);
+        } else {
+            println!("   Match: {}", result.match_reason);
+            println!("   Source: {}", result.document.source_id);
+            println!("   Locator: {}", result.document.path);
+            println!("   Excerpt: {}", result.excerpt);
+        }
     }
 }

@@ -13,8 +13,18 @@ use super::{
 /// Callers are expected to fall back to the deterministic report when this
 /// fails; AI is an optional layer, never a required one.
 pub fn enhance(report: &mut ExplanationReport, redacted_input: &str, ai: &AiConfig) -> Result<()> {
+    enhance_with_language(report, redacted_input, ai, "en")
+}
+
+pub fn enhance_with_language(
+    report: &mut ExplanationReport,
+    redacted_input: &str,
+    ai: &AiConfig,
+    language: &str,
+) -> Result<()> {
     let client = resolve_client(ai)?;
-    let request = build_request(report, redacted_input, &ai.model);
+    let request =
+        super::context::build_request_with_language(report, redacted_input, &ai.model, language);
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()

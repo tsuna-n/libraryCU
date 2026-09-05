@@ -5,6 +5,7 @@ use super::openrouter::OpenRouterProvider;
 
 /// Marker the model is instructed to end its answer with.
 pub const CONFIDENCE_MARKER: &str = "Confidence:";
+pub const MAX_PROVIDER_RESPONSE_BYTES: usize = 2 * 1024 * 1024;
 
 #[derive(Debug, Clone)]
 pub struct AiRequest {
@@ -19,6 +20,32 @@ pub struct AiRequest {
 pub struct AiResponse {
     pub content: String,
     pub model: String,
+}
+
+pub async fn read_bounded_response(
+    mut response: reqwest::Response,
+) -> anyhow::Result<(reqwest::StatusCode, String)> {
+    let status = response.status();
+    if response
+        .content_length()
+        .is_some_and(|length| length > MAX_PROVIDER_RESPONSE_BYTES as u64)
+    {
+        anyhow::bail!("provider response is larger than 2 MB");
+    }
+    let mut payload = Vec::new();
+    while let Some(chunk) = response
+        .chunk()
+        .await
+        .map_err(|error| anyhow::anyhow!("failed to read provider response: {error}"))?
+    {
+        if payload.len().saturating_add(chunk.len()) > MAX_PROVIDER_RESPONSE_BYTES {
+            anyhow::bail!("provider response is larger than 2 MB");
+        }
+        payload.extend_from_slice(&chunk);
+    }
+    let payload = String::from_utf8(payload)
+        .map_err(|_| anyhow::anyhow!("provider response was not valid UTF-8"))?;
+    Ok((status, payload))
 }
 
 /// Vendor-neutral abstraction; core logic must depend on this trait only.
@@ -100,15 +127,29 @@ pub fn parse_chat_response(payload: &str, fallback_model: &str) -> anyhow::Resul
             .unwrap_or("unknown provider error");
         anyhow::bail!("provider error: {message}");
     }
-    let content = value
+    let message = value
         .get("choices")
         .and_then(serde_json::Value::as_array)
         .and_then(|choices| choices.first())
         .and_then(|choice| choice.get("message"))
-        .and_then(|message| message.get("content"))
+        .ok_or_else(|| anyhow::anyhow!("provider response contained no choices"))?;
+    let content = message
+        .get("content")
         .and_then(serde_json::Value::as_str)
-        .filter(|content| !content.trim().is_empty())
-        .ok_or_else(|| anyhow::anyhow!("provider response contained no assistant content"))?;
+        .unwrap_or_default()
+        .trim();
+    if content.is_empty() {
+        if message
+            .get("reasoning_content")
+            .and_then(serde_json::Value::as_str)
+            .is_some_and(|reasoning| !reasoning.trim().is_empty())
+        {
+            anyhow::bail!(
+                "the reasoning model spent its entire token budget on hidden reasoning and returned no answer"
+            );
+        }
+        anyhow::bail!("provider response contained no assistant content");
+    }
     let model = value
         .get("model")
         .and_then(serde_json::Value::as_str)
@@ -181,5 +222,17 @@ mod tests {
     fn rejects_empty_content() {
         let payload = r#"{"choices": [{"message": {"content": "  "}}]}"#;
         assert!(parse_chat_response(payload, "fallback").is_err());
+    }
+
+    #[test]
+    fn explains_reasoning_models_that_return_no_answer() {
+        let payload = r#"{
+            "choices": [{"finish_reason": "length", "message": {
+                "content": "",
+                "reasoning_content": "Let me think about this problem step by step..."
+            }}]
+        }"#;
+        let error = parse_chat_response(payload, "fallback").unwrap_err();
+        assert!(error.to_string().contains("hidden reasoning"));
     }
 }

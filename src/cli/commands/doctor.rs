@@ -31,7 +31,10 @@ fn ai_check(ai: &AiConfig) -> DoctorCheck {
             }
         }
         "openai-compat" => {
-            let key_status = if std::env::var_os("OPENAI_API_KEY").is_some() {
+            let key_status = if ["GLM_API_KEY", "ZAI_API_KEY", "OPENAI_API_KEY"]
+                .iter()
+                .any(|key| std::env::var_os(key).is_some())
+            {
                 "API key detected"
             } else {
                 "no API key (fine for local servers such as Ollama)"
@@ -100,11 +103,25 @@ pub fn run(args: DoctorArgs) -> Result<()> {
     });
 
     checks.push(match project {
-        Ok(project) => match knowledge::load_documents(&project.root) {
-            Ok(documents) if !documents.is_empty() => DoctorCheck {
+        Ok(project) => match knowledge::load_all_documents(&project.root) {
+            Ok(report) if !report.invalid.is_empty() => DoctorCheck {
+                name: "Local knowledge".to_owned(),
+                ok: false,
+                detail: format!(
+                    "{} valid/effective documents; {} invalid (first: {})",
+                    report
+                        .documents
+                        .iter()
+                        .filter(|document| document.effective)
+                        .count(),
+                    report.invalid.len(),
+                    report.invalid[0].path
+                ),
+            },
+            Ok(report) if !report.documents.is_empty() => DoctorCheck {
                 name: "Local knowledge".to_owned(),
                 ok: true,
-                detail: format!("{} documents available", documents.len()),
+                detail: format!("{} documents available", report.documents.len()),
             },
             Ok(_) => DoctorCheck {
                 name: "Local knowledge".to_owned(),
@@ -129,6 +146,25 @@ pub fn run(args: DoctorArgs) -> Result<()> {
         .unwrap_or_default();
     checks.push(ai_check(&ai_config));
 
+    let memory = config::load()
+        .map(|loaded| loaded.config.memory)
+        .unwrap_or_default();
+    checks.push(DoctorCheck {
+        name: "Session memory".to_owned(),
+        ok: true,
+        detail: if memory.mode == "persistent" {
+            format!(
+                "persistent mode enabled; bounded redacted history at {}",
+                crate::history::history_path().display()
+            )
+        } else {
+            format!(
+                "session-only mode; no history is written to {}",
+                crate::history::history_path().display()
+            )
+        },
+    });
+
     let report = DoctorReport {
         healthy: checks.iter().all(|check| check.ok),
         checks,
@@ -136,7 +172,7 @@ pub fn run(args: DoctorArgs) -> Result<()> {
     if args.json {
         println!("{}", serde_json::to_string_pretty(&report)?);
     } else {
-        println!("LBC Doctor\n");
+        println!("libraryCube doctor\n");
         for check in &report.checks {
             println!(
                 "{} {}\n  {}\n",

@@ -9,6 +9,7 @@ use super::diagnostic::Diagnostic;
 pub enum Confidence {
     VerifiedProject,
     KnownRule,
+    RetrievedKnowledge,
     Unknown,
 }
 
@@ -17,6 +18,7 @@ impl std::fmt::Display for Confidence {
         let label = match self {
             Self::VerifiedProject => "Verified from project files",
             Self::KnownRule => "Known diagnostic rule",
+            Self::RetrievedKnowledge => "Retrieved knowledge (unverified)",
             Self::Unknown => "Unknown",
         };
         formatter.write_str(label)
@@ -82,11 +84,14 @@ fn unresolved_import_rule(diagnostic: &Diagnostic, project_root: &Path) -> RuleO
                 format!("The diagnostic references the crate `{crate_name}`."),
                 format!("{} does not declare `{crate_name}` as a dependency.", cargo_path.display()),
             ],
-            cause: format!("The source uses `{crate_name}`, but the Cargo manifest does not declare that external crate."),
-            suggested_fixes: vec![format!("cargo add {crate_name}")],
+            cause: format!("The manifest does not declare `{crate_name}`, but the diagnostic alone does not prove that it is an external crate; it may be a local module, workspace member, alias, feature-gated dependency, or target-specific path."),
+            suggested_fixes: vec![
+                format!("Check whether `{crate_name}` is a local module, workspace member, dependency alias, or feature-gated/target dependency."),
+                format!("Only after confirming `{crate_name}` is an external crate, consider adding the appropriate dependency and version."),
+            ],
             verification: vec!["cargo check".to_owned()],
             next_steps: Vec::new(),
-            confidence: Confidence::VerifiedProject,
+            confidence: Confidence::KnownRule,
         },
         Some(true) => RuleOutcome {
             evidence: vec![
@@ -156,6 +161,15 @@ fn is_external_crate_candidate(name: &str) -> bool {
 }
 
 fn dependency_is_declared(path: &Path, crate_name: &str) -> Option<bool> {
+    let metadata = fs::symlink_metadata(path).ok()?;
+    if metadata.file_type().is_symlink() || metadata.len() > 256 * 1024 {
+        return None;
+    }
+    let root = path.parent()?.canonicalize().ok()?;
+    let canonical = path.canonicalize().ok()?;
+    if !canonical.starts_with(root) {
+        return None;
+    }
     let content = fs::read_to_string(path).ok()?;
     let manifest = toml::from_str::<toml::Value>(&content).ok()?;
     let candidates = [crate_name.to_owned(), crate_name.replace('_', "-")];
@@ -223,8 +237,13 @@ mod tests {
             column: None,
         };
         let outcome = apply_rule(&diagnostic, &root, "");
-        assert_eq!(outcome.confidence, Confidence::VerifiedProject);
-        assert_eq!(outcome.suggested_fixes, ["cargo add tokio"]);
+        assert_eq!(outcome.confidence, Confidence::KnownRule);
+        assert!(
+            outcome
+                .suggested_fixes
+                .iter()
+                .any(|fix| fix.contains("Only after confirming"))
+        );
         assert!(
             outcome
                 .evidence

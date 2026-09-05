@@ -1,7 +1,9 @@
 pub mod ai;
+pub mod answer;
 pub mod cli;
 pub mod config;
 pub mod diagnostics;
+pub mod history;
 pub mod knowledge;
 pub mod output;
 pub mod scanner;

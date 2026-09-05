@@ -4,8 +4,8 @@ pub mod openai_compat;
 pub mod openrouter;
 pub mod provider;
 
-pub use context::{MAX_ERROR_CONTEXT_CHARS, build_request};
-pub use enhance::{apply_response, enhance, enhance_with_client};
+pub use context::{MAX_ERROR_CONTEXT_CHARS, build_request, build_request_with_language};
+pub use enhance::{apply_response, enhance, enhance_with_client, enhance_with_language};
 pub use openai_compat::OpenAiCompatProvider;
 pub use openrouter::OpenRouterProvider;
 pub use provider::{
@@ -34,7 +34,12 @@ pub fn resolve_client(ai: &AiConfig) -> anyhow::Result<AiClient> {
             Ok(AiClient::OpenRouter(OpenRouterProvider::new(api_key)))
         }
         "openai-compat" => {
-            let api_key = std::env::var("OPENAI_API_KEY").ok();
+            // Key is optional: local servers need none. Vendor env vars are
+            // accepted for convenience (GLM_API_KEY, ZAI_API_KEY, then OPENAI_API_KEY).
+            let api_key = std::env::var("GLM_API_KEY")
+                .or_else(|_| std::env::var("ZAI_API_KEY"))
+                .or_else(|_| std::env::var("OPENAI_API_KEY"))
+                .ok();
             Ok(AiClient::OpenAiCompat(OpenAiCompatProvider::new(
                 ai.base_url.clone(),
                 api_key,

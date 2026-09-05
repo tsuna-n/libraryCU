@@ -6,7 +6,7 @@ use clap::{Args, Parser, Subcommand};
 #[command(
     name = "lbc",
     version,
-    about = "LibraryCube - Developer Diagnostic Toolkit",
+    about = "libraryCube - terminal knowledge library",
     propagate_version = true
 )]
 pub struct Cli {
@@ -16,6 +16,25 @@ pub struct Cli {
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
+    /// Add a Markdown entry to your knowledge library
+    Add(AddArgs),
+    /// List effective knowledge entries
+    List(ListArgs),
+    /// Show a complete knowledge entry
+    Inspect(InspectArgs),
+    /// Replace the body of a writable knowledge entry
+    Edit(EditArgs),
+    /// Validate and rebuild the in-memory retrieval index
+    Index(IndexArgs),
+    /// Answer a question from retrieved local knowledge
+    Ask(AskArgs),
+    /// Start a bounded interactive question session
+    Chat(ChatArgs),
+    /// Inspect or clear explicitly persisted chat history
+    History {
+        #[command(subcommand)]
+        command: HistoryCommand,
+    },
     /// Inspect the current project
     Scan(ScanArgs),
     /// Explain compiler or runtime errors
@@ -33,6 +52,101 @@ pub enum Command {
     Knowledge {
         #[command(subcommand)]
         command: KnowledgeCommand,
+    },
+}
+
+#[derive(Debug, Args)]
+pub struct AddArgs {
+    #[arg(long)]
+    pub id: Option<String>,
+    #[arg(long)]
+    pub title: String,
+    #[arg(long, default_value = "note", value_parser = ["note", "concept", "troubleshooting"])]
+    pub kind: String,
+    #[arg(
+        long,
+        value_name = "FILE",
+        conflicts_with = "stdin",
+        required_unless_present = "stdin"
+    )]
+    pub file: Option<PathBuf>,
+    #[arg(long, conflicts_with = "file")]
+    pub stdin: bool,
+    /// Store in PATH/.lbc/knowledge instead of the user notes store
+    #[arg(long)]
+    pub project: Option<PathBuf>,
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct ListArgs {
+    #[arg(long, default_value = ".")]
+    pub project: PathBuf,
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct InspectArgs {
+    pub source_id: String,
+    #[arg(long, default_value = ".")]
+    pub project: PathBuf,
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct EditArgs {
+    pub source_id: String,
+    #[arg(long, value_name = "FILE")]
+    pub file: Option<PathBuf>,
+    #[arg(long, default_value = ".")]
+    pub project: PathBuf,
+    #[arg(long)]
+    pub r#override: bool,
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct IndexArgs {
+    #[arg(long, default_value = ".")]
+    pub project: PathBuf,
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct AskArgs {
+    pub question: String,
+    #[arg(long, default_value = ".")]
+    pub project: PathBuf,
+    #[arg(long)]
+    pub ai: bool,
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct ChatArgs {
+    #[arg(long, default_value = ".")]
+    pub project: PathBuf,
+    #[arg(long)]
+    pub ai: bool,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum HistoryCommand {
+    /// Show whether persistent history exists and where it is stored
+    Show {
+        #[arg(long)]
+        json: bool,
+    },
+    /// Delete the explicit persistent history file
+    Clear {
+        #[arg(long)]
+        json: bool,
     },
 }
 

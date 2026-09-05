@@ -17,11 +17,13 @@ pub fn run(args: ExplainArgs) -> Result<()> {
         bail!("error input is empty");
     }
     let loaded = config::load()?;
+    let language = crate::answer::choose_language(&loaded.config.output.language, &input);
     let mut report = diagnostics::explain(&input, &args.project, &loaded.config.scanner)?;
     if args.ai {
-        match ai::enhance(&mut report, &input, &loaded.config.ai) {
+        match ai::enhance_with_language(&mut report, &input, &loaded.config.ai, &language) {
             Ok(()) => {}
             Err(error) => {
+                report.ai_error = Some(format!("{error:#}"));
                 eprintln!(
                     "! AI enhancement failed; showing the deterministic explanation instead.\n  Reason: {error:#}"
                 );
@@ -31,7 +33,7 @@ pub fn run(args: ExplainArgs) -> Result<()> {
     if args.json {
         println!("{}", serde_json::to_string_pretty(&report)?);
     } else {
-        output::print_explanation(&report, args.verbose);
+        output::print_explanation_language(&report, args.verbose, &language);
     }
     Ok(())
 }

@@ -157,6 +157,9 @@ pub fn set_value(key: &str, value: &str) -> Result<PathBuf> {
 }
 
 fn validate(config: &Config) -> Result<()> {
+    if !matches!(config.output.language.as_str(), "en" | "th" | "auto") {
+        bail!("output.language must be en, th, or auto");
+    }
     if config.scanner.max_file_size_kb == 0 {
         bail!("scanner.max_file_size_kb must be greater than zero");
     }

@@ -17,7 +17,10 @@ pub struct ScanEntry {
 #[derive(Debug, Clone, Serialize)]
 pub struct ScanReport {
     pub project: ProjectInfo,
+    /// Backward-compatible count of eligible files inventoried by metadata.
     pub files_inspected: usize,
+    pub files_in_inventory: usize,
+    pub file_contents_read: usize,
     pub rust_source_files: usize,
     pub configuration_files: usize,
     pub knowledge_documents: usize,
@@ -29,9 +32,17 @@ pub struct ScanReport {
 
 pub fn scan_project(path: &std::path::Path, config: &ScannerConfig) -> Result<ScanReport> {
     let project = detect_project(path)?;
+    // Project detection reads these two small manifests for framework metadata.
+    // Other inventory classification below uses paths and metadata only.
+    let detector_contents_read = ["Cargo.toml", "package.json"]
+        .iter()
+        .filter(|name| project.root.join(name).is_file())
+        .count();
     let mut report = ScanReport {
         project,
         files_inspected: 0,
+        files_in_inventory: 0,
+        file_contents_read: detector_contents_read,
         rust_source_files: 0,
         configuration_files: 0,
         knowledge_documents: 0,
@@ -105,6 +116,7 @@ pub fn scan_project(path: &std::path::Path, config: &ScannerConfig) -> Result<Sc
             continue;
         }
         report.files_inspected += 1;
+        report.files_in_inventory += 1;
         if relative
             .extension()
             .and_then(|extension| extension.to_str())

@@ -1,4 +1,5 @@
 use std::{
+    collections::HashSet,
     fs,
     path::{Path, PathBuf},
 };
@@ -157,6 +158,7 @@ pub fn remove_package(name: &str, data_dir: &Path) -> Result<PathBuf> {
 /// Collect and validate every markdown document below the package root.
 fn collect_documents(package_root: &Path) -> Result<Vec<(String, String)>> {
     let mut documents = Vec::new();
+    let mut ids = HashSet::new();
     for entry in WalkDir::new(package_root).follow_links(false) {
         let entry = entry.with_context(|| format!("failed to walk {}", package_root.display()))?;
         if !entry.file_type().is_file()
@@ -173,8 +175,14 @@ fn collect_documents(package_root: &Path) -> Result<Vec<(String, String)>> {
             .to_string_lossy()
             .into_owned();
         // Validate the document parses; failures abort the whole install.
-        parse_document(&relative, &content)
+        let document = parse_document(&relative, &content)
             .with_context(|| format!("invalid knowledge document {}", entry.path().display()))?;
+        if !ids.insert(document.metadata.id.clone()) {
+            bail!(
+                "duplicate knowledge ID {:?} in package",
+                document.metadata.id
+            );
+        }
         documents.push((relative, content));
     }
     documents.sort();

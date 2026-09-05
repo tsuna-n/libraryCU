@@ -33,9 +33,18 @@ pub struct KnowledgeIndex {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct SearchResult {
+    #[serde(skip_serializing)]
     pub document: KnowledgeDocument,
+    pub source_id: String,
+    pub title: String,
+    pub kind: String,
+    pub verification_status: String,
+    pub source_locator: String,
     pub score: u32,
     pub match_reason: String,
+    pub excerpt: String,
+    pub matched_terms: usize,
+    pub query_terms: usize,
 }
 
 impl KnowledgeIndex {
@@ -61,32 +70,16 @@ impl KnowledgeIndex {
                     .push(position);
             }
             for tag in &metadata.tags {
-                index
-                    .by_tag
-                    .entry(tag.to_lowercase())
-                    .or_default()
-                    .push(position);
+                add_lookup_value(&mut index.by_tag, tag, position);
             }
             for keyword in &metadata.keywords {
-                index
-                    .by_keyword
-                    .entry(keyword.to_lowercase())
-                    .or_default()
-                    .push(position);
+                add_lookup_value(&mut index.by_keyword, keyword, position);
             }
             if let Some(category) = metadata.category.as_deref() {
-                index
-                    .by_category
-                    .entry(category.to_lowercase())
-                    .or_default()
-                    .push(position);
+                add_lookup_value(&mut index.by_category, category, position);
             }
             if let Some(tool) = metadata.tool.as_deref() {
-                index
-                    .by_tool
-                    .entry(tool.to_lowercase())
-                    .or_default()
-                    .push(position);
+                add_lookup_value(&mut index.by_tool, tool, position);
             }
             index.titles.push(document.title.to_lowercase());
             index.bodies.push(document.body.to_lowercase());
@@ -121,12 +114,10 @@ impl KnowledgeIndex {
         if normalized.is_empty() {
             return Vec::new();
         }
-        let terms: Vec<&str> = normalized
-            .split(|character: char| !character.is_alphanumeric())
-            .filter(|term| !term.is_empty())
-            .collect();
+        let terms = query_terms(&normalized);
 
         let mut scores = vec![0u32; self.documents.len()];
+        let mut matched_terms = vec![vec![false; terms.len()]; self.documents.len()];
         let mut reasons = vec!["keyword match"; self.documents.len()];
         let mut best_signal = vec![0u32; self.documents.len()];
 
@@ -141,15 +132,16 @@ impl KnowledgeIndex {
 
         for (position, document) in self.documents.iter().enumerate() {
             if let Some(code) = &document.metadata.error_code
-                && code.to_lowercase() == normalized
+                && (code.to_lowercase() == normalized || terms.contains(&code.to_lowercase()))
             {
                 credit(position, CODE_WEIGHT, CODE_WEIGHT, "exact error code");
             }
             if self.titles[position].contains(&normalized) {
                 credit(position, TITLE_WEIGHT, TITLE_WEIGHT, "title match");
             }
-            for term in &terms {
-                if self.titles[position].contains(term) {
+            for (term_index, term) in terms.iter().enumerate() {
+                if self.titles[position].contains(term.as_str()) {
+                    matched_terms[position][term_index] = true;
                     credit(
                         position,
                         TERM_TITLE_WEIGHT,
@@ -157,8 +149,9 @@ impl KnowledgeIndex {
                         "keyword match",
                     );
                 }
-                if self.bodies[position].contains(term) {
-                    let hits = self.bodies[position].matches(term).count() as u32;
+                if self.bodies[position].contains(term.as_str()) {
+                    matched_terms[position][term_index] = true;
+                    let hits = self.bodies[position].matches(term.as_str()).count() as u32;
                     credit(
                         position,
                         TERM_BODY_WEIGHT * hits.min(MAX_BODY_HITS),
@@ -168,20 +161,25 @@ impl KnowledgeIndex {
                 }
             }
         }
-        for key in &terms {
+        for (term_index, key) in terms.iter().enumerate() {
             for positions in [
-                self.by_tag.get(*key),
-                self.by_keyword.get(*key),
-                self.by_category.get(*key),
-                self.by_tool.get(*key),
+                self.by_tag.get(key),
+                self.by_keyword.get(key),
+                self.by_category.get(key),
+                self.by_tool.get(key),
             ]
             .into_iter()
             .flatten()
             {
                 for &position in positions {
+                    matched_terms[position][term_index] = true;
                     credit(position, METADATA_WEIGHT, METADATA_WEIGHT, "metadata match");
                 }
             }
+        }
+
+        for (position, hits) in matched_terms.iter().enumerate() {
+            scores[position] += hits.iter().filter(|hit| **hit).count() as u32 * 25;
         }
 
         let mut results: Vec<SearchResult> = self
@@ -191,8 +189,16 @@ impl KnowledgeIndex {
             .filter(|(position, _)| scores[*position] > 0)
             .map(|(position, document)| SearchResult {
                 document: document.clone(),
+                source_id: document.source_id.clone(),
+                title: document.title.clone(),
+                kind: document.kind.clone(),
+                verification_status: document.verification_status.clone(),
+                source_locator: document.path.clone(),
                 score: scores[position],
                 match_reason: reasons[position].to_owned(),
+                excerpt: make_excerpt(&document.body, &terms),
+                matched_terms: matched_terms[position].iter().filter(|hit| **hit).count(),
+                query_terms: terms.len(),
             })
             .collect();
         results.sort_by(|left, right| {
@@ -203,6 +209,112 @@ impl KnowledgeIndex {
         });
         results
     }
+}
+
+fn add_lookup_value(map: &mut HashMap<String, Vec<usize>>, value: &str, position: usize) {
+    let normalized = value.to_lowercase();
+    map.entry(normalized.clone()).or_default().push(position);
+    if normalized.chars().any(is_thai) {
+        for fragment in query_terms(&normalized) {
+            if fragment != normalized {
+                map.entry(fragment).or_default().push(position);
+            }
+        }
+    }
+}
+
+fn query_terms(normalized: &str) -> Vec<String> {
+    let mut terms = Vec::new();
+    for term in normalized.split(|character: char| !character.is_alphanumeric()) {
+        if term.chars().count() <= 1 || is_stopword(term) {
+            continue;
+        }
+        if term.chars().any(is_thai) && term.chars().count() > 4 {
+            let characters: Vec<_> = term.chars().collect();
+            for window in characters.windows(3) {
+                let fragment: String = window.iter().collect();
+                if !terms.contains(&fragment) {
+                    terms.push(fragment);
+                }
+            }
+        } else {
+            terms.push(term.to_owned());
+        }
+    }
+    terms
+}
+
+fn is_thai(character: char) -> bool {
+    ('\u{0E00}'..='\u{0E7F}').contains(&character)
+}
+
+fn is_stopword(term: &str) -> bool {
+    matches!(
+        term,
+        "a" | "an"
+            | "and"
+            | "are"
+            | "do"
+            | "does"
+            | "for"
+            | "how"
+            | "i"
+            | "in"
+            | "is"
+            | "it"
+            | "of"
+            | "on"
+            | "or"
+            | "the"
+            | "this"
+            | "to"
+            | "what"
+            | "with"
+            | "work"
+            | "works"
+    )
+}
+
+fn make_excerpt(body: &str, terms: &[String]) -> String {
+    let paragraphs: Vec<_> = body
+        .split("\n\n")
+        .map(str::trim)
+        .filter(|part| !part.is_empty())
+        .collect();
+    let selected_index = paragraphs
+        .iter()
+        .enumerate()
+        .max_by_key(|(_, paragraph)| {
+            let lowered = paragraph.to_lowercase();
+            terms
+                .iter()
+                .map(|term| lowered.matches(term.as_str()).count())
+                .sum::<usize>()
+        })
+        .map(|(index, _)| index)
+        .unwrap_or(0);
+    let start = selected_index.saturating_sub(1);
+    let end = (selected_index + 3).min(paragraphs.len());
+    let selected = paragraphs
+        .get(start..end)
+        .map(|parts| parts.join(" "))
+        .unwrap_or_else(|| body.trim().to_owned());
+    let clean = selected
+        .lines()
+        .map(|line| line.trim().trim_start_matches('#').trim())
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ");
+    truncate_chars(&clean, 700)
+}
+
+fn truncate_chars(input: &str, limit: usize) -> String {
+    if input.chars().count() <= limit {
+        return input.to_owned();
+    }
+    let mut value: String = input.chars().take(limit).collect();
+    value.push('…');
+    value
 }
 
 #[cfg(test)]
@@ -224,6 +336,13 @@ mod tests {
             title: title.to_owned(),
             body: body.to_owned(),
             path: format!("{id}.md"),
+            source: "test".to_owned(),
+            source_id: format!("test:{id}"),
+            kind: "note".to_owned(),
+            verification_status: "unverified".to_owned(),
+            writable: false,
+            effective: true,
+            overridden_by: None,
         }
     }
 

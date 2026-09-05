@@ -1,7 +1,9 @@
 use anyhow::Context;
 use reqwest::Client;
 
-use super::provider::{AiProvider, AiRequest, AiResponse, build_chat_body, parse_chat_response};
+use super::provider::{
+    AiProvider, AiRequest, AiResponse, build_chat_body, parse_chat_response, read_bounded_response,
+};
 
 /// Talks to any OpenAI-compatible endpoint such as a local Ollama server
 /// (`http://localhost:11434/v1`), vLLM, LM Studio, or OpenAI itself.
@@ -13,10 +15,14 @@ pub struct OpenAiCompatProvider {
 
 impl OpenAiCompatProvider {
     pub fn new(base_url: String, api_key: Option<String>) -> Self {
+        let http = Client::builder()
+            .timeout(std::time::Duration::from_secs(45))
+            .build()
+            .unwrap_or_else(|_| Client::new());
         Self {
             base_url: base_url.trim_end_matches('/').to_owned(),
             api_key,
-            http: Client::new(),
+            http,
         }
     }
 
@@ -40,11 +46,7 @@ impl AiProvider for OpenAiCompatProvider {
             .send()
             .await
             .context("failed to reach the OpenAI-compatible endpoint")?;
-        let status = response.status();
-        let payload = response
-            .text()
-            .await
-            .context("failed to read the provider response")?;
+        let (status, payload) = read_bounded_response(response).await?;
         if !status.is_success() {
             anyhow::bail!("provider request failed with status {status}");
         }

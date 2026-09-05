@@ -2,7 +2,7 @@
 name = "librarycube"
 version = "0.3.0"
 edition = "2024"
-description = "A deterministic developer diagnostic toolkit"
+description = "A terminal knowledge library with offline retrieval and optional AI"
 license = "MIT"
 
 [lib]
@@ -34,3 +34,5 @@ rusqlite = { version = "0.32", features = ["bundled"] }
 colored = "3"
 
 dialoguer = "0.11"
+
+libc = "0.2"
