@@ -76,7 +76,23 @@ Change the development port to 4318, restart the development process, and
 confirm that it listens on 4318.
 ```
 
-Existing metadata remains supported: `id`, `title`, `language`, `tool`, `category`, `error_code`, `tags`, and `keywords`. `language` describes technical material; it is separate from the UI language.
+Existing metadata remains supported: `id`, `title`, `title_th`, `language`, `tool`, `category`, `error_code`, `tags`, and `keywords`. `language` describes technical material; it is separate from the UI language. `title_th` is an optional Thai display title.
+
+Built-in bilingual notes keep each translation in an explicit block:
+
+```markdown
+<!-- lbc:en -->
+# English title
+
+English guidance.
+
+<!-- lbc:th -->
+# ชื่อภาษาไทย
+
+คำแนะนำภาษาไทย
+```
+
+When both markers are present, `ask` and `search` select only the configured or automatically detected output language. Notes without these markers remain compatible and are returned as written.
 
 Troubleshooting notes can use headings for symptoms/environment, cause, suggested solution, verification steps, and references. Optional `verification_status` accepts `unverified`, `user-reported`, or `recorded-check`. The latter two describe what the note author recorded; libraryCube never presents them as a fresh check performed by the current command.
 
@@ -156,7 +172,7 @@ lbc ask "แก้ปัญหาพอร์ตของ demo service อย่
 lbc config set output.language auto
 ```
 
-Supported values are `en`, `th`, and `auto`. `auto` selects Thai when the current question contains Thai characters and otherwise falls back to English. Retrieval supports Unicode and matches Thai terms present in a note's title, body, tags, or keywords; it does not claim cross-language semantic translation. Commands, paths, error codes, source IDs, and JSON keys remain unchanged.
+Supported values are `en`, `th`, and `auto`. `auto` selects Thai when the current question contains Thai characters and otherwise falls back to English. Built-in notes include clean English and Thai sections, so their title and excerpt follow the selected language. Retrieval supports Unicode and matches Thai terms present in a note's title, body, tags, or keywords; unmarked user notes are not translated automatically in offline mode. Commands, paths, error codes, source IDs, and JSON keys remain unchanged.
 
 ## Chat memory
 

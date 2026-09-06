@@ -1,9 +1,11 @@
 ---
 id: docker-daemon-not-running
+kind: troubleshooting
 language: docker
 tool: docker
 category: runtime
 title: Docker - Cannot connect to the Docker daemon
+title_th: Docker - เชื่อมต่อ Docker daemon ไม่ได้
 tags:
   - daemon
   - runtime
@@ -11,28 +13,40 @@ keywords:
   - daemon
   - docker.sock
   - cannot-connect
+  - daemon not running
+  - เชื่อมต่อ docker ไม่ได้
+  - daemon ไม่ทำงาน
 ---
+<!-- lbc:en -->
 # Docker - Cannot connect to the Docker daemon
 
-Docker client ไม่สามารถเชื่อมต่อไปยัง Docker daemon ได้ มักเกิดจาก service ยังไม่ได้ start หรือ user ไม่มีสิทธิ์เข้าถึง `/var/run/docker.sock`
+## Quick answer
 
-## ก่อนแก้ (Before - Error)
-```bash
-$ docker ps
-Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?
-```
+The Docker client cannot reach the daemon when the service is stopped or the current user cannot access its socket. Check the service first, then inspect socket permissions if the daemon is already running.
 
-## แก้แล้ว (After - Success)
+## Check and start the service
+
 ```bash
-# 1. สั่ง start service
+$ sudo systemctl status docker
 $ sudo systemctl start docker
-
-# 2. รันคำสั่งตรวจสอบสำเร็จ
-$ docker ps
-CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+$ docker info
 ```
 
-## การทำงาน (How it works)
-- เปิด service ด้วย `sudo systemctl start docker` (หรือเปิดอัตโนมัติตอนบูตด้วย `sudo systemctl enable docker`)
-- หากติดสิทธิ์การเข้าถึง socket: เพิ่ม user เข้า docker group ด้วย `sudo usermod -aG docker $USER` แล้ว login ใหม่
-- ตรวจสอบสถานะการทำงานด้วย `sudo systemctl status docker` หรือ `docker info`
+If the service is running but access is denied, inspect `/var/run/docker.sock`. Adding a user to the `docker` group grants root-equivalent Docker access, so do it only when that trust level is appropriate.
+
+<!-- lbc:th -->
+# Docker - เชื่อมต่อ Docker daemon ไม่ได้
+
+## คำตอบสั้น ๆ
+
+Docker client เชื่อมต่อ daemon ไม่ได้เมื่อ service หยุดทำงาน หรือ user ปัจจุบันไม่มีสิทธิ์เข้าถึง socket ให้ตรวจ service ก่อน แล้วค่อยตรวจ permission ของ socket หาก daemon ทำงานอยู่แล้ว
+
+## ตรวจและเริ่ม service
+
+```bash
+$ sudo systemctl status docker
+$ sudo systemctl start docker
+$ docker info
+```
+
+ถ้า service ทำงานแต่ยังเข้าไม่ได้ ให้ตรวจ `/var/run/docker.sock` การเพิ่ม user เข้า group `docker` เทียบเท่ากับการให้สิทธิ์ระดับ root ผ่าน Docker จึงควรทำเฉพาะเมื่อยอมรับระดับความไว้วางใจนี้ได้

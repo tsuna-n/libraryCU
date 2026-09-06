@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{cmp::Reverse, collections::HashMap};
 
 use serde::Serialize;
 
@@ -15,6 +15,8 @@ const TERM_TITLE_WEIGHT: u32 = 20;
 const TERM_BODY_WEIGHT: u32 = 3;
 /// Maximum body occurrences counted per term.
 const MAX_BODY_HITS: u32 = 5;
+const ENGLISH_MARKER: &str = "<!-- lbc:en -->";
+const THAI_MARKER: &str = "<!-- lbc:th -->";
 
 /// Precomputed lookup structures over the knowledge store.
 ///
@@ -110,6 +112,15 @@ impl KnowledgeIndex {
     }
 
     pub fn search(&self, query: &str) -> Vec<SearchResult> {
+        let language = if query.chars().any(is_thai) {
+            "th"
+        } else {
+            "en"
+        };
+        self.search_with_language(query, language)
+    }
+
+    pub fn search_with_language(&self, query: &str, language: &str) -> Vec<SearchResult> {
         let normalized = query.trim().to_lowercase();
         if normalized.is_empty() {
             return Vec::new();
@@ -187,18 +198,23 @@ impl KnowledgeIndex {
             .iter()
             .enumerate()
             .filter(|(position, _)| scores[*position] > 0)
-            .map(|(position, document)| SearchResult {
-                document: document.clone(),
-                source_id: document.source_id.clone(),
-                title: document.title.clone(),
-                kind: document.kind.clone(),
-                verification_status: document.verification_status.clone(),
-                source_locator: document.path.clone(),
-                score: scores[position],
-                match_reason: reasons[position].to_owned(),
-                excerpt: make_excerpt(&document.body, &terms),
-                matched_terms: matched_terms[position].iter().filter(|hit| **hit).count(),
-                query_terms: terms.len(),
+            .map(|(position, document)| {
+                let mut localized = document.clone();
+                localized.title = localized_title(document, language);
+                localized.body = localized_body(&document.body, language).to_owned();
+                SearchResult {
+                    document: localized.clone(),
+                    source_id: localized.source_id.clone(),
+                    title: localized.title.clone(),
+                    kind: localized.kind.clone(),
+                    verification_status: localized.verification_status.clone(),
+                    source_locator: localized.path.clone(),
+                    score: scores[position],
+                    match_reason: reasons[position].to_owned(),
+                    excerpt: make_excerpt(&localized.body, &terms),
+                    matched_terms: matched_terms[position].iter().filter(|hit| **hit).count(),
+                    query_terms: terms.len(),
+                }
             })
             .collect();
         results.sort_by(|left, right| {
@@ -208,6 +224,33 @@ impl KnowledgeIndex {
                 .then_with(|| left.document.title.cmp(&right.document.title))
         });
         results
+    }
+}
+
+fn localized_title(document: &KnowledgeDocument, language: &str) -> String {
+    if language == "th" {
+        document
+            .metadata
+            .title_th
+            .clone()
+            .filter(|title| !title.trim().is_empty())
+            .unwrap_or_else(|| document.title.clone())
+    } else {
+        document.title.clone()
+    }
+}
+
+fn localized_body<'a>(body: &'a str, language: &str) -> &'a str {
+    let Some((_, after_english)) = body.split_once(ENGLISH_MARKER) else {
+        return body;
+    };
+    let Some((english, thai)) = after_english.split_once(THAI_MARKER) else {
+        return body;
+    };
+    if language == "th" {
+        thai.trim()
+    } else {
+        english.trim()
     }
 }
 
@@ -225,7 +268,8 @@ fn add_lookup_value(map: &mut HashMap<String, Vec<usize>>, value: &str, position
 
 fn query_terms(normalized: &str) -> Vec<String> {
     let mut terms = Vec::new();
-    for term in normalized.split(|character: char| !character.is_alphanumeric()) {
+    for raw_term in normalized.split(|character: char| !character.is_alphanumeric()) {
+        let term = trim_thai_question_words(raw_term);
         if term.chars().count() <= 1 || is_stopword(term) {
             continue;
         }
@@ -242,6 +286,22 @@ fn query_terms(normalized: &str) -> Vec<String> {
         }
     }
     terms
+}
+
+fn trim_thai_question_words(mut term: &str) -> &str {
+    for prefix in ["แก้ปัญหา", "วิธีแก้", "ช่วยแก้"] {
+        if let Some(rest) = term.strip_prefix(prefix) {
+            term = rest;
+            break;
+        }
+    }
+    for suffix in ["อย่างไร", "ยังไง"] {
+        if let Some(rest) = term.strip_suffix(suffix) {
+            term = rest;
+            break;
+        }
+    }
+    term
 }
 
 fn is_thai(character: char) -> bool {
@@ -272,6 +332,11 @@ fn is_stopword(term: &str) -> bool {
             | "with"
             | "work"
             | "works"
+            | "แก้"
+            | "ปัญหา"
+            | "วิธี"
+            | "อย่างไร"
+            | "ยังไง"
     )
 }
 
@@ -282,32 +347,38 @@ fn make_excerpt(body: &str, terms: &[String]) -> String {
     let paragraphs: Vec<_> = body
         .split("\n\n")
         .map(str::trim)
-        .filter(|part| !part.is_empty())
+        .filter(|part| {
+            !part.is_empty()
+                && !part.starts_with('#')
+                && !part.starts_with("```")
+                && !part.starts_with("<!--")
+        })
         .collect();
     let selected_index = paragraphs
         .iter()
         .enumerate()
-        .max_by_key(|(_, paragraph)| {
+        .max_by_key(|(index, paragraph)| {
             let lowered = paragraph.to_lowercase();
-            terms
-                .iter()
-                .map(|term| lowered.matches(term.as_str()).count())
-                .sum::<usize>()
+            (
+                terms
+                    .iter()
+                    .map(|term| lowered.matches(term.as_str()).count())
+                    .sum::<usize>(),
+                Reverse(*index),
+            )
         })
         .map(|(index, _)| index)
         .unwrap_or(0);
-    let start = selected_index.saturating_sub(1);
-    let end = (selected_index + 3).min(paragraphs.len());
     let selected = paragraphs
-        .get(start..end)
-        .map(|parts| parts.join(" "))
-        .unwrap_or_else(|| body.trim().to_owned());
+        .get(selected_index)
+        .copied()
+        .unwrap_or_else(|| body.trim());
     let clean = selected
         .lines()
-        .map(|line| line.trim().trim_start_matches('#').trim())
+        .map(str::trim)
         .filter(|line| !line.is_empty())
         .collect::<Vec<_>>()
-        .join(" ");
+        .join("\n");
     truncate_chars(&clean, 700)
 }
 
@@ -436,5 +507,30 @@ mod tests {
             KnowledgeIndex::build(vec![document("a", "T", "B", KnowledgeMetadata::default())]);
         assert!(index.search("").is_empty());
         assert!(index.search("   ").is_empty());
+    }
+
+    #[test]
+    fn bilingual_document_uses_the_requested_language() {
+        let body = "<!-- lbc:en -->\n# Port conflict\n\nThe port is already in use.\n\n<!-- lbc:th -->\n# พอร์ตชน\n\nพอร์ตนี้ถูกใช้งานอยู่แล้ว";
+        let index = KnowledgeIndex::build(vec![document(
+            "port",
+            "Port conflict",
+            body,
+            KnowledgeMetadata {
+                title_th: Some("พอร์ตถูกใช้งานอยู่แล้ว".to_owned()),
+                keywords: vec!["port".to_owned(), "พอร์ต".to_owned()],
+                ..Default::default()
+            },
+        )]);
+
+        let english = index.search_with_language("port", "en");
+        assert_eq!(english[0].title, "Port conflict");
+        assert!(english[0].excerpt.contains("already in use"));
+        assert!(!english[0].excerpt.contains("พอร์ต"));
+
+        let thai = index.search_with_language("พอร์ต", "th");
+        assert_eq!(thai[0].title, "พอร์ตถูกใช้งานอยู่แล้ว");
+        assert!(thai[0].excerpt.contains("ถูกใช้งาน"));
+        assert!(!thai[0].excerpt.contains("already in use"));
     }
 }

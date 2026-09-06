@@ -194,7 +194,13 @@ pub fn print_search_language(query: &str, results: &[SearchResult], language: &s
     for (index, result) in results.iter().take(10).enumerate() {
         println!("\n{}. {}", index + 1, result.document.title);
         if language == "th" {
-            println!("   เหตุผลที่ตรงกัน: {}", result.match_reason);
+            let match_reason = match result.match_reason.as_str() {
+                "exact error code" => "รหัสข้อผิดพลาดตรงกัน",
+                "title match" => "ชื่อตรงกับคำค้น",
+                "metadata match" => "ข้อมูลกำกับตรงกัน",
+                _ => "คำสำคัญตรงกัน",
+            };
+            println!("   เหตุผลที่ตรงกัน: {match_reason}");
             println!("   แหล่งอ้างอิง: {}", result.document.source_id);
             println!("   ตำแหน่ง: {}", result.document.path);
             println!("   เนื้อหาที่เกี่ยวข้อง: {}", result.excerpt);

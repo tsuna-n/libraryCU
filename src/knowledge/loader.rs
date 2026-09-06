@@ -187,6 +187,7 @@ fn load_all_documents_with_roots(
         &mut documents,
         &mut invalid,
     );
+    mark_repeated_content(&mut documents);
     mark_duplicate_ids(&mut documents, &mut invalid);
     apply_overrides(&mut documents, &mut invalid);
     documents.sort_by(|left, right| {
@@ -195,6 +196,43 @@ fn load_all_documents_with_roots(
             .then(left.path.cmp(&right.path))
     });
     Ok(LoadReport { documents, invalid })
+}
+
+/// Keep one effective copy when the same note is both embedded in the binary
+/// and visible from a source checkout (or copied unchanged into another store).
+fn mark_repeated_content(documents: &mut [KnowledgeDocument]) {
+    let mut seen: HashMap<(KnowledgeMetadata, String), usize> = HashMap::new();
+    for position in 0..documents.len() {
+        let key = (
+            documents[position].metadata.clone(),
+            documents[position].body.clone(),
+        );
+        if let Some(previous) = seen.get(&key).copied() {
+            let previous_priority = source_priority(&documents[previous].source);
+            let current_priority = source_priority(&documents[position].source);
+            if current_priority > previous_priority {
+                documents[previous].effective = false;
+                documents[previous].overridden_by = Some(documents[position].source_id.clone());
+                seen.insert(key, position);
+            } else {
+                documents[position].effective = false;
+                documents[position].overridden_by = Some(documents[previous].source_id.clone());
+            }
+        } else {
+            seen.insert(key, position);
+        }
+    }
+}
+
+fn source_priority(source: &str) -> u8 {
+    match source {
+        // Stable built-in identities are preferable when another store holds
+        // a byte-for-byte copy of an embedded note.
+        "builtin" => 4,
+        "project" => 3,
+        "user" => 2,
+        _ => 1,
+    }
 }
 
 fn collect_source(
@@ -470,6 +508,22 @@ mod tests {
     fn validates_body_and_kind() {
         assert!(parse_document("bad.md", "---\nid: x\n---\n").is_err());
         assert!(parse_document("bad.md", "---\nid: x\nkind: other\n---\nbody").is_err());
+    }
+
+    #[test]
+    fn repeated_content_keeps_the_stable_builtin_identity() -> Result<()> {
+        let content = "---\nid: same\ntitle: Same note\n---\nSame body";
+        let mut documents = vec![
+            parse_document_for_source("same.md", content, "builtin", "embedded:same.md", false)?,
+            parse_document_for_source("same.md", content, "project", "/project/same.md", true)?,
+        ];
+
+        mark_repeated_content(&mut documents);
+
+        assert!(documents[0].effective);
+        assert!(!documents[1].effective);
+        assert_eq!(documents[1].overridden_by.as_deref(), Some("builtin:same"));
+        Ok(())
     }
 
     #[test]

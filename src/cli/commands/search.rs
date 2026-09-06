@@ -7,8 +7,12 @@ pub fn run(args: SearchArgs) -> Result<()> {
     let root = scanner::find_project_root(&args.project)?;
     let loaded_config = config::load()?;
     let language = answer::choose_language(&loaded_config.config.output.language, &args.query);
-    let retrieved = knowledge::retrieve(&root, &args.query)?;
-    let results = retrieved.results;
+    let retrieved = knowledge::retrieval::retrieve_with_language(&root, &args.query, &language)?;
+    let results: Vec<_> = retrieved
+        .results
+        .into_iter()
+        .filter(answer::is_adequate)
+        .collect();
     if args.json {
         println!("{}", serde_json::to_string_pretty(&results)?);
     } else {

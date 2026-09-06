@@ -1,9 +1,11 @@
 ---
 id: linux-command-not-found
+kind: troubleshooting
 language: linux
 tool: linux
 category: shell
 title: Linux - Command not found
+title_th: Linux - ไม่พบคำสั่ง
 tags:
   - shell
   - path
@@ -11,28 +13,42 @@ keywords:
   - command
   - not-found
   - path
+  - ไม่พบคำสั่ง
 ---
+<!-- lbc:en -->
 # Linux - Command not found
 
-Shell ไม่พบโปรแกรม executable ตามชื่อที่เรียกในทุก directory ที่ระบุใน `$PATH` หรือยังไม่ได้ติดตั้งโปรแกรมนั้น
+## Quick answer
 
-## ก่อนแก้ (Before - Error)
+`command not found` means the shell cannot find an executable with that name. Check the spelling and `PATH`, install the package if needed, or use a relative path such as `./script.sh`.
+
+## Example
+
 ```bash
-$ htop
-bash: htop: command not found
+$ command -v htop
+$ sudo apt install htop       # Debian/Ubuntu
+$ sudo pacman -S htop         # Arch Linux
 ```
 
-## แก้แล้ว (After - Success)
-```bash
-# 1. ติดตั้งโปรแกรมผ่าน package manager
-$ sudo pacman -S htop   # หรือ sudo apt install htop
+## Verify
 
-# 2. เรียกใช้งานได้สำเร็จ
-$ htop
-# SUCCESS: เปิดโปรแกรม htop ทำงานได้ปกติ
+Run `command -v htop`; it should print the executable path.
+
+<!-- lbc:th -->
+# Linux - ไม่พบคำสั่ง
+
+## คำตอบสั้น ๆ
+
+ข้อความ `command not found` หมายถึง shell หาไฟล์ executable ชื่อนั้นไม่พบ ให้ตรวจการสะกดและ `$PATH` ติดตั้งแพ็กเกจหากยังไม่มี หรือระบุ path โดยตรง เช่น `./script.sh`
+
+## ตัวอย่าง
+
+```bash
+$ command -v htop
+$ sudo apt install htop       # Debian/Ubuntu
+$ sudo pacman -S htop         # Arch Linux
 ```
 
-## การทำงาน (How it works)
-- ตรวจสอบคำสั่งด้วย `which <command>` และตรวจสอบ directories ใน `$PATH` ด้วย `echo $PATH`
-- หากเป็น script หรือ binary ที่ไม่ได้อยู่ใน `$PATH` ให้รันโดยระบุ path เช่น `./script.sh` หรือเพิ่ม directory เข้า `$PATH`
-- ตรวจสอบความถูกต้องเมื่อ `which <command>` แสดง path ของตัวโปรแกรม
+## ตรวจสอบผล
+
+รัน `command -v htop` แล้วควรเห็น path ของโปรแกรม

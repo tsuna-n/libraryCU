@@ -17,19 +17,32 @@ pub fn run(args: AskArgs) -> Result<()> {
         if args.ai
             && let Err(error) = answer::enhance(&mut report, &loaded.config.ai, &[])
         {
-            let message = format!("AI unavailable: {error:#}");
+            let message = if report.language == "th" {
+                format!("ไม่สามารถใช้ AI ได้: {error:#}")
+            } else {
+                format!("AI unavailable: {error:#}")
+            };
             report.ai_error = Some(message.clone());
-            eprintln!("! {message}; showing the offline answer");
+            if report.language == "th" {
+                eprintln!("! {message}; กำลังแสดงคำตอบแบบออฟไลน์");
+            } else {
+                eprintln!("! {message}; showing the offline answer");
+            }
         }
         println!("{}", serde_json::to_string_pretty(&report)?);
         return Ok(());
     }
 
-    println!("libraryCube answer\n\n{}", report.offline_answer);
+    if report.language == "th" {
+        println!("คำตอบจาก libraryCube\n\n{}", report.offline_answer);
+    } else {
+        println!("libraryCube answer\n\n{}", report.offline_answer);
+    }
 
     if args.ai {
         let mut is_thinking = false;
         let mut has_content = false;
+        let thai = report.language == "th";
         let provider_name = loaded.config.ai.provider.clone();
         let model_name = loaded.config.ai.effective_model().to_owned();
 
@@ -38,7 +51,7 @@ pub fn run(args: AskArgs) -> Result<()> {
                 ai::StreamEvent::Thinking => {
                     if !is_thinking && !has_content {
                         is_thinking = true;
-                        eprint!("Thinking...");
+                        eprint!("{}", if thai { "กำลังคิด..." } else { "Thinking..." });
                         let _ = io::stderr().flush();
                     }
                 }
@@ -49,7 +62,11 @@ pub fn run(args: AskArgs) -> Result<()> {
                         is_thinking = false;
                     }
                     if !has_content {
-                        println!("\nAI analysis ({provider_name} / {model_name})\n");
+                        if thai {
+                            println!("\nคำตอบจาก AI ({provider_name} / {model_name})\n");
+                        } else {
+                            println!("\nAI analysis ({provider_name} / {model_name})\n");
+                        }
                         has_content = true;
                     }
                     print!("{text}");
@@ -68,19 +85,42 @@ pub fn run(args: AskArgs) -> Result<()> {
                 eprint!("\r\x1b[2K");
                 let _ = io::stderr().flush();
             }
-            let message = format!("AI unavailable: {error:#}");
+            let message = if report.language == "th" {
+                format!("ไม่สามารถใช้ AI ได้: {error:#}")
+            } else {
+                format!("AI unavailable: {error:#}")
+            };
             report.ai_error = Some(message.clone());
-            eprintln!("! {message}; showing the offline answer");
-            println!("\nAI status\n{message}");
-        } else if let Some(ai) = &report.ai {
-            if has_content {
+            if report.language == "th" {
+                eprintln!("! {message}; กำลังแสดงคำตอบแบบออฟไลน์");
+                println!("\nสถานะ AI\n{message}");
+            } else {
+                eprintln!("! {message}; showing the offline answer");
+                println!("\nAI status\n{message}");
+            }
+        } else if let Some(ai) = &report.ai
+            && has_content
+        {
+            if report.language == "th" {
+                let confidence = match ai.confidence.as_str() {
+                    "high" => "สูง",
+                    "medium" => "ปานกลาง",
+                    "low" => "ต่ำ",
+                    _ => "ไม่ระบุ",
+                };
+                println!("\n\nระดับความมั่นใจของ AI: {confidence}");
+            } else {
                 println!("\n\nAI confidence: {}", ai.confidence);
             }
         }
     }
 
     for warning in report.warnings {
-        eprintln!("! Invalid knowledge document: {warning}");
+        if report.language == "th" {
+            eprintln!("! เอกสารความรู้ไม่ถูกต้อง: {warning}");
+        } else {
+            eprintln!("! Invalid knowledge document: {warning}");
+        }
     }
     Ok(())
 }

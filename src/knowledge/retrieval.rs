@@ -25,6 +25,23 @@ pub struct RetrievalReport {
 
 /// The single retrieval entry point used by search, ask, explain, and chat.
 pub fn retrieve(project: &Path, query: &str) -> Result<RetrievalReport> {
+    let language = if query
+        .chars()
+        .any(|character| ('\u{0E00}'..='\u{0E7F}').contains(&character))
+    {
+        "th"
+    } else {
+        "en"
+    };
+    retrieve_with_language(project, query, language)
+}
+
+/// Retrieve knowledge and render localized built-in passages in `language`.
+pub fn retrieve_with_language(
+    project: &Path,
+    query: &str,
+    language: &str,
+) -> Result<RetrievalReport> {
     validate_query(query)?;
     let loaded = load_all_documents(project)?;
     let documents = loaded
@@ -33,7 +50,7 @@ pub fn retrieve(project: &Path, query: &str) -> Result<RetrievalReport> {
         .filter(|document| document.effective)
         .collect();
     Ok(RetrievalReport {
-        results: KnowledgeIndex::build(documents).search(query),
+        results: KnowledgeIndex::build(documents).search_with_language(query, language),
         invalid: loaded.invalid,
     })
 }

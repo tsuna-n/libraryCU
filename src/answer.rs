@@ -49,7 +49,7 @@ pub fn answer(
     let redacted_question = security::redact_sensitive(question);
     let question = redacted_question.as_str();
     let language = choose_language(&output.language, question);
-    let retrieved = knowledge::retrieve(project, question)?;
+    let retrieved = knowledge::retrieval::retrieve_with_language(project, question, &language)?;
     let mut warnings: Vec<_> = retrieved
         .invalid
         .iter()
@@ -219,9 +219,9 @@ pub fn build_ai_request(report: &AnswerReport, model: &str, history: &[String]) 
     }
     user.push("\nUse only these passages as cited knowledge. Separate facts from hypotheses and say when guidance is unverified. End with Confidence: high, medium, or low.", 200);
     let language = if report.language == "th" {
-        "Answer in meaningful Thai; preserve commands, paths, IDs, and error codes."
+        "Answer entirely in meaningful Thai; preserve commands, paths, IDs, and error codes."
     } else {
-        "Answer in English."
+        "Answer entirely in English."
     };
     AiRequest {
         system: format!(

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq, Hash)]
 #[serde(default)]
 pub struct KnowledgeMetadata {
     pub id: String,
@@ -12,6 +12,8 @@ pub struct KnowledgeMetadata {
     pub category: Option<String>,
     pub error_code: Option<String>,
     pub title: Option<String>,
+    /// Optional Thai display title. `title` remains the canonical English title.
+    pub title_th: Option<String>,
     pub tags: Vec<String>,
     pub keywords: Vec<String>,
     /// `unverified`, `user-reported`, or `recorded-check`.
