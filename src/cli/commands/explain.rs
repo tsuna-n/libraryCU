@@ -33,41 +33,37 @@ pub fn run(args: ExplainArgs) -> Result<()> {
         return Ok(());
     }
 
-    output::print_explanation_deterministic(&report, args.verbose, &language);
-
     let mut is_thinking = false;
     let mut has_content = false;
     let provider_name = loaded.config.ai.provider.clone();
     let model_name = loaded.config.ai.effective_model().to_owned();
 
-    let mut on_event = |event: ai::StreamEvent| {
-        match event {
-            ai::StreamEvent::Thinking => {
-                if !is_thinking && !has_content {
-                    is_thinking = true;
-                    eprint!("Thinking...");
-                    let _ = io::stderr().flush();
-                }
+    let mut on_event = |event: ai::StreamEvent| match event {
+        ai::StreamEvent::Thinking => {
+            if !is_thinking && !has_content {
+                is_thinking = true;
+                eprint!("Thinking...");
+                let _ = io::stderr().flush();
             }
-            ai::StreamEvent::Content(text) => {
-                if is_thinking {
-                    eprint!("\r\x1b[2K");
-                    let _ = io::stderr().flush();
-                    is_thinking = false;
-                }
-                if !has_content {
-                    if language == "th" {
-                        println!("\nคำอธิบายจาก AI ({provider_name} / {model_name})");
-                    } else {
-                        println!("\nAI analysis ({provider_name} / {model_name})");
-                    }
-                    print!("  ");
-                    has_content = true;
-                }
-                let formatted = text.replace('\n', "\n  ");
-                print!("{formatted}");
-                let _ = io::stdout().flush();
+        }
+        ai::StreamEvent::Content(text) => {
+            if is_thinking {
+                eprint!("\r\x1b[2K");
+                let _ = io::stderr().flush();
+                is_thinking = false;
             }
+            if !has_content {
+                if language == "th" {
+                    println!("\nสิ่งที่ต้องแก้ ({provider_name} / {model_name})");
+                } else {
+                    println!("\nRequired changes ({provider_name} / {model_name})");
+                }
+                print!("  ");
+                has_content = true;
+            }
+            let formatted = text.replace('\n', "\n  ");
+            print!("{formatted}");
+            let _ = io::stdout().flush();
         }
     };
 
@@ -82,18 +78,6 @@ pub fn run(args: ExplainArgs) -> Result<()> {
             if has_content {
                 println!();
             }
-            if let Some(ai) = &report.ai {
-                if language == "th" {
-                    println!("\nระดับความมั่นใจ AI\n  {}", ai.confidence);
-                } else {
-                    println!("\nAI confidence\n  {}", ai.confidence);
-                }
-            }
-            if language == "th" {
-                println!("\nระดับความมั่นใจ\n  {}", report.confidence);
-            } else {
-                println!("\nConfidence\n  {}", report.confidence);
-            }
         }
         Err(error) => {
             if is_thinking {
@@ -104,13 +88,7 @@ pub fn run(args: ExplainArgs) -> Result<()> {
             eprintln!(
                 "! AI enhancement failed; showing the deterministic explanation instead.\n  Reason: {error:#}"
             );
-            if language == "th" {
-                println!("\nสถานะ AI\n  ใช้งานไม่ได้: {error:#}");
-                println!("\nระดับความมั่นใจ\n  {}", report.confidence);
-            } else {
-                println!("\nAI status\n  unavailable: {error:#}");
-                println!("\nConfidence\n  {}", report.confidence);
-            }
+            output::print_explanation_language(&report, args.verbose, &language);
         }
     }
 

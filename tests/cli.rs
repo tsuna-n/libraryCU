@@ -1064,6 +1064,106 @@ fn mock_ai_receives_retrieved_passage_and_redacts_secrets() {
 }
 
 #[test]
+fn ask_ai_prints_only_the_concrete_edit_response() {
+    let home = temporary_home("concise-ai");
+    std::fs::create_dir_all(home.join("config/lbc")).unwrap();
+    let listener = TcpListener::bind("127.0.0.1:0").expect(
+        "mock provider requires loopback sockets; rerun outside a socket-restricted sandbox",
+    );
+    let address = listener.local_addr().unwrap();
+    let (sender, receiver) = mpsc::channel();
+    let server = thread::spawn(move || {
+        let (mut stream, _) = listener.accept().expect("mock provider should accept");
+        stream
+            .set_read_timeout(Some(std::time::Duration::from_secs(5)))
+            .unwrap();
+        let mut request = Vec::new();
+        let mut buffer = [0_u8; 4096];
+        let mut expected = None;
+        loop {
+            let count = stream.read(&mut buffer).unwrap();
+            if count == 0 {
+                break;
+            }
+            request.extend_from_slice(&buffer[..count]);
+            if expected.is_none()
+                && let Some(header_end) = request.windows(4).position(|part| part == b"\r\n\r\n")
+            {
+                let headers = String::from_utf8_lossy(&request[..header_end]);
+                let content_length = headers.lines().find_map(|line| {
+                    line.to_ascii_lowercase()
+                        .strip_prefix("content-length:")
+                        .and_then(|value| value.trim().parse::<usize>().ok())
+                });
+                expected = content_length.map(|length| header_end + 4 + length);
+            }
+            if expected.is_some_and(|length| request.len() >= length) {
+                break;
+            }
+        }
+        sender
+            .send(String::from_utf8_lossy(&request).into_owned())
+            .unwrap();
+        let body = concat!(
+            "data: {\"model\":\"mock-model\",\"choices\":[{\"delta\":{\"content\":\"Change: src/main.rs:10\\nFrom: old()\\nTo: new()\\n\\nConfi\"}}]}\n\n",
+            "data: {\"model\":\"mock-model\",\"choices\":[{\"delta\":{\"content\":\"dence: high\"}}]}\n\n",
+            "data: [DONE]\n\n",
+        );
+        write!(
+            stream,
+            "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        )
+        .unwrap();
+    });
+    std::fs::write(
+        home.join("config/lbc/config.toml"),
+        format!(
+            "[ai]\nprovider = \"openai-compat\"\nmodel = \"mock-model\"\nbase_url = \"http://{address}/v1\"\n"
+        ),
+    )
+    .unwrap();
+
+    let output = isolated_lbc(&home)
+        .args(["ask", "E0308", "--project"])
+        .arg(&home)
+        .arg("--ai")
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    server.join().unwrap();
+
+    let request = receiver.recv().unwrap();
+    let payload = request
+        .split_once("\r\n\r\n")
+        .map(|(_, body)| body)
+        .expect("HTTP request should contain a body");
+    let payload: serde_json::Value = serde_json::from_str(payload).unwrap();
+    assert_eq!(payload["max_tokens"], 512);
+    assert!(
+        payload["messages"][0]["content"]
+            .as_str()
+            .unwrap()
+            .contains("Return only the edits")
+    );
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Required changes"), "{stdout}");
+    assert!(stdout.contains("Change: src/main.rs:10"), "{stdout}");
+    assert!(stdout.contains("From: old()"), "{stdout}");
+    assert!(stdout.contains("To: new()"), "{stdout}");
+    assert!(!stdout.contains("libraryCube answer"), "{stdout}");
+    assert!(!stdout.contains("Retrieved guidance"), "{stdout}");
+    assert!(!stdout.contains("Confidence:"), "{stdout}");
+    std::fs::remove_dir_all(home).unwrap();
+}
+
+#[test]
 fn thai_note_produces_meaningful_thai_answer_with_stable_commands() {
     let home = temporary_home("thai");
     std::fs::create_dir_all(home.join("config/lbc")).unwrap();
@@ -1336,4 +1436,3 @@ fn doctor_reports_named_ai_providers_and_detects_keys() {
 
     std::fs::remove_dir_all(home).unwrap();
 }
-

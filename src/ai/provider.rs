@@ -52,6 +52,73 @@ pub enum StreamEvent<'a> {
     Content(&'a str),
 }
 
+/// Forward user-visible streaming content while retaining the confidence marker
+/// used internally to populate structured output.
+pub(crate) struct VisibleResponseStream<'a> {
+    callback: &'a mut (dyn FnMut(StreamEvent) + Send),
+    pending: String,
+    suppressing_metadata: bool,
+}
+
+impl<'a> VisibleResponseStream<'a> {
+    pub(crate) fn new(callback: &'a mut (dyn FnMut(StreamEvent) + Send)) -> Self {
+        Self {
+            callback,
+            pending: String::new(),
+            suppressing_metadata: false,
+        }
+    }
+
+    pub(crate) fn push(&mut self, event: StreamEvent<'_>) {
+        match event {
+            StreamEvent::Thinking => (self.callback)(StreamEvent::Thinking),
+            StreamEvent::Content(text) if !self.suppressing_metadata => {
+                self.pending.push_str(text);
+                self.flush_available();
+            }
+            StreamEvent::Content(_) => {}
+        }
+    }
+
+    pub(crate) fn finish(&mut self) {
+        if !self.suppressing_metadata && !self.pending.is_empty() {
+            (self.callback)(StreamEvent::Content(&self.pending));
+            self.pending.clear();
+        }
+    }
+
+    fn flush_available(&mut self) {
+        let lowered = self.pending.to_ascii_lowercase();
+        let marker = CONFIDENCE_MARKER.to_ascii_lowercase();
+        if let Some(position) = lowered.find(&marker) {
+            let visible = self.pending[..position].trim_end().to_owned();
+            if !visible.is_empty() {
+                (self.callback)(StreamEvent::Content(&visible));
+            }
+            self.pending.clear();
+            self.suppressing_metadata = true;
+            return;
+        }
+
+        // Retain enough trailing bytes to recognize a marker split across SSE
+        // chunks, while continuing to display the rest of the answer live.
+        let keep = CONFIDENCE_MARKER.len().saturating_sub(1);
+        if self.pending.len() <= keep {
+            return;
+        }
+        let mut split = self.pending.len() - keep;
+        while !self.pending.is_char_boundary(split) {
+            split -= 1;
+        }
+        if split == 0 {
+            return;
+        }
+        let visible = self.pending[..split].to_owned();
+        self.pending.drain(..split);
+        (self.callback)(StreamEvent::Content(&visible));
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SseLine {
     Done,
@@ -270,6 +337,26 @@ mod tests {
         let stripped = strip_confidence_marker("analysis text\n\nConfidence: high");
         assert_eq!(stripped, "analysis text");
         assert_eq!(strip_confidence_marker("plain"), "plain");
+    }
+
+    #[test]
+    fn visible_stream_hides_a_confidence_marker_split_across_chunks() {
+        let mut visible = String::new();
+        let mut thinking = false;
+        {
+            let mut callback = |event: StreamEvent<'_>| match event {
+                StreamEvent::Thinking => thinking = true,
+                StreamEvent::Content(text) => visible.push_str(text),
+            };
+            let mut stream = VisibleResponseStream::new(&mut callback);
+            stream.push(StreamEvent::Thinking);
+            stream.push(StreamEvent::Content("Change: src/main.rs:10\nFrom: old\n"));
+            stream.push(StreamEvent::Content("To: new\n\nConfi"));
+            stream.push(StreamEvent::Content("dence: high"));
+            stream.finish();
+        }
+        assert!(thinking);
+        assert_eq!(visible, "Change: src/main.rs:10\nFrom: old\nTo: new");
     }
 
     #[test]

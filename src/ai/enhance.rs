@@ -33,14 +33,26 @@ pub fn enhance_with_language_stream(
     mut on_event: Option<&mut (dyn FnMut(super::provider::StreamEvent) + Send)>,
 ) -> Result<()> {
     let client = resolve_client(ai)?;
-    let request =
-        super::context::build_request_with_language(report, redacted_input, ai.effective_model(), language);
+    let request = super::context::build_request_with_language(
+        report,
+        redacted_input,
+        ai.effective_model(),
+        language,
+    );
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
         .map_err(|error| anyhow::anyhow!("failed to start the async runtime: {error}"))?;
     let response = if let Some(ref mut cb) = on_event {
-        runtime.block_on(client.chat_stream(request, *cb))?
+        let mut visible = super::provider::VisibleResponseStream::new(*cb);
+        let streamed = {
+            let mut forward = |event: super::provider::StreamEvent<'_>| visible.push(event);
+            runtime.block_on(client.chat_stream(request, &mut forward))
+        };
+        if streamed.is_ok() {
+            visible.finish();
+        }
+        streamed?
     } else {
         runtime.block_on(client.chat(request))?
     };

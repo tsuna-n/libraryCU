@@ -1,6 +1,6 @@
 # Complete libraryCube usage examples
 
-This guide covers every command available in libraryCube 0.3.1. Commands run
+This guide covers every command available in libraryCube 0.3.3-d. Commands run
 offline unless `--ai` is explicitly supplied. Paths, scores, and document counts
 in the sample output will vary by machine. An ellipsis (`...`) means that only a
 relevant part of a longer result is shown.
@@ -19,7 +19,7 @@ lbc --help
 Example output:
 
 ```text
-lbc 0.3.1
+lbc 0.3.3-d
 
 libraryCube - terminal knowledge library
 
@@ -557,14 +557,14 @@ ollama pull qwen2.5-coder:7b
 ollama serve
 ```
 
-An AI-enhanced answer adds output like:
+An AI answer is intentionally limited to the concrete edits you need to make. It does not repeat the full offline answer first:
 
 ```text
-AI analysis (ollama / qwen2.5-coder:7b)
-The retrieved note identifies a type mismatch. Compare the expected and found
-types, then choose an explicit conversion that preserves the intended ownership.
+Required changes (ollama / qwen2.5-coder:7b)
 
-AI confidence: medium
+Change: src/main.rs:10
+From: takes_ownership(name)
+To: takes_ownership(&name)
 ```
 
 ### OpenRouter
