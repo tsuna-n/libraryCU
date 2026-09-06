@@ -5,8 +5,13 @@ pub fn print_explanation(report: &ExplanationReport, verbose: bool) {
 }
 
 pub fn print_explanation_language(report: &ExplanationReport, verbose: bool, language: &str) {
+    print_explanation_deterministic(report, verbose, language);
+    print_explanation_footer(report, language);
+}
+
+pub fn print_explanation_deterministic(report: &ExplanationReport, verbose: bool, language: &str) {
     if language == "th" {
-        return print_explanation_thai(report, verbose);
+        return print_explanation_thai_deterministic(report, verbose);
     }
     let code = report.diagnostic.code.as_deref().unwrap_or("Unknown error");
     println!("libraryCube diagnostic\n");
@@ -84,6 +89,12 @@ pub fn print_explanation_language(report: &ExplanationReport, verbose: bool, lan
             println!("  - {warning}");
         }
     }
+}
+
+pub fn print_explanation_footer(report: &ExplanationReport, language: &str) {
+    if language == "th" {
+        return print_explanation_thai_footer(report);
+    }
     if let Some(error) = &report.ai_error {
         println!("\nAI status\n  unavailable: {error}");
     }
@@ -95,7 +106,7 @@ pub fn print_explanation_language(report: &ExplanationReport, verbose: bool, lan
     println!("\nConfidence\n  {}", report.confidence);
 }
 
-fn print_explanation_thai(report: &ExplanationReport, verbose: bool) {
+fn print_explanation_thai_deterministic(report: &ExplanationReport, verbose: bool) {
     let code = report
         .diagnostic
         .code
@@ -143,6 +154,9 @@ fn print_explanation_thai(report: &ExplanationReport, verbose: bool) {
             report.project_evidence.len()
         );
     }
+}
+
+fn print_explanation_thai_footer(report: &ExplanationReport) {
     if let Some(ai) = &report.ai {
         println!(
             "\nคำอธิบายจาก AI ({} / {})\n  {}",

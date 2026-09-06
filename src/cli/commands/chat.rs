@@ -2,7 +2,7 @@ use std::io::{self, BufRead, Read, Write};
 
 use anyhow::Result;
 
-use crate::{answer, cli::args::ChatArgs, config, history};
+use crate::{ai, answer, cli::args::ChatArgs, config, history};
 
 const MAX_HISTORY_MESSAGES: usize = 12;
 const MAX_HISTORY_CHARS: usize = 16_000;
@@ -53,19 +53,53 @@ pub fn run(args: ChatArgs) -> Result<()> {
             &loaded.config.output,
             &loaded.config.scanner,
         )?;
-        if args.ai
-            && let Err(error) = answer::enhance(&mut report, &loaded.config.ai, &session_history)
-        {
+        let mut is_thinking = false;
+        let mut has_streamed = false;
+
+        let enhance_result = if args.ai {
+            let mut on_event = |event: ai::StreamEvent| {
+                match event {
+                    ai::StreamEvent::Thinking => {
+                        if !is_thinking && !has_streamed {
+                            is_thinking = true;
+                            eprint!("Thinking...");
+                            let _ = io::stderr().flush();
+                        }
+                    }
+                    ai::StreamEvent::Content(text) => {
+                        if is_thinking {
+                            eprint!("\r\x1b[2K");
+                            let _ = io::stderr().flush();
+                            is_thinking = false;
+                        }
+                        has_streamed = true;
+                        print!("{text}");
+                        let _ = io::stdout().flush();
+                    }
+                }
+            };
+            answer::enhance_stream(
+                &mut report,
+                &loaded.config.ai,
+                &session_history,
+                Some(&mut on_event),
+            )
+        } else {
+            Ok(())
+        };
+
+        if let Err(error) = enhance_result {
+            if is_thinking {
+                eprint!("\r\x1b[2K");
+                let _ = io::stderr().flush();
+            }
             eprintln!("! AI unavailable: {error:#}; showing the offline answer");
+            println!("{}", report.offline_answer);
+        } else if !has_streamed {
+            println!("{}", report.offline_answer);
+        } else {
+            println!();
         }
-        println!(
-            "{}",
-            report
-                .ai
-                .as_ref()
-                .map(|ai| ai.analysis.as_str())
-                .unwrap_or(&report.offline_answer)
-        );
         for warning in &report.warnings {
             eprintln!("! Invalid knowledge document: {warning}");
         }

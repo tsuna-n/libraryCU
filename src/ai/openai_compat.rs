@@ -17,7 +17,7 @@ pub struct OpenAiCompatProvider {
 impl OpenAiCompatProvider {
     pub fn new(base_url: String, api_key: Option<String>) -> Self {
         let http = Client::builder()
-            .timeout(std::time::Duration::from_secs(90))
+            .timeout(std::time::Duration::from_secs(45))
             .build()
             .unwrap_or_else(|_| Client::new());
         Self {
@@ -41,7 +41,7 @@ impl AiProvider for OpenAiCompatProvider {
         let mut http = self
             .http
             .post(self.endpoint())
-            .timeout(std::time::Duration::from_secs(90));
+            .timeout(std::time::Duration::from_secs(45));
         if let Some(api_key) = &self.api_key {
             http = http.bearer_auth(api_key);
         }
@@ -66,7 +66,7 @@ impl AiProvider for OpenAiCompatProvider {
         let mut http = self
             .http
             .post(self.endpoint())
-            .timeout(std::time::Duration::from_secs(90));
+            .timeout(std::time::Duration::from_secs(45));
         if let Some(api_key) = &self.api_key {
             http = http.bearer_auth(api_key);
         }

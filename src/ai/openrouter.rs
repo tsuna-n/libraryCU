@@ -16,7 +16,7 @@ pub struct OpenRouterProvider {
 impl OpenRouterProvider {
     pub fn new(api_key: String) -> Self {
         let http = Client::builder()
-            .timeout(std::time::Duration::from_secs(90))
+            .timeout(std::time::Duration::from_secs(45))
             .build()
             .unwrap_or_else(|_| Client::new());
         Self { api_key, http }
@@ -32,7 +32,7 @@ impl AiProvider for OpenRouterProvider {
         let response = self
             .http
             .post(OPENROUTER_ENDPOINT)
-            .timeout(std::time::Duration::from_secs(90))
+            .timeout(std::time::Duration::from_secs(45))
             .bearer_auth(&self.api_key)
             .header("X-Title", "libraryCube")
             .json(&build_chat_body(&request))
@@ -55,7 +55,7 @@ impl AiProvider for OpenRouterProvider {
         let mut response = self
             .http
             .post(OPENROUTER_ENDPOINT)
-            .timeout(std::time::Duration::from_secs(90))
+            .timeout(std::time::Duration::from_secs(45))
             .bearer_auth(&self.api_key)
             .header("X-Title", "libraryCube")
             .json(&build_chat_body_streaming(&request, true))
