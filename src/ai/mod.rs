@@ -6,11 +6,14 @@ pub mod prompt;
 pub mod provider;
 
 pub use context::{MAX_ERROR_CONTEXT_CHARS, build_request, build_request_with_language};
-pub use enhance::{apply_response, enhance, enhance_with_client, enhance_with_language};
+pub use enhance::{
+    apply_response, enhance, enhance_with_client, enhance_with_language,
+    enhance_with_language_stream,
+};
 pub use openai_compat::OpenAiCompatProvider;
 pub use openrouter::OpenRouterProvider;
 pub use provider::{
-    AiClient, AiProvider, AiRequest, AiResponse, CONFIDENCE_MARKER, parse_confidence,
+    AiClient, AiProvider, AiRequest, AiResponse, CONFIDENCE_MARKER, StreamEvent, parse_confidence,
     strip_confidence_marker,
 };
 

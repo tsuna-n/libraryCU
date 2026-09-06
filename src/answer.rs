@@ -144,12 +144,25 @@ fn verification_label(status: &str, language: &str) -> String {
 }
 
 pub fn enhance(report: &mut AnswerReport, ai_config: &AiConfig, history: &[String]) -> Result<()> {
+    enhance_stream(report, ai_config, history, None)
+}
+
+pub fn enhance_stream(
+    report: &mut AnswerReport,
+    ai_config: &AiConfig,
+    history: &[String],
+    mut on_event: Option<&mut (dyn FnMut(ai::StreamEvent) + Send)>,
+) -> Result<()> {
     let client = ai::resolve_client(ai_config)?;
     let request = build_ai_request(report, &ai_config.model, history);
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()?;
-    let response = runtime.block_on(client.chat(request))?;
+    let response = if let Some(ref mut cb) = on_event {
+        runtime.block_on(client.chat_stream(request, *cb))?
+    } else {
+        runtime.block_on(client.chat(request))?
+    };
     report.ai = Some(AiContribution {
         provider: client.name().to_owned(),
         model: response.model,

@@ -22,6 +22,16 @@ pub fn enhance_with_language(
     ai: &AiConfig,
     language: &str,
 ) -> Result<()> {
+    enhance_with_language_stream(report, redacted_input, ai, language, None)
+}
+
+pub fn enhance_with_language_stream(
+    report: &mut ExplanationReport,
+    redacted_input: &str,
+    ai: &AiConfig,
+    language: &str,
+    mut on_event: Option<&mut (dyn FnMut(super::provider::StreamEvent) + Send)>,
+) -> Result<()> {
     let client = resolve_client(ai)?;
     let request =
         super::context::build_request_with_language(report, redacted_input, ai.effective_model(), language);
@@ -29,7 +39,11 @@ pub fn enhance_with_language(
         .enable_all()
         .build()
         .map_err(|error| anyhow::anyhow!("failed to start the async runtime: {error}"))?;
-    let response = runtime.block_on(client.chat(request))?;
+    let response = if let Some(ref mut cb) = on_event {
+        runtime.block_on(client.chat_stream(request, *cb))?
+    } else {
+        runtime.block_on(client.chat(request))?
+    };
     apply_response(report, response, &ai.provider);
     Ok(())
 }
