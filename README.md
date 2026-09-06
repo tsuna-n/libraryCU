@@ -9,7 +9,21 @@ For copy-paste examples covering every command, see the
 
 ## Install
 
-Use a compatible stable Rust toolchain:
+Run the installation script to build and install `lbc` to `~/.local/bin`:
+
+```bash
+./install.sh
+```
+
+Or customize the installation:
+
+```bash
+./install.sh --system          # Install system-wide to /usr/local/bin
+./install.sh --prefix ~/bin    # Install to custom directory
+./install.sh --uninstall       # Remove installed binary
+```
+
+Alternatively, build and install manually with Cargo:
 
 ```bash
 cargo build --release
