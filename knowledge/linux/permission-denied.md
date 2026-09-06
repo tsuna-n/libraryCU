@@ -15,6 +15,26 @@ keywords:
 ---
 # Linux - Permission denied (EACCES)
 
-The process lacks the filesystem permission to read, write, or execute the target. The kernel returns EACCES or EPERM.
+Process ไม่มีสิทธิ์ (read, write หรือ execute) บนไฟล์หรือ directory ทำให้ kernel ส่ง error `Permission denied` (EACCES/EPERM)
 
-Inspect the owner and mode with `ls -l`, then either fix ownership (`sudo chown`), adjust the mode (`chmod +x` for scripts, `chmod 600` for keys), or rerun with elevated rights (`sudo`) when appropriate. Confirm by rerunning the exact failing command.
+## ก่อนแก้ (Before - Error)
+```bash
+$ ./deploy.sh
+bash: ./deploy.sh: Permission denied
+```
+
+## แก้แล้ว (After - Success)
+```bash
+# เพิ่มสิทธิ์ execute (+x) ให้กับ script
+$ chmod +x deploy.sh
+
+# รันใหม่สำเร็จ
+$ ./deploy.sh
+# SUCCESS: Deploy script starts execution
+```
+
+## การทำงาน (How it works)
+- ตรวจสอบ permission และ owner ปัจจุบันด้วย `ls -l <file>`
+- กรณีขาดสิทธิ์ execute: ปรับสิทธิ์ด้วย `chmod +x <file>`
+- กรณีขาดสิทธิ์ read/write: ปรับโหมดด้วย `chmod 644 <file>` หรือเปลี่ยน owner ด้วย `sudo chown $USER:$USER <file>`
+- กรณีเป็นไฟล์ระบบที่ต้องใช้ root: รันคำสั่งด้วย `sudo <command>`

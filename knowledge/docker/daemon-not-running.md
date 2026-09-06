@@ -14,6 +14,25 @@ keywords:
 ---
 # Docker - Cannot connect to the Docker daemon
 
-The Docker client cannot reach the daemon, usually because the service is stopped or the user lacks access to `/var/run/docker.sock`.
+Docker client ไม่สามารถเชื่อมต่อไปยัง Docker daemon ได้ มักเกิดจาก service ยังไม่ได้ start หรือ user ไม่มีสิทธิ์เข้าถึง `/var/run/docker.sock`
 
-Start the service with `sudo systemctl start docker` and enable it at boot with `sudo systemctl enable docker`. Check status with `sudo systemctl status docker` and `docker info`. For permission errors, add the user to the `docker` group and log in again.
+## ก่อนแก้ (Before - Error)
+```bash
+$ docker ps
+Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?
+```
+
+## แก้แล้ว (After - Success)
+```bash
+# 1. สั่ง start service
+$ sudo systemctl start docker
+
+# 2. รันคำสั่งตรวจสอบสำเร็จ
+$ docker ps
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+```
+
+## การทำงาน (How it works)
+- เปิด service ด้วย `sudo systemctl start docker` (หรือเปิดอัตโนมัติตอนบูตด้วย `sudo systemctl enable docker`)
+- หากติดสิทธิ์การเข้าถึง socket: เพิ่ม user เข้า docker group ด้วย `sudo usermod -aG docker $USER` แล้ว login ใหม่
+- ตรวจสอบสถานะการทำงานด้วย `sudo systemctl status docker` หรือ `docker info`

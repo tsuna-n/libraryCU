@@ -14,6 +14,26 @@ keywords:
 ---
 # Docker - Port already in use
 
-The host port requested in the container mapping is already bound by another process or container, so the engine fails with `bind: address already in use`.
+Port บนโฮสต์ที่ระบุใน container port mapping ถูกโปรเซสอื่นหรือ container อื่นใช้งานอยู่แล้ว ทำให้เกิด error `bind: address already in use`
 
-Find the process holding the port with `ss -ltnp | grep <port>` or `lsof -i :<port>`, stop the conflicting container (`docker ps`, `docker stop`), or publish a different host port (`-p 8081:80`). Verify by rerunning `docker run` or `docker compose up`.
+## ก่อนแก้ (Before - Error)
+```bash
+$ docker run -p 8080:80 nginx
+docker: Error response from daemon: driver failed programming external connectivity: bind: address already in use.
+```
+
+## แก้แล้ว (After - Success)
+```bash
+# ทางเลือกที่ 1: เปลี่ยน port บนเครื่อง host ที่ไม่ชน
+$ docker run -p 8081:80 nginx
+# SUCCESS: container รันผ่าน port 8081 ได้ปกติ
+
+# ทางเลือกที่ 2: ค้นหาและหยุด process ที่ใช้งาน port 8080 อยู่
+$ lsof -i :8080
+$ docker stop <old_container_id>
+```
+
+## การทำงาน (How it works)
+- รูปแบบของ port mapping คือ `-p <host_port>:<container_port>` หาก host_port ถูกใช้งานแล้วจะไม่สามารถ bind ซ้ำได้
+- ค้นหา process ที่จอง port ด้วย `ss -ltnp | grep <port>` หรือ `lsof -i :<port>`
+- ตรวจสอบความถูกต้องด้วย `docker ps` หรือ `docker compose up`
