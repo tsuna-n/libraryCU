@@ -46,6 +46,65 @@ pub async fn read_bounded_response(
     Ok((status, payload))
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum StreamEvent<'a> {
+    Thinking,
+    Content(&'a str),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SseLine {
+    Done,
+    Delta {
+        content: Option<String>,
+        reasoning: Option<String>,
+    },
+    Empty,
+}
+
+pub fn parse_sse_line(line: &str) -> anyhow::Result<SseLine> {
+    let trimmed = line.trim();
+    if trimmed.is_empty() || trimmed.starts_with(':') {
+        return Ok(SseLine::Empty);
+    }
+    let data = match trimmed.strip_prefix("data:") {
+        Some(rest) => rest.trim(),
+        None => return Ok(SseLine::Empty),
+    };
+    if data == "[DONE]" {
+        return Ok(SseLine::Done);
+    }
+    let value: serde_json::Value = serde_json::from_str(data)
+        .map_err(|e| anyhow::anyhow!("provider returned invalid streaming JSON: {e}"))?;
+    if let Some(error) = value.get("error") {
+        let message = error
+            .get("message")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or("unknown provider error");
+        anyhow::bail!(
+            "provider error: {}",
+            crate::security::redact_sensitive(message)
+        );
+    }
+    let choice = value
+        .get("choices")
+        .and_then(serde_json::Value::as_array)
+        .and_then(|choices| choices.first());
+    let delta = choice.and_then(|c| c.get("delta"));
+    let content = delta
+        .and_then(|d| d.get("content"))
+        .and_then(serde_json::Value::as_str)
+        .filter(|s| !s.is_empty())
+        .map(ToOwned::to_owned);
+    let reasoning = delta
+        .and_then(|d| d.get("reasoning_content"))
+        .and_then(serde_json::Value::as_str)
+        .filter(|s| !s.is_empty())
+        .map(ToOwned::to_owned);
+
+    Ok(SseLine::Delta { content, reasoning })
+}
+
 /// Vendor-neutral abstraction; core logic must depend on this trait only.
 pub trait AiProvider: Send + Sync {
     fn name(&self) -> &'static str;
@@ -53,6 +112,18 @@ pub trait AiProvider: Send + Sync {
         &self,
         request: AiRequest,
     ) -> impl std::future::Future<Output = anyhow::Result<AiResponse>> + Send;
+
+    fn chat_stream<'a>(
+        &'a self,
+        request: AiRequest,
+        on_event: &'a mut (dyn FnMut(StreamEvent) + Send),
+    ) -> impl std::future::Future<Output = anyhow::Result<AiResponse>> + Send {
+        async move {
+            let response = self.chat(request).await?;
+            on_event(StreamEvent::Content(&response.content));
+            Ok(response)
+        }
+    }
 }
 
 pub enum AiClient {
@@ -72,6 +143,17 @@ impl AiClient {
         match self {
             Self::OpenRouter(provider) => provider.chat(request).await,
             Self::OpenAiCompat(provider) => provider.chat(request).await,
+        }
+    }
+
+    pub async fn chat_stream<'a>(
+        &'a self,
+        request: AiRequest,
+        on_event: &'a mut (dyn FnMut(StreamEvent) + Send),
+    ) -> anyhow::Result<AiResponse> {
+        match self {
+            Self::OpenRouter(provider) => provider.chat_stream(request, on_event).await,
+            Self::OpenAiCompat(provider) => provider.chat_stream(request, on_event).await,
         }
     }
 }
@@ -103,10 +185,16 @@ pub fn strip_confidence_marker(content: &str) -> String {
 
 /// Build the OpenAI chat-completions JSON body shared by both providers.
 pub fn build_chat_body(request: &AiRequest) -> serde_json::Value {
+    build_chat_body_streaming(request, false)
+}
+
+/// Build the OpenAI chat-completions JSON body with explicit streaming flag.
+pub fn build_chat_body_streaming(request: &AiRequest, stream: bool) -> serde_json::Value {
     json!({
         "model": request.model,
         "max_tokens": request.max_tokens,
         "temperature": request.temperature,
+        "stream": stream,
         "messages": [
             {"role": "system", "content": request.system},
             {"role": "user", "content": request.user},
@@ -235,5 +323,31 @@ mod tests {
         }"#;
         let error = parse_chat_response(payload, "fallback").unwrap_err();
         assert!(error.to_string().contains("hidden reasoning"));
+    }
+
+    #[test]
+    fn parses_sse_data_lines() {
+        let line = r#"data: {"choices":[{"delta":{"content":"hello "}}]}"#;
+        assert_eq!(
+            parse_sse_line(line).unwrap(),
+            SseLine::Delta {
+                content: Some("hello ".to_owned()),
+                reasoning: None
+            }
+        );
+        let done = "data: [DONE]";
+        assert_eq!(parse_sse_line(done).unwrap(), SseLine::Done);
+        let reasoning = r#"data: {"choices":[{"delta":{"reasoning_content":"thinking..."}}]}"#;
+        assert_eq!(
+            parse_sse_line(reasoning).unwrap(),
+            SseLine::Delta {
+                content: None,
+                reasoning: Some("thinking...".to_owned())
+            }
+        );
+        let empty = "  \n";
+        assert_eq!(parse_sse_line(empty).unwrap(), SseLine::Empty);
+        let comment = ": ping";
+        assert_eq!(parse_sse_line(comment).unwrap(), SseLine::Empty);
     }
 }
