@@ -22,7 +22,10 @@ fn ai_check(ai: &AiConfig) -> DoctorCheck {
                 name: "AI provider".to_owned(),
                 ok: key_set,
                 detail: if key_set {
-                    format!("openrouter with model {} (API key detected)", ai.effective_model())
+                    format!(
+                        "openrouter with model {} (API key detected)",
+                        ai.effective_model()
+                    )
                 } else {
                     format!(
                         "openrouter with model {} but OPENROUTER_API_KEY is not set",
@@ -32,8 +35,7 @@ fn ai_check(ai: &AiConfig) -> DoctorCheck {
             }
         }
         "openai" => {
-            let key_set =
-                std::env::var("OPENAI_API_KEY").is_ok_and(|key| !key.trim().is_empty());
+            let key_set = std::env::var("OPENAI_API_KEY").is_ok_and(|key| !key.trim().is_empty());
             DoctorCheck {
                 name: "AI provider".to_owned(),
                 ok: key_set,

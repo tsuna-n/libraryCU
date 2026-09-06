@@ -5,6 +5,9 @@ use std::sync::{LazyLock, mpsc};
 use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+#[path = "cli/fix.rs"]
+mod fix;
+
 static DEFAULT_TEST_HOME: LazyLock<std::path::PathBuf> =
     LazyLock::new(|| std::env::temp_dir().join(format!("lbc-test-default-{}", std::process::id())));
 
@@ -45,6 +48,25 @@ fn temporary_home(name: &str) -> std::path::PathBuf {
         .map(|duration| duration.as_nanos())
         .unwrap_or_default();
     std::env::temp_dir().join(format!("lbc-{name}-{}-{nonce}", std::process::id()))
+}
+
+#[test]
+fn version_matches_the_package_manifest() {
+    for args in [vec!["--version"], vec!["ask", "--version"]] {
+        let output = lbc().args(args).output().expect("lbc should run");
+        assert!(output.status.success());
+        assert!(output.stderr.is_empty());
+        let stdout = String::from_utf8(output.stdout).expect("version should be UTF-8");
+        assert!(
+            stdout.starts_with("lbc"),
+            "unexpected executable name: {stdout}"
+        );
+        assert_eq!(
+            stdout.split_whitespace().last(),
+            Some(env!("CARGO_PKG_VERSION")),
+            "CLI version must follow Cargo.toml: {stdout}"
+        );
+    }
 }
 
 #[test]
@@ -1394,7 +1416,11 @@ fn doctor_reports_named_ai_providers_and_detects_keys() {
     std::fs::create_dir_all(&config_dir).unwrap();
 
     // 1. OpenAI without key
-    std::fs::write(config_dir.join("config.toml"), "[ai]\nprovider = \"openai\"\n").unwrap();
+    std::fs::write(
+        config_dir.join("config.toml"),
+        "[ai]\nprovider = \"openai\"\n",
+    )
+    .unwrap();
     let output = isolated_lbc(&home).arg("doctor").output().unwrap();
     assert!(!output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -1426,7 +1452,11 @@ fn doctor_reports_named_ai_providers_and_detects_keys() {
     assert!(stdout.contains("https://open.bigmodel.cn/api/paas/v4"));
 
     // 4. Ollama without key is healthy
-    std::fs::write(config_dir.join("config.toml"), "[ai]\nprovider = \"ollama\"\n").unwrap();
+    std::fs::write(
+        config_dir.join("config.toml"),
+        "[ai]\nprovider = \"ollama\"\n",
+    )
+    .unwrap();
     let output = isolated_lbc(&home).arg("doctor").output().unwrap();
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);

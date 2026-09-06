@@ -134,7 +134,7 @@ fn should_exclude_relative(path: &Path, ignore_hidden: bool) -> bool {
 
 /// A deliberately small subset for common exact paths and ignored directories.
 /// Complex gitignore syntax remains scanner metadata rather than being guessed.
-fn is_gitignored(root: &Path, relative: &Path) -> bool {
+pub(crate) fn is_gitignored(root: &Path, relative: &Path) -> bool {
     let Ok(content) = crate::security::files::read_text(&root.join(".gitignore"), 256 * 1024)
     else {
         return false;

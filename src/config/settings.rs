@@ -282,24 +282,36 @@ mod tests {
         fs::write(&path, "[ai]\nprovider = \"openai\"\n")?;
         let loaded = load_from(path.clone())?;
         assert_eq!(loaded.config.ai.provider, "openai");
-        assert_eq!(loaded.config.ai.effective_base_url(), "https://api.openai.com/v1");
+        assert_eq!(
+            loaded.config.ai.effective_base_url(),
+            "https://api.openai.com/v1"
+        );
         assert_eq!(loaded.config.ai.effective_model(), "gpt-4o-mini");
 
         fs::write(&path, "[ai]\nprovider = \"zai\"\n")?;
         let loaded = load_from(path.clone())?;
-        assert_eq!(loaded.config.ai.effective_base_url(), "https://open.bigmodel.cn/api/paas/v4");
+        assert_eq!(
+            loaded.config.ai.effective_base_url(),
+            "https://open.bigmodel.cn/api/paas/v4"
+        );
         assert_eq!(loaded.config.ai.effective_model(), "glm-4-flash");
 
         fs::write(&path, "[ai]\nprovider = \"ollama\"\n")?;
         let loaded = load_from(path.clone())?;
-        assert_eq!(loaded.config.ai.effective_base_url(), "http://localhost:11434/v1");
+        assert_eq!(
+            loaded.config.ai.effective_base_url(),
+            "http://localhost:11434/v1"
+        );
         assert_eq!(loaded.config.ai.effective_model(), "llama3.2");
 
         // Custom model override on named provider
         fs::write(&path, "[ai]\nprovider = \"openai\"\nmodel = \"gpt-4o\"\n")?;
         let loaded = load_from(path.clone())?;
         assert_eq!(loaded.config.ai.effective_model(), "gpt-4o");
-        assert_eq!(loaded.config.ai.effective_base_url(), "https://api.openai.com/v1");
+        assert_eq!(
+            loaded.config.ai.effective_base_url(),
+            "https://api.openai.com/v1"
+        );
 
         fs::remove_file(path)?;
         Ok(())

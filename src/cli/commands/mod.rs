@@ -4,6 +4,7 @@ pub mod config;
 pub mod doctor;
 pub mod entries;
 pub mod explain;
+pub mod fix;
 pub mod history;
 pub mod knowledge;
 pub mod scan;

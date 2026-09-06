@@ -59,7 +59,9 @@ fn resolve_client_with_env(
                 .iter()
                 .filter_map(|name| env_value(name))
                 .find(|key| !key.trim().is_empty())
-                .ok_or_else(|| anyhow::anyhow!("ZAI_API_KEY (or GLM_API_KEY) is not set or is empty"))?;
+                .ok_or_else(|| {
+                    anyhow::anyhow!("ZAI_API_KEY (or GLM_API_KEY) is not set or is empty")
+                })?;
             Ok(AiClient::OpenAiCompat(OpenAiCompatProvider::new(
                 ai.effective_base_url().to_owned(),
                 Some(api_key),

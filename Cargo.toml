@@ -1,6 +1,6 @@
 [package]
 name = "librarycube"
-version = "0.3.3-d"
+version = "0.3.4"
 edition = "2024"
 description = "A terminal knowledge library with offline retrieval and optional AI"
 license = "MIT"

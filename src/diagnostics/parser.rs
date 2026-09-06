@@ -11,17 +11,54 @@ pub fn parse_diagnostics(input: &str) -> Vec<Diagnostic> {
     let lines: Vec<_> = clean.lines().collect();
     let mut diagnostics = Vec::new();
     let mut index = 0;
+    let mut python_traceback = false;
+    let mut python_location = None;
 
     while index < lines.len() {
+        let text = lines[index].trim();
+        if text == "Traceback (most recent call last):" {
+            python_traceback = true;
+            python_location = None;
+            index += 1;
+            continue;
+        }
+        if let Some(location) = parse_python_location(text) {
+            python_traceback = true;
+            python_location = Some(location);
+            index += 1;
+            continue;
+        }
+        if python_traceback && let Some((code, message)) = parse_python_exception(text) {
+            let (file, line) = python_location
+                .take()
+                .map_or((None, None), |(file, line)| (Some(file), Some(line)));
+            diagnostics.push(Diagnostic {
+                source: Some("python".to_owned()),
+                code: Some(code),
+                message,
+                file,
+                line,
+                column: None,
+            });
+            python_traceback = false;
+            index += 1;
+            continue;
+        }
         let Some((code, message)) = parse_error_header(lines[index]) else {
             index += 1;
             continue;
         };
+        python_traceback = false;
+        python_location = None;
         let mut file = None;
         let mut line = None;
         let mut column = None;
         let mut cursor = index + 1;
-        while cursor < lines.len() && parse_error_header(lines[cursor]).is_none() {
+        while cursor < lines.len()
+            && parse_error_header(lines[cursor]).is_none()
+            && lines[cursor].trim() != "Traceback (most recent call last):"
+            && parse_python_location(lines[cursor].trim()).is_none()
+        {
             if let Some(location) = parse_location(lines[cursor]) {
                 file = Some(location.0);
                 line = Some(location.1);
@@ -59,6 +96,40 @@ pub fn parse_diagnostics(input: &str) -> Vec<Diagnostic> {
     }
 
     diagnostics
+}
+
+fn parse_python_location(line: &str) -> Option<(PathBuf, u32)> {
+    let rest = line.strip_prefix("File \"")?;
+    let (file, rest) = rest.split_once("\", line ")?;
+    let number = rest.split(',').next()?.trim().parse::<u32>().ok()?;
+    if file.is_empty() || number == 0 || file.starts_with('<') {
+        return None;
+    }
+    Some((PathBuf::from(file), number))
+}
+
+fn parse_python_exception(line: &str) -> Option<(String, String)> {
+    let (name, message) = line.split_once(':').unwrap_or((line, ""));
+    if !name
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '.')
+        || !(name.ends_with("Error")
+            || name.ends_with("Exception")
+            || matches!(
+                name,
+                "KeyboardInterrupt" | "SystemExit" | "StopIteration" | "ExceptionGroup"
+            ))
+    {
+        return None;
+    }
+    Some((
+        name.to_owned(),
+        if message.trim().is_empty() {
+            name.to_owned()
+        } else {
+            message.trim().to_owned()
+        },
+    ))
 }
 
 fn parse_error_header(line: &str) -> Option<(Option<String>, String)> {
@@ -129,6 +200,51 @@ mod tests {
     use anyhow::{Context, Result};
 
     use super::*;
+
+    #[test]
+    fn python_traceback_uses_last_frame_and_final_exception() {
+        let input = "Traceback (most recent call last):\n  File \"runner.py\", line 9, in main\n    run()\n  File \"src/งาน.py\", line 3, in run\n    x[0]\n\x1b[31mIndexError: list index out of range\x1b[0m";
+        let diagnostic = parse_primary(input).unwrap();
+        assert_eq!(diagnostic.source.as_deref(), Some("python"));
+        assert_eq!(diagnostic.code.as_deref(), Some("IndexError"));
+        assert_eq!(diagnostic.file, Some("src/งาน.py".into()));
+        assert_eq!(diagnostic.line, Some(3));
+    }
+
+    #[test]
+    fn python_chained_errors_and_syntax_errors_remain_separate() {
+        let input = "Traceback (most recent call last):\n  File \"a.py\", line 1\nValueError: bad\nDuring handling of the above exception, another exception occurred:\nTraceback (most recent call last):\n  File \"b.py\", line 2\nCustomError: failed\n  File \"syntax.py\", line 4\nSyntaxError: invalid syntax";
+        let parsed = parse_diagnostics(input);
+        assert_eq!(parsed.len(), 3);
+        assert_eq!(parsed[0].code.as_deref(), Some("ValueError"));
+        assert_eq!(parsed[1].file, Some("b.py".into()));
+        assert_eq!(parsed[2].code.as_deref(), Some("SyntaxError"));
+    }
+
+    #[test]
+    fn malformed_python_frames_do_not_invent_locations() {
+        for number in ["0", "-1", "4294967296", "bad"] {
+            let input = format!(
+                "Traceback (most recent call last):\n  File \"a.py\", line {number}\nValueError: bad"
+            );
+            let parsed = parse_primary(&input).unwrap();
+            assert_eq!(parsed.file, None);
+            assert_eq!(parsed.line, None);
+        }
+        let parsed = parse_primary("File \"a.py\", line nonsense\nsomething unknown").unwrap();
+        assert_eq!(parsed.source, None);
+        assert!(parsed.message.contains("nonsense"));
+    }
+
+    #[test]
+    fn rust_without_location_does_not_consume_a_following_python_traceback() {
+        let parsed = parse_diagnostics(
+            "error: failed to get dependency\nTraceback (most recent call last):\n  File \"worker.py\", line 1\nRuntimeError: failed",
+        );
+        assert_eq!(parsed.len(), 2);
+        assert_eq!(parsed[0].source.as_deref(), Some("cargo"));
+        assert_eq!(parsed[1].source.as_deref(), Some("python"));
+    }
 
     #[test]
     fn parses_rust_error_code_and_location() -> Result<()> {

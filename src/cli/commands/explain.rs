@@ -95,7 +95,7 @@ pub fn run(args: ExplainArgs) -> Result<()> {
     Ok(())
 }
 
-fn read_error_input(args: &ExplainArgs) -> Result<String> {
+pub(super) fn read_error_input(args: &ExplainArgs) -> Result<String> {
     if let Some(path) = &args.file {
         return security::files::read_text(path, MAX_ERROR_INPUT_BYTES)
             .with_context(|| format!("failed to read error log {}", path.display()));

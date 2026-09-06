@@ -62,12 +62,21 @@ pub fn answer(
         })
         .unwrap_or_default();
     warnings.extend(evidence_warnings);
-    let selected: Vec<_> = retrieved
+    let mut selected: Vec<_> = retrieved
         .results
-        .into_iter()
-        .filter(is_adequate)
+        .iter()
+        .filter(|result| is_adequate(result))
         .take(MAX_PASSAGES)
+        .cloned()
         .collect();
+    if selected.is_empty()
+        && let Some(fallback) = retrieved
+            .results
+            .iter()
+            .find(|result| result.match_reason == knowledge::index::PYTHON_ERROR_FALLBACK_REASON)
+    {
+        selected.push(fallback.clone());
+    }
     let passages = selected
         .iter()
         .map(|result| AnswerPassage {
@@ -97,7 +106,15 @@ pub fn answer(
             },
         )
     } else {
-        let mut text = if language == "th" {
+        let general = selected
+            .iter()
+            .all(|result| result.match_reason == knowledge::index::PYTHON_ERROR_FALLBACK_REASON);
+        let mut text = if general && language == "th" {
+            "แนวทางตรวจสอบ Python ทั่วไป; ยังไม่พบหลักฐานเพียงพอที่จะระบุวิธีแก้ข้อผิดพลาดนี้:\n".to_owned()
+        } else if general {
+            "General Python investigation guidance; insufficient evidence for a specific fix:\n"
+                .to_owned()
+        } else if language == "th" {
             "คำแนะนำจากความรู้ที่ค้นพบ:\n".to_owned()
         } else {
             "Retrieved guidance:\n".to_owned()
@@ -115,7 +132,15 @@ pub fn answer(
                 ));
             }
         }
-        ("retrieved_guidance".to_owned(), text.trim_end().to_owned())
+        (
+            if general {
+                "general_guidance"
+            } else {
+                "retrieved_guidance"
+            }
+            .to_owned(),
+            text.trim_end().to_owned(),
+        )
     };
     Ok(AnswerReport {
         question: question.to_owned(),
@@ -244,6 +269,9 @@ pub fn build_ai_request(report: &AnswerReport, model: &str, history: &[String]) 
 }
 
 pub fn is_adequate(result: &SearchResult) -> bool {
+    if result.match_reason == knowledge::index::PYTHON_ERROR_FALLBACK_REASON {
+        return false;
+    }
     result.match_reason == "exact error code"
         || result.match_reason == "title match"
         || (result.query_terms > 0 && result.matched_terms * 3 >= result.query_terms * 2)

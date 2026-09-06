@@ -1,6 +1,6 @@
 # Complete libraryCube usage examples
 
-This guide covers every command available in libraryCube 0.3.3-d. Commands run
+This guide covers the knowledge and analysis commands in libraryCube 0.3.4. Commands run
 offline unless `--ai` is explicitly supplied. Paths, scores, and document counts
 in the sample output will vary by machine. An ellipsis (`...`) means that only a
 relevant part of a longer result is shown.
@@ -19,7 +19,7 @@ lbc --help
 Example output:
 
 ```text
-lbc 0.3.3-d
+lbc 0.3.4
 
 libraryCube - terminal knowledge library
 
@@ -36,6 +36,7 @@ Commands:
   history    Inspect or clear explicitly persisted chat history
   scan       Inspect the current project
   explain    Explain compiler or runtime errors
+  fix        Generate a minimal AI patch grounded in local knowledge
   search     Search local technical knowledge
   config     View or modify LBC configuration
   doctor     Check the LBC environment
@@ -875,7 +876,47 @@ lbc doctor --json |
 A JSON command writes one object or array to stdout. Warnings and explicit AI
 fallback notices may be written to stderr.
 
-## 17. Storage, limits, and safety boundaries
+## 17. `fix`: offline guidance, patch preview, and explicit application
+
+```bash
+lbc knowledge install ./packages/python-fastapi-basics
+lbc fix error.log --project ./demo-project
+lbc fix error.log --project ./demo-project --ai
+lbc fix error.log --project ./demo-project --ai --apply --json
+lbc fix --stdin --project ./demo-project --ai --json < error.log
+```
+
+The package-install example runs from this source checkout and adds 40 bilingual
+Python/FastAPI notes to the selected user store. Rust built-in guidance needs no
+package installation. Standard Python traceback locations can supply the target
+file just as rustc locations can.
+
+Plain `fix` returns offline guidance without a provider connection. `--ai`
+proposes one replacement, and `--apply` additionally writes it; `--apply` alone
+is an argument error. Each invocation generates a new proposal. Application
+does not reuse a prior preview and does not run tests or suggested commands.
+
+The first diagnostic must locate a regular UTF-8 file inside the exact project
+directory. The original and resulting file are limited to 256 KiB. A maximum
+seven-line excerpt and provider patch JSON are each limited to 8 KiB. Hidden,
+generated, recognized gitignored, symlinked, secret-bearing, and special-file
+targets are rejected. Before text must match uniquely near the reported line.
+Detected source changes abort application; successful replacement retains file
+permissions. Atomic replacement is not full concurrency or crash-durability
+protection.
+
+`--json` reports `status`, boolean `applied`, `verification_status: "unverified"`,
+offline `guidance`, optional `patch` (`path`, `before`, `after`,
+`verification_status`), and optional `error`. Status is `offline_guidance`,
+`proposed`, `applied`, or `failed`. AI/validation/application failures preserve
+offline JSON and return a nonzero exit code; input/configuration failures are
+reported on stderr before a report can be built.
+
+For unknown Python failures, `ask --json` may report `general_guidance` with a
+generic traceback playbook. This is explicitly insufficient evidence for a
+specific repair; patch generation requires an adequate match.
+
+## 18. Storage, limits, and safety boundaries
 
 | Data | Default location |
 | --- | --- |

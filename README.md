@@ -6,6 +6,9 @@ The Rust package and crate are named `librarycube`; the executable is `lbc`.
 
 For copy-paste examples covering every command, see the
 [complete usage examples](docs/usage-examples.md).
+The [0.3.4 release audit](docs/release-0.3.4.md) records the new patch workflow,
+Python support, validation results, and remaining limitations.
+See the [changelog](CHANGELOG.md) for the version's changes.
 
 ## Install
 
@@ -130,6 +133,43 @@ Answers include actual retrieved passages and resolvable source IDs. Retrieved s
 
 Multiple diagnostics are counted explicitly. The current text report expands the first diagnostic and states how many additional diagnostics were detected.
 
+Ordinary Python tracebacks and syntax-error frames are parsed too, including
+ANSI-colored input and chained exceptions. The last reported frame is retained;
+it may belong to a dependency. This does not establish a root cause. Complex
+ExceptionGroup tree formatting and arbitrary log prefixes are not fully supported.
+
+## Propose and apply a small patch
+
+```bash
+lbc fix build.log --project ./my-project             # Offline guidance
+lbc fix build.log --project ./my-project --ai        # Preview a replacement
+lbc fix build.log --project ./my-project --ai --apply # Generate and apply
+lbc fix --stdin --project ./my-project --ai --json < build.log
+```
+
+`fix --ai` retrieves adequate local knowledge before requesting one exact
+`before`/`after` replacement near the first diagnostic's line. The provider cannot
+choose another target file. `--apply` requires `--ai`; each invocation generates
+a fresh proposal, so an apply invocation can differ from an earlier preview.
+No repair commands, compiler checks, or tests are executed. Both proposed and
+applied patches are labeled `unverified`: validation checks the target and text,
+not whether the change fixes the program.
+
+The exact `--project` directory is the boundary. Targets must be regular UTF-8
+files of at most 256 KiB; the seven-line excerpt is at most 8 KiB, and provider
+patch JSON is at most 8 KiB. Replacements must match uniquely, intersect the
+reported line, and keep the resulting file within 256 KiB. Symlinked paths,
+hidden/generated targets, recognized `.gitignore` matches, and targets containing
+recognizable secrets are refused. Source content is checked again before atomic
+replacement, and file permissions are retained. As with note editing, this is
+not a guarantee against every concurrent writer or hostile directory race.
+
+JSON reports contain `status` (`offline_guidance`, `proposed`, `applied`, or
+`failed`), `applied`, `verification_status`, `guidance`, `patch`, and `error`.
+An AI/patch failure preserves offline guidance and exits nonzero; preflight
+input/configuration errors go to stderr. Without `--ai`, fix makes no provider
+connection and changes no project files.
+
 ## Optional AI
 
 No outbound provider call occurs unless `--ai` is present:
@@ -207,6 +247,21 @@ lbc knowledge remove team-rules
 
 A package contains `package.toml` with `name`, `version`, and optional `description`, plus valid Markdown documents. Installation validates every document before copying.
 
+The source checkout includes 40 bilingual Python/FastAPI notes in
+`packages/python-fastapi-basics`. Install them explicitly:
+
+```bash
+lbc knowledge install ./packages/python-fastapi-basics
+lbc search "ModuleNotFoundError"
+lbc ask "Python CustomWidgetError failed in worker.py"
+```
+
+They are an optional local package, not embedded knowledge. When a Python error
+has no adequate specific match, `ask` may cite the generic traceback playbook
+with `answer_status: "general_guidance"`. It explicitly states that evidence for
+a specific fix is insufficient; `fix --ai` does not use that fallback as adequate
+evidence. English/Thai selection applies to the bilingual passages.
+
 Other read-only commands:
 
 ```bash
@@ -220,7 +275,7 @@ lbc doctor --json
 
 ## Safety boundaries
 
-`search`, `inspect`, `ask`, `explain`, `scan`, and `doctor` do not change project sources, install packages, run suggested repairs, or execute arbitrary shell commands. Only explicit add/edit/package/config/history-clear operations write their selected data targets. Common keys, bearer values, provider tokens, authorization headers, passwords, database URLs, and known token formats are redacted from remote context and persistent history.
+`search`, `inspect`, `ask`, `explain`, `scan`, and `doctor` do not change project sources, install packages, run suggested repairs, or execute arbitrary shell commands. Only explicit add/edit/package/config/history-clear operations and `fix --ai --apply` write their selected data targets. Common keys, bearer values, provider tokens, authorization headers, passwords, database URLs, and known token formats are redacted from remote context and persistent history.
 
 Redaction handles multiple credentials per line, quoted structured keys, URI user information, and Unicode prefixes. Private-key blocks are redacted before passage selection while preserving line numbers. It is pattern-based, not a guarantee that arbitrary secrets are detected: review sensitive notes before opting into remote AI. Config display masks recognizable credentials without changing the saved value.
 

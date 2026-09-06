@@ -3,6 +3,7 @@ pub mod answer;
 pub mod cli;
 pub mod config;
 pub mod diagnostics;
+pub mod fixer;
 pub mod history;
 pub mod knowledge;
 pub mod output;

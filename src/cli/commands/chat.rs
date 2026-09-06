@@ -57,25 +57,23 @@ pub fn run(args: ChatArgs) -> Result<()> {
         let mut has_streamed = false;
 
         let enhance_result = if args.ai {
-            let mut on_event = |event: ai::StreamEvent| {
-                match event {
-                    ai::StreamEvent::Thinking => {
-                        if !is_thinking && !has_streamed {
-                            is_thinking = true;
-                            eprint!("Thinking...");
-                            let _ = io::stderr().flush();
-                        }
+            let mut on_event = |event: ai::StreamEvent| match event {
+                ai::StreamEvent::Thinking => {
+                    if !is_thinking && !has_streamed {
+                        is_thinking = true;
+                        eprint!("Thinking...");
+                        let _ = io::stderr().flush();
                     }
-                    ai::StreamEvent::Content(text) => {
-                        if is_thinking {
-                            eprint!("\r\x1b[2K");
-                            let _ = io::stderr().flush();
-                            is_thinking = false;
-                        }
-                        has_streamed = true;
-                        print!("{text}");
-                        let _ = io::stdout().flush();
+                }
+                ai::StreamEvent::Content(text) => {
+                    if is_thinking {
+                        eprint!("\r\x1b[2K");
+                        let _ = io::stderr().flush();
+                        is_thinking = false;
                     }
+                    has_streamed = true;
+                    print!("{text}");
+                    let _ = io::stdout().flush();
                 }
             };
             answer::enhance_stream(

@@ -39,6 +39,8 @@ pub enum Command {
     Scan(ScanArgs),
     /// Explain compiler or runtime errors
     Explain(ExplainArgs),
+    /// Generate a minimal AI patch grounded in local knowledge
+    Fix(FixArgs),
     /// Search local technical knowledge
     Search(SearchArgs),
     /// View or modify LBC configuration
@@ -181,6 +183,28 @@ pub struct ExplainArgs {
     #[arg(long)]
     pub ai: bool,
     /// Project path used for contextual evidence
+    #[arg(long, default_value = ".")]
+    pub project: PathBuf,
+}
+
+#[derive(Debug, Args)]
+pub struct FixArgs {
+    /// Error log file
+    #[arg(value_name = "FILE", conflicts_with = "stdin")]
+    pub file: Option<PathBuf>,
+    /// Read error output from stdin
+    #[arg(long)]
+    pub stdin: bool,
+    /// Request an AI patch using bounded local evidence
+    #[arg(long)]
+    pub ai: bool,
+    /// Apply the validated patch after generating it
+    #[arg(long, requires = "ai")]
+    pub apply: bool,
+    /// Output machine-readable JSON
+    #[arg(long)]
+    pub json: bool,
+    /// Project path containing the file reported by the diagnostic
     #[arg(long, default_value = ".")]
     pub project: PathBuf,
 }

@@ -17,6 +17,7 @@ const TERM_BODY_WEIGHT: u32 = 3;
 const MAX_BODY_HITS: u32 = 5;
 const ENGLISH_MARKER: &str = "<!-- lbc:en -->";
 const THAI_MARKER: &str = "<!-- lbc:th -->";
+pub const PYTHON_ERROR_FALLBACK_REASON: &str = "python error fallback";
 
 /// Precomputed lookup structures over the knowledge store.
 ///
@@ -193,6 +194,20 @@ impl KnowledgeIndex {
             scores[position] += hits.iter().filter(|hit| **hit).count() as u32 * 25;
         }
 
+        if looks_like_python_failure(&normalized) {
+            for (position, document) in self.documents.iter().enumerate() {
+                if document.metadata.id == "python-traceback-playbook"
+                    && !matches!(reasons[position], "exact error code" | "title match")
+                    && (terms.is_empty()
+                        || matched_terms[position].iter().filter(|hit| **hit).count() * 3
+                            < terms.len() * 2)
+                {
+                    scores[position] = scores[position].max(1);
+                    reasons[position] = PYTHON_ERROR_FALLBACK_REASON;
+                }
+            }
+        }
+
         let mut results: Vec<SearchResult> = self
             .documents
             .iter()
@@ -222,6 +237,7 @@ impl KnowledgeIndex {
                 .score
                 .cmp(&left.score)
                 .then_with(|| left.document.title.cmp(&right.document.title))
+                .then_with(|| left.source_id.cmp(&right.source_id))
         });
         results
     }
@@ -340,6 +356,52 @@ fn is_stopword(term: &str) -> bool {
     )
 }
 
+fn looks_like_python_failure(normalized: &str) -> bool {
+    let words: Vec<_> = normalized
+        .split(|c: char| !c.is_alphanumeric() && c != '.')
+        .collect();
+    let python_context = [
+        "python",
+        "ไพทอน",
+        "pip",
+        "pytest",
+        "asyncio",
+        "fastapi",
+        "uvicorn",
+        "pydantic",
+        "sqlite3",
+    ]
+    .iter()
+    .any(|signal| words.contains(signal))
+        || words.iter().any(|word| word.ends_with(".py"));
+    if normalized.contains("traceback (most recent call last)")
+        || (python_context
+            && (words.iter().any(|word| {
+                word.ends_with("error")
+                    || word.ends_with("exception")
+                    || matches!(*word, "failed" | "failure")
+            }) || normalized.contains("ข้อผิดพลาด")
+                || normalized.contains("ผิดพลาด")))
+    {
+        return true;
+    }
+
+    normalized
+        .split(|character: char| !character.is_alphanumeric())
+        .any(|term| {
+            matches!(
+                term,
+                "indentationerror"
+                    | "modulenotfounderror"
+                    | "taberror"
+                    | "unboundlocalerror"
+                    | "unicodedecodeerror"
+                    | "unicodeencodeerror"
+                    | "zerodivisionerror"
+            )
+        })
+}
+
 fn make_excerpt(body: &str, terms: &[String]) -> String {
     // Detect multiline secrets before paragraph selection can discard their markers.
     let redacted = crate::security::redact_sensitive(body);
@@ -448,6 +510,65 @@ mod tests {
         let lookup = index.lookup_error_code("E0382");
         assert_eq!(lookup.len(), 1);
         assert_eq!(lookup[0].metadata.id, "b");
+    }
+
+    #[test]
+    fn python_failures_can_retrieve_the_generic_playbook_as_a_fallback() {
+        let index = KnowledgeIndex::build(vec![document(
+            "python-traceback-playbook",
+            "Python traceback playbook",
+            "Read the final exception and inspect the lowest application frame.",
+            KnowledgeMetadata::default(),
+        )]);
+
+        let results = index.search("CustomWidgetError: frobnication failed in worker.py");
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].document.metadata.id, "python-traceback-playbook");
+        assert_eq!(results[0].match_reason, PYTHON_ERROR_FALLBACK_REASON);
+    }
+
+    #[test]
+    fn rust_diagnostic_does_not_trigger_the_python_fallback() {
+        let index = KnowledgeIndex::build(vec![document(
+            "python-traceback-playbook",
+            "Python traceback playbook",
+            "Read the final exception and inspect the lowest application frame.",
+            KnowledgeMetadata::default(),
+        )]);
+
+        assert!(index.search("error[E0308]: mismatched types").is_empty());
+    }
+
+    #[test]
+    fn python_fallback_requires_failure_context_and_preserves_strong_matches() {
+        for query in [
+            "pipeline failed",
+            "copy.py tutorial",
+            "Python tutorial",
+            "JavaScript TypeError: undefined",
+            "แก้ pipeline อย่างไร",
+        ] {
+            assert!(!looks_like_python_failure(&query.to_lowercase()), "{query}");
+        }
+        for query in [
+            "CustomError in worker.py",
+            "Python ข้อผิดพลาดแปลก",
+            "ไพทอน ผิดพลาด",
+            "ModuleNotFoundError: missing",
+        ] {
+            assert!(looks_like_python_failure(&query.to_lowercase()), "{query}");
+        }
+        let index = KnowledgeIndex::build(vec![document(
+            "python-traceback-playbook",
+            "Python unknown failure",
+            "Inspect the traceback.",
+            KnowledgeMetadata {
+                error_code: Some("CustomError".into()),
+                ..Default::default()
+            },
+        )]);
+        let results = index.search("CustomError in worker.py");
+        assert_eq!(results[0].match_reason, "exact error code");
     }
 
     #[test]
