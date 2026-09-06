@@ -22,15 +22,67 @@ fn ai_check(ai: &AiConfig) -> DoctorCheck {
                 name: "AI provider".to_owned(),
                 ok: key_set,
                 detail: if key_set {
-                    format!("openrouter with model {} (API key detected)", ai.model)
+                    format!("openrouter with model {} (API key detected)", ai.effective_model())
                 } else {
                     format!(
                         "openrouter with model {} but OPENROUTER_API_KEY is not set",
-                        ai.model
+                        ai.effective_model()
                     )
                 },
             }
         }
+        "openai" => {
+            let key_set =
+                std::env::var("OPENAI_API_KEY").is_ok_and(|key| !key.trim().is_empty());
+            DoctorCheck {
+                name: "AI provider".to_owned(),
+                ok: key_set,
+                detail: if key_set {
+                    format!(
+                        "openai with model {} at {} (API key detected)",
+                        ai.effective_model(),
+                        ai.effective_base_url()
+                    )
+                } else {
+                    format!(
+                        "openai with model {} at {} but OPENAI_API_KEY is not set",
+                        ai.effective_model(),
+                        ai.effective_base_url()
+                    )
+                },
+            }
+        }
+        "zai" | "glm" => {
+            let key_set = ["ZAI_API_KEY", "GLM_API_KEY"]
+                .iter()
+                .any(|key| std::env::var(key).is_ok_and(|val| !val.trim().is_empty()));
+            DoctorCheck {
+                name: "AI provider".to_owned(),
+                ok: key_set,
+                detail: if key_set {
+                    format!(
+                        "zai (glm) with model {} at {} (API key detected)",
+                        ai.effective_model(),
+                        ai.effective_base_url()
+                    )
+                } else {
+                    format!(
+                        "zai (glm) with model {} at {} but ZAI_API_KEY or GLM_API_KEY is not set",
+                        ai.effective_model(),
+                        ai.effective_base_url()
+                    )
+                },
+            }
+        }
+        "ollama" => DoctorCheck {
+            name: "AI provider".to_owned(),
+            ok: true,
+            detail: format!(
+                "ollama with model {} at {} (local server, no API key required)",
+                ai.effective_model(),
+                ai.effective_base_url()
+            ),
+        },
         "openai-compat" => {
             let key_status = if ["GLM_API_KEY", "ZAI_API_KEY", "OPENAI_API_KEY"]
                 .iter()
@@ -45,7 +97,8 @@ fn ai_check(ai: &AiConfig) -> DoctorCheck {
                 ok: true,
                 detail: format!(
                     "openai-compat with model {} at {} ({key_status})",
-                    ai.model, ai.base_url
+                    ai.effective_model(),
+                    ai.effective_base_url()
                 ),
             }
         }

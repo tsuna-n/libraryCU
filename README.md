@@ -124,16 +124,27 @@ lbc explain build.log --ai
 lbc chat --ai
 ```
 
-Configure OpenRouter or an OpenAI-compatible endpoint:
+Configure a named provider preset (`openai`, `zai`/`glm`, `ollama`), OpenRouter, or a custom OpenAI-compatible endpoint:
 
 ```toml
 [ai]
-provider = "openai-compat" # off | openrouter | openai-compat
-model = "qwen2.5-coder:7b"
-base_url = "http://localhost:11434/v1"
+provider = "zai" # off | openai | zai | glm | ollama | openrouter | openai-compat
+# Optional for named presets (sensible defaults provided):
+# model = "glm-4-flash"
+# base_url = "https://open.bigmodel.cn/api/paas/v4"
 ```
 
-OpenRouter reads `OPENROUTER_API_KEY`. OpenAI-compatible endpoints optionally read `GLM_API_KEY`, `ZAI_API_KEY`, then `OPENAI_API_KEY`; local endpoints such as Ollama can run without a key. Requests have a timeout and bounded input/output budgets. Selected note excerpts, source IDs, and bounded project evidence are redacted before sending. Notes are labeled as untrusted data in the prompt. If the provider fails, stderr and JSON expose the failure while the offline answer remains available.
+### Supported AI Providers
+
+| Provider | Description | Default Endpoint | Default Model | Environment Variable |
+|---|---|---|---|---|
+| `openai` | OpenAI Platform | `https://api.openai.com/v1` | `gpt-4o-mini` | `OPENAI_API_KEY` |
+| `zai` / `glm` | Zhipu AI (BigModel) | `https://open.bigmodel.cn/api/paas/v4` | `glm-4-flash` | `ZAI_API_KEY` or `GLM_API_KEY` |
+| `ollama` | Local Ollama server | `http://localhost:11434/v1` | `llama3.2` | None required (`OLLAMA_API_KEY` optional) |
+| `openrouter` | OpenRouter gateway | `https://openrouter.ai/api/v1` | Set via `ai.model` | `OPENROUTER_API_KEY` |
+| `openai-compat` | Custom self-hosted server | Configured via `ai.base_url` | Configured via `ai.model` | `OPENAI_API_KEY`, `ZAI_API_KEY`, or `GLM_API_KEY` |
+
+Requests have a timeout and bounded input/output budgets. Selected note excerpts, source IDs, and bounded project evidence are redacted before sending. Notes are labeled as untrusted data in the prompt. If the provider fails, stderr and JSON expose the failure while the offline answer remains available. Validate your setup anytime with `lbc doctor`.
 
 ## English and Thai output
 

@@ -1,6 +1,6 @@
 # Complete libraryCube usage examples
 
-This guide covers every command available in libraryCube 0.3.0. Commands run
+This guide covers every command available in libraryCube 0.3.1. Commands run
 offline unless `--ai` is explicitly supplied. Paths, scores, and document counts
 in the sample output will vary by machine. An ellipsis (`...`) means that only a
 relevant part of a longer result is shown.
@@ -19,7 +19,7 @@ lbc --help
 Example output:
 
 ```text
-lbc 0.3.0
+lbc 0.3.1
 
 libraryCube - terminal knowledge library
 
@@ -516,15 +516,41 @@ lbc explain ./build.log --project ./demo-project --ai
 lbc chat --project ./demo-project --ai
 ```
 
-### Ollama or another OpenAI-compatible endpoint
+### OpenAI (GPT-4o, GPT-4o-mini)
+
+Configure the built-in `openai` provider (defaults to `https://api.openai.com/v1` and `gpt-4o-mini`):
 
 ```bash
-lbc config set ai.provider openai-compat
-lbc config set ai.model qwen2.5-coder:7b
-lbc config set ai.base_url http://127.0.0.1:11434/v1
+lbc config set ai.provider openai
+# Optional: customize model (default is gpt-4o-mini)
+lbc config set ai.model gpt-4o
+export OPENAI_API_KEY='sk-...'
+lbc ask "How do I resolve the demo port conflict?" --ai
 ```
 
-Prepare and start the provider separately, for example:
+### Zhipu AI / ZAI (GLM-4, GLM-4-flash)
+
+Configure the built-in `zai` (or `glm`) provider (defaults to `https://open.bigmodel.cn/api/paas/v4` and `glm-4-flash`):
+
+```bash
+lbc config set ai.provider zai
+# Optional: customize model (default is glm-4-flash)
+lbc config set ai.model glm-4-plus
+export ZAI_API_KEY='your-zhipu-api-key'   # or export GLM_API_KEY='...'
+lbc ask "How do I resolve the demo port conflict?" --ai
+```
+
+### Ollama (Local AI)
+
+Configure the built-in `ollama` provider (defaults to `http://localhost:11434/v1` and `llama3.2`, no API key required):
+
+```bash
+lbc config set ai.provider ollama
+# Optional: customize model (default is llama3.2)
+lbc config set ai.model qwen2.5-coder:7b
+```
+
+Prepare and run Ollama:
 
 ```bash
 ollama pull qwen2.5-coder:7b
@@ -534,7 +560,7 @@ ollama serve
 An AI-enhanced answer adds output like:
 
 ```text
-AI analysis (openai-compat / qwen2.5-coder:7b)
+AI analysis (ollama / qwen2.5-coder:7b)
 The retrieved note identifies a type mismatch. Compare the expected and found
 types, then choose an explicit conversion that preserves the intended ownership.
 
@@ -548,6 +574,16 @@ lbc config set ai.provider openrouter
 lbc config set ai.model openai/gpt-4o-mini
 export OPENROUTER_API_KEY='YOUR_API_KEY'
 lbc ask "Explain Rust ownership" --ai
+```
+
+### Custom OpenAI-compatible endpoint
+
+For self-hosted vLLM, LM Studio, or local servers at custom URLs:
+
+```bash
+lbc config set ai.model my-custom-model
+lbc config set ai.base_url http://127.0.0.1:8000/v1
+lbc config set ai.provider openai-compat
 ```
 
 Do not commit API keys. Selected passages and evidence are bounded and redacted,

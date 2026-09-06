@@ -39,6 +39,32 @@ pub struct AiConfig {
     pub base_url: String,
 }
 
+impl AiConfig {
+    pub fn effective_base_url(&self) -> &str {
+        if !self.base_url.trim().is_empty() {
+            return &self.base_url;
+        }
+        match self.provider.as_str() {
+            "openai" => "https://api.openai.com/v1",
+            "zai" | "glm" => "https://open.bigmodel.cn/api/paas/v4",
+            "ollama" => "http://localhost:11434/v1",
+            _ => "",
+        }
+    }
+
+    pub fn effective_model(&self) -> &str {
+        if !self.model.trim().is_empty() {
+            return &self.model;
+        }
+        match self.provider.as_str() {
+            "openai" => "gpt-4o-mini",
+            "zai" | "glm" => "glm-4-flash",
+            "ollama" => "llama3.2",
+            _ => "",
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct LoadedConfig {
     pub config: Config,
@@ -169,20 +195,23 @@ fn validate(config: &Config) -> Result<()> {
     }
     match config.ai.provider.as_str() {
         "off" => {}
+        "openai" | "zai" | "glm" | "ollama" => {}
         "openrouter" => {
-            if config.ai.model.trim().is_empty() {
+            if config.ai.effective_model().trim().is_empty() {
                 bail!("ai.model must be set when ai.provider is openrouter");
             }
         }
         "openai-compat" => {
-            if config.ai.model.trim().is_empty() {
+            if config.ai.effective_model().trim().is_empty() {
                 bail!("ai.model must be set when ai.provider is openai-compat");
             }
-            if config.ai.base_url.trim().is_empty() {
+            if config.ai.effective_base_url().trim().is_empty() {
                 bail!("ai.base_url must be set when ai.provider is openai-compat");
             }
         }
-        other => bail!("ai.provider must be off, openrouter, or openai-compat (found {other:?})"),
+        other => bail!(
+            "ai.provider must be off, openai, zai (glm), ollama, openrouter, or openai-compat (found {other:?})"
+        ),
     }
     Ok(())
 }
@@ -243,6 +272,35 @@ mod tests {
         )?;
         let loaded = load_from(path.clone())?;
         assert_eq!(loaded.config.ai.provider, "openai-compat");
+        fs::remove_file(path)?;
+        Ok(())
+    }
+
+    #[test]
+    fn named_providers_use_effective_defaults_and_allow_overrides() -> Result<()> {
+        let path = temporary_path("named-providers");
+        fs::write(&path, "[ai]\nprovider = \"openai\"\n")?;
+        let loaded = load_from(path.clone())?;
+        assert_eq!(loaded.config.ai.provider, "openai");
+        assert_eq!(loaded.config.ai.effective_base_url(), "https://api.openai.com/v1");
+        assert_eq!(loaded.config.ai.effective_model(), "gpt-4o-mini");
+
+        fs::write(&path, "[ai]\nprovider = \"zai\"\n")?;
+        let loaded = load_from(path.clone())?;
+        assert_eq!(loaded.config.ai.effective_base_url(), "https://open.bigmodel.cn/api/paas/v4");
+        assert_eq!(loaded.config.ai.effective_model(), "glm-4-flash");
+
+        fs::write(&path, "[ai]\nprovider = \"ollama\"\n")?;
+        let loaded = load_from(path.clone())?;
+        assert_eq!(loaded.config.ai.effective_base_url(), "http://localhost:11434/v1");
+        assert_eq!(loaded.config.ai.effective_model(), "llama3.2");
+
+        // Custom model override on named provider
+        fs::write(&path, "[ai]\nprovider = \"openai\"\nmodel = \"gpt-4o\"\n")?;
+        let loaded = load_from(path.clone())?;
+        assert_eq!(loaded.config.ai.effective_model(), "gpt-4o");
+        assert_eq!(loaded.config.ai.effective_base_url(), "https://api.openai.com/v1");
+
         fs::remove_file(path)?;
         Ok(())
     }

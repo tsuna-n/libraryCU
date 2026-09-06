@@ -45,9 +45,10 @@ pub fn print_config(loaded: &LoadedConfig) {
         "off" => println!("  Provider:        off (deterministic mode)"),
         provider => {
             println!("  Provider:        {provider}");
-            println!("  Model:           {}", loaded.config.ai.model);
-            if provider == "openai-compat" {
-                println!("  Base URL:        {}", loaded.config.ai.base_url);
+            println!("  Model:           {}", loaded.config.ai.effective_model());
+            let base_url = loaded.config.ai.effective_base_url();
+            if !base_url.is_empty() {
+                println!("  Base URL:        {base_url}");
             }
         }
     }

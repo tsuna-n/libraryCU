@@ -24,13 +24,13 @@ pub fn enhance_with_language(
 ) -> Result<()> {
     let client = resolve_client(ai)?;
     let request =
-        super::context::build_request_with_language(report, redacted_input, &ai.model, language);
+        super::context::build_request_with_language(report, redacted_input, ai.effective_model(), language);
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
         .map_err(|error| anyhow::anyhow!("failed to start the async runtime: {error}"))?;
     let response = runtime.block_on(client.chat(request))?;
-    apply_response(report, response, client.name());
+    apply_response(report, response, &ai.provider);
     Ok(())
 }
 

@@ -1286,3 +1286,54 @@ fn offline_ask_json_does_not_echo_question_credentials() {
     let _: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     std::fs::remove_dir_all(home).unwrap();
 }
+
+#[test]
+fn doctor_reports_named_ai_providers_and_detects_keys() {
+    let home = temporary_home("doctor-named-ai");
+    let config_dir = home.join("config/lbc");
+    std::fs::create_dir_all(&config_dir).unwrap();
+
+    // 1. OpenAI without key
+    std::fs::write(config_dir.join("config.toml"), "[ai]\nprovider = \"openai\"\n").unwrap();
+    let output = isolated_lbc(&home).arg("doctor").output().unwrap();
+    assert!(!output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("OPENAI_API_KEY is not set"));
+
+    // 2. OpenAI with key
+    let output = isolated_lbc(&home)
+        .arg("doctor")
+        .env("OPENAI_API_KEY", "sk-test")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("API key detected"));
+    assert!(stdout.contains("gpt-4o-mini"));
+    assert!(stdout.contains("https://api.openai.com/v1"));
+
+    // 3. ZAI with ZAI_API_KEY
+    std::fs::write(config_dir.join("config.toml"), "[ai]\nprovider = \"zai\"\n").unwrap();
+    let output = isolated_lbc(&home)
+        .arg("doctor")
+        .env("ZAI_API_KEY", "test-zai")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("zai (glm)"));
+    assert!(stdout.contains("glm-4-flash"));
+    assert!(stdout.contains("https://open.bigmodel.cn/api/paas/v4"));
+
+    // 4. Ollama without key is healthy
+    std::fs::write(config_dir.join("config.toml"), "[ai]\nprovider = \"ollama\"\n").unwrap();
+    let output = isolated_lbc(&home).arg("doctor").output().unwrap();
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("ollama"));
+    assert!(stdout.contains("llama3.2"));
+    assert!(stdout.contains("http://localhost:11434/v1"));
+
+    std::fs::remove_dir_all(home).unwrap();
+}
+

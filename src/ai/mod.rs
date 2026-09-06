@@ -42,6 +42,33 @@ fn resolve_client_with_env(
                 .ok_or_else(|| anyhow::anyhow!("OPENROUTER_API_KEY is not set or is empty"))?;
             Ok(AiClient::OpenRouter(OpenRouterProvider::new(api_key)))
         }
+        "openai" => {
+            let api_key = env_value("OPENAI_API_KEY")
+                .filter(|key| !key.trim().is_empty())
+                .ok_or_else(|| anyhow::anyhow!("OPENAI_API_KEY is not set or is empty"))?;
+            Ok(AiClient::OpenAiCompat(OpenAiCompatProvider::new(
+                ai.effective_base_url().to_owned(),
+                Some(api_key),
+            )))
+        }
+        "zai" | "glm" => {
+            let api_key = ["ZAI_API_KEY", "GLM_API_KEY"]
+                .iter()
+                .filter_map(|name| env_value(name))
+                .find(|key| !key.trim().is_empty())
+                .ok_or_else(|| anyhow::anyhow!("ZAI_API_KEY (or GLM_API_KEY) is not set or is empty"))?;
+            Ok(AiClient::OpenAiCompat(OpenAiCompatProvider::new(
+                ai.effective_base_url().to_owned(),
+                Some(api_key),
+            )))
+        }
+        "ollama" => {
+            let api_key = env_value("OLLAMA_API_KEY").filter(|key| !key.trim().is_empty());
+            Ok(AiClient::OpenAiCompat(OpenAiCompatProvider::new(
+                ai.effective_base_url().to_owned(),
+                api_key,
+            )))
+        }
         "openai-compat" => {
             // Key is optional: local servers need none. Vendor env vars are
             // accepted for convenience (GLM_API_KEY, ZAI_API_KEY, then OPENAI_API_KEY).
@@ -50,12 +77,12 @@ fn resolve_client_with_env(
                 .filter_map(|name| env_value(name))
                 .find(|key| !key.trim().is_empty());
             Ok(AiClient::OpenAiCompat(OpenAiCompatProvider::new(
-                ai.base_url.clone(),
+                ai.effective_base_url().to_owned(),
                 api_key,
             )))
         }
         other => anyhow::bail!(
-            "unsupported AI provider {other:?}; supported providers: openrouter, openai-compat"
+            "unsupported AI provider {other:?}; supported providers: openai, zai (glm), ollama, openrouter, openai-compat"
         ),
     }
 }
@@ -73,6 +100,102 @@ mod tests {
         };
         assert!(resolve_client_with_env(&ai, |_| None).is_err());
         assert!(resolve_client_with_env(&ai, |_| Some(" ".into())).is_err());
+    }
+
+    #[test]
+    fn openai_requires_an_api_key_and_uses_default_endpoint() {
+        let ai = AiConfig {
+            provider: "openai".to_owned(),
+            model: String::new(),
+            base_url: String::new(),
+        };
+        assert!(resolve_client_with_env(&ai, |_| None).is_err());
+        let client = resolve_client_with_env(&ai, |name| {
+            if name == "OPENAI_API_KEY" {
+                Some("sk-test".into())
+            } else {
+                None
+            }
+        })
+        .expect("openai should succeed with OPENAI_API_KEY");
+        match client {
+            AiClient::OpenAiCompat(provider) => {
+                assert_eq!(
+                    provider.endpoint(),
+                    "https://api.openai.com/v1/chat/completions"
+                );
+            }
+            _ => panic!("expected OpenAiCompat client"),
+        }
+    }
+
+    #[test]
+    fn zai_accepts_either_zai_or_glm_key() {
+        let ai = AiConfig {
+            provider: "zai".to_owned(),
+            model: String::new(),
+            base_url: String::new(),
+        };
+        assert!(resolve_client_with_env(&ai, |_| None).is_err());
+        let client = resolve_client_with_env(&ai, |name| {
+            if name == "ZAI_API_KEY" {
+                Some("test-zai-key".into())
+            } else {
+                None
+            }
+        })
+        .expect("zai should succeed with ZAI_API_KEY");
+        match client {
+            AiClient::OpenAiCompat(provider) => {
+                assert_eq!(
+                    provider.endpoint(),
+                    "https://open.bigmodel.cn/api/paas/v4/chat/completions"
+                );
+            }
+            _ => panic!("expected OpenAiCompat client"),
+        }
+
+        let glm_ai = AiConfig {
+            provider: "glm".to_owned(),
+            model: String::new(),
+            base_url: String::new(),
+        };
+        let client_glm = resolve_client_with_env(&glm_ai, |name| {
+            if name == "GLM_API_KEY" {
+                Some("test-glm-key".into())
+            } else {
+                None
+            }
+        })
+        .expect("glm should succeed with GLM_API_KEY");
+        match client_glm {
+            AiClient::OpenAiCompat(provider) => {
+                assert_eq!(
+                    provider.endpoint(),
+                    "https://open.bigmodel.cn/api/paas/v4/chat/completions"
+                );
+            }
+            _ => panic!("expected OpenAiCompat client"),
+        }
+    }
+
+    #[test]
+    fn ollama_resolves_without_api_key() {
+        let ai = AiConfig {
+            provider: "ollama".to_owned(),
+            model: String::new(),
+            base_url: String::new(),
+        };
+        let client = resolve_client_with_env(&ai, |_| None).expect("ollama needs no key");
+        match client {
+            AiClient::OpenAiCompat(provider) => {
+                assert_eq!(
+                    provider.endpoint(),
+                    "http://localhost:11434/v1/chat/completions"
+                );
+            }
+            _ => panic!("expected OpenAiCompat client"),
+        }
     }
 
     #[test]
