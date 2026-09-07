@@ -8,6 +8,50 @@ use std::time::{SystemTime, UNIX_EPOCH};
 #[path = "cli/fix.rs"]
 mod fix;
 
+#[test]
+fn explain_broader_diagnostics_provides_known_guidance_without_claiming_verification() {
+    let home = tempfile::tempdir().unwrap();
+    std::fs::write(home.path().join("README.md"), "fixture").unwrap();
+    for (log, source, code) in [
+        (
+            "app.ts(2,3): error TS2322: incompatible type",
+            "typescript",
+            "TS2322",
+        ),
+        (
+            "app.ts:2:3 - error TS2307: cannot find module",
+            "typescript",
+            "TS2307",
+        ),
+        (
+            "Error [ERR_MODULE_NOT_FOUND]: Cannot find package",
+            "node",
+            "ERR_MODULE_NOT_FOUND",
+        ),
+        ("main.go:2:3: undefined: missing", "go", ""),
+    ] {
+        std::fs::write(home.path().join("error.log"), log).unwrap();
+        let output = isolated_lbc(home.path())
+            .args(["explain", "error.log", "--json"])
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(report["diagnostic"]["source"], source);
+        if !code.is_empty() {
+            assert_eq!(report["diagnostic"]["code"], code);
+        }
+        assert_eq!(report["confidence"], "known_rule");
+        assert!(!report["suggested_fixes"].as_array().unwrap().is_empty());
+        assert!(!report["verification"].as_array().unwrap().is_empty());
+        assert!(report.get("ai").is_none());
+    }
+}
+
 static DEFAULT_TEST_HOME: LazyLock<std::path::PathBuf> =
     LazyLock::new(|| std::env::temp_dir().join(format!("lbc-test-default-{}", std::process::id())));
 

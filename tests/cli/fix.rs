@@ -4,6 +4,202 @@ use std::path::{Path, PathBuf};
 const SOURCE: &str = "fn main() { let value: i32 = \"3\"; }\n";
 const LOG: &str = "error[E0308]: mismatched types\n --> main.rs:1:28\n";
 
+// The same Rust executable supplies verification fixtures on all three OSes.
+#[test]
+fn verification_child() {
+    let Ok(mode) = std::env::var("LBC_VERIFY_FIXTURE") else {
+        return;
+    };
+    assert_eq!(
+        std::fs::read_to_string("main.rs").unwrap(),
+        SOURCE.replace("\"3\"", "3")
+    );
+    match mode.as_str() {
+        "pass" => println!("checked locally"),
+        "fail" => {
+            eprintln!("API_KEY=private-verifier-marker");
+            std::process::exit(7);
+        }
+        "timeout" => thread::sleep(std::time::Duration::from_secs(30)),
+        "edit" => std::fs::write("main.rs", "user edit\n").unwrap(),
+        "noisy" => {
+            for _ in 0..10000 {
+                println!("bounded output งาน");
+                eprintln!("password=private-verifier-marker");
+            }
+        }
+        _ => panic!("unknown fixture"),
+    }
+}
+
+fn verifier_command() -> String {
+    format!(
+        "{} --exact fix::verification_child --nocapture",
+        shell_words::quote(std::env::current_exe().unwrap().to_str().unwrap())
+    )
+}
+
+#[test]
+fn verify_success_and_explicit_rollback_work_across_processes() {
+    let home = fixture();
+    let server = mock(home.path(), r#"{"before":"\"3\"","after":"3"}"#, "en", None);
+    let output = isolated_lbc(home.path())
+        .args([
+            "fix",
+            "error.log",
+            "--ai",
+            "--apply",
+            "--json",
+            "--verify",
+            &verifier_command(),
+        ])
+        .env("LBC_VERIFY_FIXTURE", "pass")
+        .output()
+        .unwrap();
+    server.join().unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["status"], "verified");
+    assert_eq!(report["verification_status"], "passed");
+    assert_eq!(report["verification"]["exit_code"], 0);
+    assert!(
+        report["verification"]["stdout"]
+            .as_str()
+            .unwrap()
+            .contains("checked locally")
+    );
+    let id = report["recovery_id"].as_str().unwrap();
+    let output = isolated_lbc(home.path())
+        .args(["rollback", id, "--json"])
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        serde_json::from_slice::<serde_json::Value>(&output.stdout).unwrap()["status"],
+        "rolled_back"
+    );
+    assert_eq!(
+        std::fs::read_to_string(home.path().join("main.rs")).unwrap(),
+        SOURCE
+    );
+    let again = isolated_lbc(home.path())
+        .args(["rollback", id, "--json"])
+        .output()
+        .unwrap();
+    assert!(!again.status.success());
+    assert_eq!(
+        serde_json::from_slice::<serde_json::Value>(&again.stdout).unwrap()["status"],
+        "failed"
+    );
+}
+
+#[test]
+fn verification_failures_restore_source_but_preserve_later_edits() {
+    for mode in ["fail", "timeout", "missing", "edit", "noisy"] {
+        let home = fixture();
+        let server = mock(home.path(), r#"{"before":"\"3\"","after":"3"}"#, "en", None);
+        let command = if mode == "missing" {
+            "lbc-nonexistent-verifier-492718".into()
+        } else {
+            verifier_command()
+        };
+        let output = isolated_lbc(home.path())
+            .args([
+                "fix",
+                "error.log",
+                "--ai",
+                "--apply",
+                "--json",
+                "--verify",
+                &command,
+                "--verify-timeout",
+                if mode == "timeout" { "1" } else { "30" },
+            ])
+            .env("LBC_VERIFY_FIXTURE", mode)
+            .output()
+            .unwrap();
+        server.join().unwrap();
+        let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(output.status.success(), mode == "noisy", "{mode}: {report}");
+        assert!(!String::from_utf8_lossy(&output.stdout).contains("private-verifier-marker"));
+        assert!(!String::from_utf8_lossy(&output.stderr).contains("private-verifier-marker"));
+        if mode == "noisy" {
+            assert_eq!(report["verification"]["output_truncated"], true);
+            assert!(output.stdout.len() < 90_000);
+        } else if mode == "edit" {
+            assert_eq!(report["rollback_status"], "failed");
+            assert_eq!(
+                std::fs::read_to_string(home.path().join("main.rs")).unwrap(),
+                "user edit\n"
+            );
+        } else {
+            assert_eq!(report["status"], "rolled_back", "{mode}: {report}");
+            assert_eq!(report["applied"], false);
+            assert_eq!(
+                report["verification_status"],
+                match mode {
+                    "fail" => "failed",
+                    "timeout" => "timed_out",
+                    _ => "error",
+                }
+            );
+            assert_eq!(
+                std::fs::read_to_string(home.path().join("main.rs")).unwrap(),
+                SOURCE
+            );
+        }
+    }
+}
+
+#[test]
+fn invalid_verification_never_contacts_the_provider_or_writes() {
+    let home = fixture();
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    listener.set_nonblocking(true).unwrap();
+    ai_config(home.path(), listener.local_addr().unwrap(), "en");
+    for args in [
+        vec!["fix", "error.log", "--verify", "cargo check"],
+        vec!["fix", "error.log", "--ai", "--apply", "--verify", "'"],
+        vec!["fix", "error.log", "--ai", "--apply", "--verify", ""],
+        vec![
+            "fix",
+            "error.log",
+            "--ai",
+            "--apply",
+            "--verify",
+            "cargo check",
+            "--verify-timeout",
+            "0",
+        ],
+    ] {
+        assert!(
+            !isolated_lbc(home.path())
+                .args(args)
+                .output()
+                .unwrap()
+                .status
+                .success()
+        );
+    }
+    assert_eq!(
+        listener.accept().unwrap_err().kind(),
+        std::io::ErrorKind::WouldBlock
+    );
+    assert_eq!(
+        std::fs::read_to_string(home.path().join("main.rs")).unwrap(),
+        SOURCE
+    );
+    assert!(!home.path().join(".lbc/fixes").exists());
+}
+
 fn fixture() -> tempfile::TempDir {
     let home = tempfile::tempdir().unwrap();
     std::fs::create_dir_all(home.path().join("config/lbc")).unwrap();

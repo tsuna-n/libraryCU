@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Rust / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
+    env:
+      CARGO_TERM_COLOR: always
+      # /tmp and /var are symlinks on macOS; canonicalize fixture roots.
+      LBC_CONFIG: ${{ runner.temp }}/lbc-ci/config.toml
+      XDG_CONFIG_HOME: ${{ runner.temp }}/lbc-ci/config
+      XDG_DATA_HOME: ${{ runner.temp }}/lbc-ci/data
+      XDG_CACHE_HOME: ${{ runner.temp }}/lbc-ci/cache
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Rust toolchain
+        run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
+      - run: rustup default stable
+      - name: Canonical temporary directory for Unix filesystem safety tests
+        if: runner.os != 'Windows'
+        run: |
+          fixture_tmp="$(cd "$RUNNER_TEMP" && pwd -P)"
+          echo "TMPDIR=$fixture_tmp" >> "$GITHUB_ENV"
+      - run: cargo fmt --check
+      - run: cargo check --locked
+      - run: cargo clippy --locked --all-targets --all-features -- -D warnings
+      - run: cargo test --locked
+      - run: cargo build --locked --release
+      - name: Release binary CLI regressions
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            export LBC_TEST_BINARY="$GITHUB_WORKSPACE/target/release/lbc.exe"
+          else
+            export LBC_TEST_BINARY="$GITHUB_WORKSPACE/target/release/lbc"
+          fi
+          cargo test --locked --test cli
+      - run: git diff --exit-code
+      - run: git diff --check
+      - name: Upload tested release binary
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: lbc-${{ matrix.os }}
+          path: |
+            target/release/lbc
+            target/release/lbc.exe
+          if-no-files-found: error

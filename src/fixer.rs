@@ -13,6 +13,9 @@ use crate::{
     ai, answer::AnswerReport, config::settings::AiConfig, diagnostics::Diagnostic, security,
 };
 
+pub mod rollback;
+pub mod verification;
+
 pub const MAX_SOURCE_BYTES: u64 = 256 * 1024;
 pub const MAX_PATCH_BYTES: usize = 8 * 1024;
 pub const MAX_EXCERPT_BYTES: usize = 8 * 1024;
@@ -52,8 +55,21 @@ impl Target {
             .file
             .as_deref()
             .context("diagnostic has no file location")?;
+        let absolute;
         let relative = if reported.is_absolute() {
-            reported
+            ensure!(
+                reported
+                    .components()
+                    .all(|c| !matches!(c, Component::ParentDir | Component::CurDir)),
+                "diagnostic path must not traverse directories"
+            );
+            security::files::reject_symlinks(reported)?;
+            // Windows canonical roots use the extended-length prefix, whereas
+            // compiler logs commonly use ordinary drive-letter paths.
+            absolute = reported
+                .canonicalize()
+                .context("cannot resolve diagnostic file")?;
+            absolute
                 .strip_prefix(&root)
                 .context("diagnostic file is outside the explicit project")?
         } else {
@@ -260,6 +276,15 @@ impl Target {
         Ok(())
     }
 
+    pub fn check_applied(&self, patch: &Patch) -> Result<()> {
+        let current = security::files::read_text(&self.path, MAX_SOURCE_BYTES)?;
+        ensure!(
+            current == self.original.replacen(&patch.before, &patch.after, 1),
+            "source changed during verification"
+        );
+        Ok(())
+    }
+
     fn check_unchanged(&self) -> Result<()> {
         security::files::reject_symlinks(&self.path)?;
         ensure!(
@@ -302,6 +327,117 @@ mod tests {
 
     fn response(before: &str, after: &str) -> String {
         serde_json::json!({"before": before, "after": after}).to_string()
+    }
+
+    #[test]
+    fn recovery_records_roundtrip_crlf_unicode_and_refuse_conflicts() {
+        let (root, target) = fixture("old งาน\r\n", 1);
+        let patch = target.validate_response(&response("old", "new")).unwrap();
+        let id = rollback::prepare(&target, &patch).unwrap();
+        assert_eq!(fs::read_to_string(&target.path).unwrap(), "old งาน\r\n");
+        target.apply(&patch).unwrap();
+        fs::write(&target.path, "later edit\n").unwrap();
+        assert!(rollback::restore(root.path(), &id).is_err());
+        assert_eq!(fs::read_to_string(&target.path).unwrap(), "later edit\n");
+        fs::write(&target.path, "new งาน\r\n").unwrap();
+        assert_eq!(rollback::restore(root.path(), &id).unwrap(), "main.rs");
+        assert_eq!(fs::read_to_string(&target.path).unwrap(), "old งาน\r\n");
+        // Records stay available for inspection; replay never overwrites content.
+        assert!(
+            root.path()
+                .join(".lbc/fixes")
+                .join(format!("{id}.json"))
+                .is_file()
+        );
+        assert!(rollback::restore(root.path(), &id).is_err());
+        for invalid in [
+            "../escape",
+            "/absolute",
+            "fix-../escape",
+            "fix-\\escape",
+            "",
+            "fix-💥",
+        ] {
+            assert!(rollback::restore(root.path(), invalid).is_err());
+        }
+    }
+
+    #[test]
+    fn absolute_native_paths_with_spaces_unicode_and_crlf_can_be_restored() {
+        let root = tempfile::tempdir().unwrap();
+        let directory = root.path().join("source งาน with spaces");
+        fs::create_dir(&directory).unwrap();
+        let path = directory.join("main.rs");
+        fs::write(&path, "old งาน\r\n").unwrap();
+        let target = Target::read(root.path(), &diagnostic(path.to_str().unwrap(), 1)).unwrap();
+        let patch = target.validate_response(&response("old", "new")).unwrap();
+        let id = rollback::prepare(&target, &patch).unwrap();
+        target.apply(&patch).unwrap();
+        rollback::restore(root.path(), &id).unwrap();
+        assert_eq!(fs::read_to_string(path).unwrap(), "old งาน\r\n");
+    }
+
+    #[test]
+    fn recovery_refuses_tampered_paths_other_projects_and_broken_storage() {
+        let (root, target) = fixture("old\n", 1);
+        let patch = target.validate_response(&response("old", "new")).unwrap();
+        let id = rollback::prepare(&target, &patch).unwrap();
+        target.apply(&patch).unwrap();
+        let record_path = root.path().join(".lbc/fixes").join(format!("{id}.json"));
+        let record: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(&record_path).unwrap()).unwrap();
+        for (key, value) in [
+            ("path", "../main.rs"),
+            ("path", ".lbc/config"),
+            ("root", "/other-project"),
+            ("original", "API_KEY=secret-value"),
+        ] {
+            let mut changed = record.clone();
+            changed[key] = value.into();
+            fs::write(&record_path, changed.to_string()).unwrap();
+            assert!(rollback::restore(root.path(), &id).is_err());
+            assert_eq!(fs::read_to_string(&target.path).unwrap(), "new\n");
+        }
+        let (root, target) = fixture("old\n", 1);
+        fs::write(root.path().join(".lbc"), "blocked store").unwrap();
+        let patch = target.validate_response(&response("old", "new")).unwrap();
+        assert!(rollback::prepare(&target, &patch).is_err());
+        assert_eq!(fs::read_to_string(&target.path).unwrap(), "old\n");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn recovery_rejects_symlinked_store_and_target_and_keeps_permissions() {
+        use std::os::unix::fs::{PermissionsExt, symlink};
+        let (root, target) = fixture("old\n", 1);
+        let outside = tempfile::tempdir().unwrap();
+        symlink(outside.path(), root.path().join(".lbc")).unwrap();
+        let patch = target.validate_response(&response("old", "new")).unwrap();
+        assert!(rollback::prepare(&target, &patch).is_err());
+        assert_eq!(fs::read_dir(outside.path()).unwrap().count(), 0);
+        fs::remove_file(root.path().join(".lbc")).unwrap();
+        fs::set_permissions(&target.path, fs::Permissions::from_mode(0o640)).unwrap();
+        let target = Target::read(root.path(), &diagnostic("main.rs", 1)).unwrap();
+        let id = rollback::prepare(&target, &patch).unwrap();
+        let record = root.path().join(".lbc/fixes").join(format!("{id}.json"));
+        assert_eq!(
+            fs::metadata(record).unwrap().permissions().mode() & 0o777,
+            0o600
+        );
+        target.apply(&patch).unwrap();
+        rollback::restore(root.path(), &id).unwrap();
+        assert_eq!(
+            fs::metadata(&target.path).unwrap().permissions().mode() & 0o777,
+            0o640
+        );
+        fs::write(outside.path().join("outside.rs"), "new\n").unwrap();
+        fs::remove_file(&target.path).unwrap();
+        symlink(outside.path().join("outside.rs"), &target.path).unwrap();
+        assert!(rollback::restore(root.path(), &id).is_err());
+        assert_eq!(
+            fs::read_to_string(outside.path().join("outside.rs")).unwrap(),
+            "new\n"
+        );
     }
 
     #[test]

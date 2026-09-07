@@ -6,8 +6,8 @@ The Rust package and crate are named `librarycube`; the executable is `lbc`.
 
 For copy-paste examples covering every command, see the
 [complete usage examples](docs/usage-examples.md).
-The [0.3.4 release audit](docs/release-0.3.4.md) records the new patch workflow,
-Python support, validation results, and remaining limitations.
+The [0.4.0 release audit](docs/release-0.4.0.md) records verification, recovery,
+cross-platform validation, and remaining limitations.
 See the [changelog](CHANGELOG.md) for the version's changes.
 
 ## Install
@@ -137,6 +137,12 @@ Ordinary Python tracebacks and syntax-error frames are parsed too, including
 ANSI-colored input and chained exceptions. The last reported frame is retained;
 it may belong to a dependency. This does not establish a root cause. Complex
 ExceptionGroup tree formatting and arbitrary log prefixes are not fully supported.
+TypeScript `tsc` locations (both `(line,column)` and `:line:column` formats),
+Go compiler file diagnostics, and Node error headers with a JavaScript/TypeScript
+stack frame or explicit Node error code are also parsed. Paths with Windows drive
+letters, Unicode, ANSI colors, and CRLF logs are supported. Selected known rules
+cover TypeScript type/module errors, Node module resolution, and Go undefined
+identifiers. These rules supply general guidance, not a project-verified cause.
 
 ## Propose and apply a small patch
 
@@ -145,15 +151,41 @@ lbc fix build.log --project ./my-project             # Offline guidance
 lbc fix build.log --project ./my-project --ai        # Preview a replacement
 lbc fix build.log --project ./my-project --ai --apply # Generate and apply
 lbc fix --stdin --project ./my-project --ai --json < build.log
+lbc fix build.log --project ./my-project --ai --apply --verify "cargo check --offline"
+lbc rollback fix-ABC123 --project ./my-project --json # Use the emitted recovery_id
 ```
 
 `fix --ai` retrieves adequate local knowledge before requesting one exact
 `before`/`after` replacement near the first diagnostic's line. The provider cannot
 choose another target file. `--apply` requires `--ai`; each invocation generates
 a fresh proposal, so an apply invocation can differ from an earlier preview.
-No repair commands, compiler checks, or tests are executed. Both proposed and
-applied patches are labeled `unverified`: validation checks the target and text,
-not whether the change fixes the program.
+Without `--verify`, proposed and applied patches remain `unverified`. Add
+`--verify "COMMAND"` with `--ai --apply` to run your chosen executable and arguments
+in the exact project directory. Arguments use shell-style quoting on every OS;
+quote Windows paths with spaces, preferably using forward slashes. No shell is
+launched implicitly, so pipes, redirection, and variable expansion are not shell
+operations. On Windows, invoke an executable such as `node.exe` directly; shell
+scripts require an explicitly selected interpreter. The provider cannot select
+the command. Only use verification commands you trust: they inherit your
+environment and can execute project code, access the network, or change files.
+
+The deadline is 120 seconds; `--verify-timeout 30` changes it (1–3600 seconds).
+Standard input is closed. Each output stream retains at most 32 KiB, redacts
+recognizable secrets, and reports truncation. A passed command records `passed`
+only if the patched file still matches. This proves that particular command
+exited successfully, not general program correctness. On timeout LBC stops the
+direct child; it does not guarantee termination of detached descendant processes.
+
+Every CLI application first saves a private recovery record under
+`<project>/.lbc/fixes/<recovery_id>.json`, containing the original and applied
+source snapshots. A failed, unavailable, or timed-out verifier triggers rollback
+and exits nonzero. `lbc rollback ID --project PATH` also restores an applied patch
+in a later invocation without AI. Both forms refuse to overwrite source that no
+longer matches the recorded applied content. Only the selected file is restored;
+side effects of the verification command are outside the rollback. Records remain
+for manual recovery and can be removed after you no longer need them. Keep
+`.lbc/fixes/` out of version control; records are local source backups and are not
+authenticated against local tampering. Power-loss durability is not guaranteed.
 
 The exact `--project` directory is the boundary. Targets must be regular UTF-8
 files of at most 256 KiB; the seven-line excerpt is at most 8 KiB, and provider
@@ -164,8 +196,12 @@ recognizable secrets are refused. Source content is checked again before atomic
 replacement, and file permissions are retained. As with note editing, this is
 not a guarantee against every concurrent writer or hostile directory race.
 
-JSON reports contain `status` (`offline_guidance`, `proposed`, `applied`, or
-`failed`), `applied`, `verification_status`, `guidance`, `patch`, and `error`.
+JSON reports contain `status` (`offline_guidance`, `proposed`, `applied`,
+`verified`, `rolled_back`, or `failed`), `applied`, `verification_status`,
+`guidance`, `patch`, `error`, `recovery_id`, `verification`, and `rollback_status`.
+Verification status is `unverified`, `passed`, `failed`, `timed_out`, or `error`;
+the optional verification object includes exit code, captured stdout/stderr,
+truncation, and execution error. `applied` becomes false after successful rollback.
 An AI/patch failure preserves offline guidance and exits nonzero; preflight
 input/configuration errors go to stderr. Without `--ai`, fix makes no provider
 connection and changes no project files.
@@ -275,7 +311,7 @@ lbc doctor --json
 
 ## Safety boundaries
 
-`search`, `inspect`, `ask`, `explain`, `scan`, and `doctor` do not change project sources, install packages, run suggested repairs, or execute arbitrary shell commands. Only explicit add/edit/package/config/history-clear operations and `fix --ai --apply` write their selected data targets. Common keys, bearer values, provider tokens, authorization headers, passwords, database URLs, and known token formats are redacted from remote context and persistent history.
+`search`, `inspect`, `ask`, `explain`, `scan`, and `doctor` do not change project sources, install packages, run suggested repairs, or execute arbitrary shell commands. Explicit add/edit/package/config/history-clear operations, `fix --ai --apply`, and `rollback` write their selected data targets. `fix --verify` additionally executes the user-selected verification command. Common keys, bearer values, provider tokens, authorization headers, passwords, database URLs, and known token formats are redacted from remote context and persistent history.
 
 Redaction handles multiple credentials per line, quoted structured keys, URI user information, and Unicode prefixes. Private-key blocks are redacted before passage selection while preserving line numbers. It is pattern-based, not a guarantee that arbitrary secrets are detected: review sensitive notes before opting into remote AI. Config display masks recognizable credentials without changing the saved value.
 

@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.4.0 — 2026-09-07
+
+- Added `fix --ai --apply --verify "COMMAND"`, with explicit executable/arguments,
+  a configurable deadline, bounded/redacted output, exit status, and honest
+  verification reporting. No implicit shell or provider-selected commands.
+- Every CLI apply saves a private local recovery record. Verification failure
+  attempts rollback; `lbc rollback ID --project PATH` restores a prior application
+  only when its file still matches, preserving later edits.
+- Added TypeScript, Node.js, and Go diagnostic parsing, selected offline rules,
+  Windows paths, CRLF/ANSI handling, and malformed/mixed-log regressions.
+- Added GitHub Actions for Linux, macOS, and Windows: formatting, locked check,
+  strict Clippy, full tests, release build, release-binary CLI tests, and artifacts.
+- Added portable verification process fixtures and rollback/privacy/filesystem
+  regressions. See the [0.4.0 audit](docs/release-0.4.0.md) for actual validation.
+
 ## 0.3.4 — 2026-09-06
 
 ### Added

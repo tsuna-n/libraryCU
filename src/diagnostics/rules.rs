@@ -36,12 +36,58 @@ pub struct RuleOutcome {
 }
 
 pub fn apply_rule(diagnostic: &Diagnostic, project_root: &Path, raw_input: &str) -> RuleOutcome {
+    if let Some(outcome) = broader_rule(diagnostic) {
+        return outcome;
+    }
     match diagnostic.code.as_deref() {
         Some("E0382") => moved_value_rule(diagnostic, raw_input),
         Some("E0432" | "E0433") => unresolved_import_rule(diagnostic, project_root),
         Some("E0499") => multiple_mutable_borrows_rule(diagnostic),
         _ => unknown_rule(diagnostic),
     }
+}
+
+fn broader_rule(diagnostic: &Diagnostic) -> Option<RuleOutcome> {
+    let (cause, fix, verification) = match (
+        diagnostic.source.as_deref(),
+        diagnostic.code.as_deref(),
+    ) {
+        (Some("typescript"), Some("TS2322" | "TS2345")) => (
+            "TypeScript reports an incompatible value or argument type; the intended type requires source review.",
+            "Compare the reported value with its declared type, including nullability and generic constraints. Avoid hiding the mismatch with an unchecked cast.",
+            "Run the project's existing TypeScript type-check command.",
+        ),
+        (Some("typescript"), Some("TS2307")) => (
+            "TypeScript could not resolve a module or its type declarations; the log alone does not prove a missing dependency.",
+            "Check the import spelling and casing, installed dependencies, type declarations, and tsconfig module resolution and paths.",
+            "Rerun the project's existing TypeScript type-check command.",
+        ),
+        (Some("node"), Some("MODULE_NOT_FOUND" | "ERR_MODULE_NOT_FOUND")) => (
+            "Node reports a module resolution failure; the missing target may be a local file or a package.",
+            "Review the exact import or require path, filename casing, package exports, and installed dependencies before installing anything.",
+            "Rerun the original Node command in the same working directory.",
+        ),
+        (Some("go"), _) if diagnostic.message.starts_with("undefined:") => (
+            "The Go compiler reports an unresolved identifier; its declaration may be missing, misspelled, or excluded from the build.",
+            "Check identifier spelling, package scope, imports, and build tags for the reported file.",
+            "go test ./...",
+        ),
+        _ => return None,
+    };
+    Some(RuleOutcome {
+        evidence: vec![format!(
+            "{} reported: {}",
+            diagnostic.source.as_deref().unwrap_or_default(),
+            diagnostic.message
+        )],
+        cause: cause.into(),
+        suggested_fixes: vec![fix.into()],
+        verification: vec![verification.into()],
+        next_steps: vec![
+            "This is general diagnostic guidance; no project command was executed.".into(),
+        ],
+        confidence: Confidence::KnownRule,
+    })
 }
 
 fn moved_value_rule(diagnostic: &Diagnostic, raw_input: &str) -> RuleOutcome {

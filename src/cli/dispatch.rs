@@ -18,6 +18,7 @@ pub fn dispatch(cli: Cli) -> Result<()> {
         Command::Scan(args) => commands::scan::run(args),
         Command::Explain(args) => commands::explain::run(args),
         Command::Fix(args) => commands::fix::run(args),
+        Command::Rollback(args) => commands::fix::rollback(args),
         Command::Search(args) => commands::search::run(args),
         Command::Config { command } => commands::config::run(command),
         Command::Doctor(args) => commands::doctor::run(args),

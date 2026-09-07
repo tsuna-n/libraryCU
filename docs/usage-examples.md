@@ -894,7 +894,24 @@ file just as rustc locations can.
 Plain `fix` returns offline guidance without a provider connection. `--ai`
 proposes one replacement, and `--apply` additionally writes it; `--apply` alone
 is an argument error. Each invocation generates a new proposal. Application
-does not reuse a prior preview and does not run tests or suggested commands.
+does not reuse a prior preview. Verification runs only with an explicit command:
+
+```bash
+lbc fix error.log --project ./demo-project --ai --apply \
+  --verify "cargo check --offline" --verify-timeout 120 --json
+lbc rollback fix-ABC123 --project ./demo-project --json
+```
+
+Replace `fix-ABC123` with the `recovery_id` printed by your apply operation.
+The command runs directly in the project with closed stdin and no implicit shell.
+It inherits the environment and can run project code or access the network.
+On Windows quote paths with spaces, for example
+`--verify "'C:/Program Files/nodejs/node.exe' check.js"`.
+Output is bounded/redacted. Failure or timeout attempts single-file rollback;
+later edits prevent automatic overwrite and leave the recovery record for manual
+inspection. Records stay under `.lbc/fixes/`; keep them out of version control.
+See [verification and recovery semantics](../README.md#propose-and-apply-a-small-patch)
+for command side effects, descendant-process limits, and output limits.
 
 The first diagnostic must locate a regular UTF-8 file inside the exact project
 directory. The original and resulting file are limited to 256 KiB. A maximum
@@ -905,10 +922,13 @@ Detected source changes abort application; successful replacement retains file
 permissions. Atomic replacement is not full concurrency or crash-durability
 protection.
 
-`--json` reports `status`, boolean `applied`, `verification_status: "unverified"`,
+`--json` reports `status`, boolean `applied`, `verification_status`,
 offline `guidance`, optional `patch` (`path`, `before`, `after`,
 `verification_status`), and optional `error`. Status is `offline_guidance`,
-`proposed`, `applied`, or `failed`. AI/validation/application failures preserve
+`proposed`, `applied`, `verified`, `rolled_back`, or `failed`. Additional fields are
+`recovery_id`, `verification`, and `rollback_status`. Without `--verify`,
+verification remains `unverified`; otherwise it is `passed`, `failed`,
+`timed_out`, or `error`. AI/validation/application failures preserve
 offline JSON and return a nonzero exit code; input/configuration failures are
 reported on stderr before a report can be built.
 
@@ -924,6 +944,7 @@ specific repair; patch generation requires an adequate match.
 | Installed packages | `$XDG_DATA_HOME/lbc/knowledge` |
 | Persistent history | `$XDG_DATA_HOME/lbc/history/default.json` |
 | Project notes | `<project>/.lbc/knowledge` |
+| Fix recovery records | `<project>/.lbc/fixes/<recovery_id>.json` |
 | Configuration | `$XDG_CONFIG_HOME/lbc/config.toml` |
 
 When XDG variables are absent, user data falls back to `~/.local/share/lbc` and
@@ -940,8 +961,9 @@ Important limits:
 
 Special files and symlinked components in knowledge paths are rejected. `search`,
 `inspect`, `ask`, `explain`, `scan`, and `doctor` do not modify project sources or
-execute suggested commands. Data can leave the machine only after explicit
-`--ai` use. Review sensitive content before using a remote provider because
+execute suggested commands. Provider calls require explicit `--ai` use;
+user-selected `fix --verify` commands can independently access the network.
+Review sensitive content before using a remote provider because
 redaction is pattern-based rather than a universal secret detector.
 
 See the [readiness audit](readiness-audit.md) for known limitations.

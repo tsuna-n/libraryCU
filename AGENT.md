@@ -72,17 +72,30 @@ Do not fabricate source IDs, file locations, dependency states, executed-command
 ### 2.5 Analysis commands do not repair projects
 
 Read-only analysis may suggest commands such as `cargo check`; it must not execute repairs automatically.
-Writes are limited to explicit user operations such as knowledge add/edit, package install/remove, config updates, history clearing, and `fix --ai --apply`.
+Writes are limited to explicit user operations such as knowledge add/edit, package install/remove, config updates, history clearing, `fix --ai --apply`, and `rollback`.
 
 `fix` is an explicit, single-file patch workflow: without `--ai` it provides offline
 guidance; `--ai` proposes one replacement; adding `--apply` writes it. It never
-executes repair or verification commands. The target must be the first diagnostic's
+executes provider-selected commands. Only explicit `--verify "COMMAND"` with
+`--ai --apply` executes a user-selected executable, without an implicit shell.
+Verification has a 1–3600 second deadline, closed stdin, bounded/redacted output,
+and truthful exit/timeout/error status. These commands inherit the user's
+environment and may have side effects; LBC does not sandbox them. Timeout stops
+the direct child, not necessarily detached descendants.
+The target must be the first diagnostic's
 file inside the exact supplied project directory, with no root discovery. Reject
 hidden/generated/recognized gitignored targets, symlinks, special files, recognized
 secrets, missing or out-of-range locations, ambiguous replacements, and source
 changes detected before publication. Provider output cannot select a path.
-Every patch remains `unverified`, including after application. Structural validation
-does not establish semantic correctness. Atomic replacement and content rechecks
+Patches remain `unverified` unless the explicitly requested check passes and the
+applied source is unchanged. `passed` only describes that command's exit status.
+Every CLI apply must persist a bounded private recovery record first. Failed
+verification attempts rollback; explicit `rollback ID` supports later recovery.
+Both restore only when the current source equals the applied snapshot. Preserve
+later edits, retain recovery records, and report recovery failures with nonzero
+exit status and JSON when requested. Recovery is single-file, does not undo
+verification side effects, and is not authenticated against local tampering.
+Structural validation does not establish semantic correctness. Atomic replacement and content rechecks
 do not guarantee protection from hostile directory races or all concurrent writers.
 
 ### 2.6 Privacy is correctness
@@ -168,6 +181,7 @@ lbc history ...
 lbc scan
 lbc explain
 lbc fix
+lbc rollback
 lbc search
 lbc config ...
 lbc doctor
@@ -287,6 +301,11 @@ Ordinary Python tracebacks and syntax-error frames are also parsed. Retain the
 last reported frame without asserting it is application code or the root cause.
 Chained exceptions remain separate diagnostics; complex ExceptionGroup trees
 and arbitrary log prefixes are not fully supported.
+TypeScript tsc locations, Node error headers with JS/TS frames or explicit Node
+codes, and Go compiler file diagnostics are supported. Preserve Windows drive
+letters, positive location bounds, Unicode, ANSI, CRLF, and mixed-log boundaries.
+Known non-Rust rules describe diagnostic guidance without claiming a verified
+project root cause.
 
 When adding Python, Node.js, Go, Java, Docker, database, systemd, or other diagnostic families:
 1. add explicit parser/classifier examples,
@@ -516,6 +535,7 @@ Also compare documented commands/settings against current `src/cli/args.rs`, `sr
 | Packages | package tests + CLI + partial/failure writes |
 | Installer/release | release build + release-binary CLI regression |
 | Fix preview/apply | CLI/mock provider + no-network offline + bounded/contained target + stale-source/failed-write preservation |
+| Verify/rollback | Portable child-process fixtures + success/failure/timeout/spawn error + output bounds/redaction + recovery across invocations + edit conflict and unsafe-storage rejection |
 
 This matrix is a floor, not a ceiling.
 

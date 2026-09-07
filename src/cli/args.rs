@@ -41,6 +41,8 @@ pub enum Command {
     Explain(ExplainArgs),
     /// Generate a minimal AI patch grounded in local knowledge
     Fix(FixArgs),
+    /// Restore a recorded fix, only if its target still matches the applied content
+    Rollback(RollbackArgs),
     /// Search local technical knowledge
     Search(SearchArgs),
     /// View or modify LBC configuration
@@ -201,12 +203,28 @@ pub struct FixArgs {
     /// Apply the validated patch after generating it
     #[arg(long, requires = "ai")]
     pub apply: bool,
+    /// Run an explicit command after application; failure attempts single-file rollback
+    #[arg(long, value_name = "COMMAND", requires = "apply")]
+    pub verify: Option<String>,
+    /// Verification deadline in seconds (includes output collection)
+    #[arg(long, default_value_t = 120, value_parser = clap::value_parser!(u64).range(1..=3600), requires = "verify")]
+    pub verify_timeout: u64,
     /// Output machine-readable JSON
     #[arg(long)]
     pub json: bool,
     /// Project path containing the file reported by the diagnostic
     #[arg(long, default_value = ".")]
     pub project: PathBuf,
+}
+
+#[derive(Debug, Args)]
+pub struct RollbackArgs {
+    /// ID printed by fix --apply
+    pub id: String,
+    #[arg(long, default_value = ".")]
+    pub project: PathBuf,
+    #[arg(long)]
+    pub json: bool,
 }
 
 #[derive(Debug, Args)]
