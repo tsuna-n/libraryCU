@@ -200,6 +200,41 @@ fn invalid_verification_never_contacts_the_provider_or_writes() {
     assert!(!home.path().join(".lbc/fixes").exists());
 }
 
+#[test]
+fn verified_text_in_english_and_thai_does_not_claim_checks_were_skipped() {
+    for language in ["en", "th"] {
+        let home = fixture();
+        let server = mock(
+            home.path(),
+            r#"{"before":"\"3\"","after":"3"}"#,
+            language,
+            None,
+        );
+        let output = isolated_lbc(home.path())
+            .args([
+                "fix",
+                "error.log",
+                "--ai",
+                "--apply",
+                "--verify",
+                &verifier_command(),
+            ])
+            .env("LBC_VERIFY_FIXTURE", "pass")
+            .output()
+            .unwrap();
+        server.join().unwrap();
+        assert!(output.status.success());
+        let text = String::from_utf8_lossy(&output.stdout);
+        assert!(text.contains(if language == "th" {
+            "ผลการตรวจสอบ: passed"
+        } else {
+            "Verification: passed"
+        }));
+        assert!(text.contains("Recovery ID: fix-"));
+        assert!(!text.contains("no verification commands") && !text.contains("ยังไม่ได้รันการตรวจสอบ"));
+    }
+}
+
 fn fixture() -> tempfile::TempDir {
     let home = tempfile::tempdir().unwrap();
     std::fs::create_dir_all(home.path().join("config/lbc")).unwrap();

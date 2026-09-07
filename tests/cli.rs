@@ -1309,7 +1309,11 @@ fn explain_records_bounded_source_lines_and_multiple_diagnostics() {
     let evidence = report["project_evidence"].as_array().unwrap();
     let source = evidence
         .iter()
-        .find(|item| item["path"] == "src/main.rs")
+        .find(|item| {
+            item["path"].as_str().is_some_and(|path| {
+                std::path::Path::new(path) == std::path::Path::new("src/main.rs")
+            })
+        })
         .unwrap();
     assert_eq!(source["start_line"], 1);
     assert_eq!(source["end_line"], 5);

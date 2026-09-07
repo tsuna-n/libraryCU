@@ -1,6 +1,6 @@
 # 0.4.0 release audit — 2026-09-07
 
-This release adds explicit fix verification, durable-to-file recovery records,
+This release adds explicit fix verification, local recovery records,
 broader diagnostic parsing/rules, and a three-OS GitHub Actions workflow.
 Cargo package and lockfile versions agree on 0.4.0.
 
@@ -28,7 +28,42 @@ Cargo package and lockfile versions agree on 0.4.0.
 
 ## Validation
 
-Validation is in progress; final local and hosted results will be recorded here.
+Local Linux validation passed for the implementation introduced in `214f64c`:
+
+```bash
+cargo fmt --check
+cargo check --locked
+cargo clippy --locked --all-targets --all-features -- -D warnings
+cargo test --locked
+cargo build --locked --release
+LBC_TEST_BINARY="$PWD/target/release/lbc" cargo test --locked --test cli
+git diff --check
+```
+
+The final full suite passed **141 tests** (78 library, 51 CLI, 6 filesystem,
+6 privacy), zero failed or ignored. All **51 release-binary CLI tests** also
+passed, including the real 45-second provider timeout. The release executable
+reports `lbc 0.4.0`; `fix --help` and `rollback --help` expose the new options.
+Fixtures use local mock providers and isolated project/configuration/data stores.
+The first complete test attempt hit sandbox loopback denial; the suite was rerun
+with permission. That denied attempt is not counted as a passing run.
+
+Hosted validation is **blocked**, not passed. The initial workflow had a runner
+context error at job environment scope; `e84688f` moves those paths into a step.
+GitHub then accepted the matrix, but all three jobs in
+[run 34079391248](https://github.com/tsuna-n/libraryCU/actions/runs/34079391248)
+were prevented from starting with: “The job was not started because your account
+is locked due to a billing issue.” No macOS/Windows test or hosted artifact result
+exists yet. After the account owner resolves billing, rerun the latest workflow
+and inspect all three jobs before tagging/publishing a release.
+
+The feature branch is `feat/0.4.0-verify-rollback-ci`. Main, release tags, and the
+previously installed binary have not been changed by this task.
+
+The final workflow also passes local `actionlint` 1.7.12. Existing scanner/CLI
+path assertions compare canonical/native paths so they do not depend on Unix
+path spelling. This review does not substitute for executing the Windows/macOS
+matrix once hosted runners are available.
 
 ## Remaining limits
 

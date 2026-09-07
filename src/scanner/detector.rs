@@ -229,7 +229,7 @@ mod tests {
         let nested = root.join("src/deep");
         fs::create_dir_all(&nested)?;
         fs::write(root.join("Cargo.toml"), "[package]")?;
-        assert_eq!(find_project_root(&nested)?, root);
+        assert_eq!(find_project_root(&nested)?, root.canonicalize()?);
         fs::remove_dir_all(root)?;
         Ok(())
     }
