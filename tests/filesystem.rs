@@ -2,28 +2,21 @@ use librarycube::{
     knowledge::{AddEntry, add_entry},
     security::files::read_text,
 };
-use std::{
-    fs,
-    path::PathBuf,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::{fs, path::Path};
 
-struct Fixture(PathBuf);
+struct Fixture(tempfile::TempDir);
 impl Fixture {
     fn new() -> Self {
-        let nonce = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        let root =
-            std::env::temp_dir().join(format!("lbc-file-safety-{}-{nonce}", std::process::id()));
-        fs::create_dir(&root).unwrap();
-        Self(root)
+        Self(
+            tempfile::Builder::new()
+                .prefix("lbc-file-safety-")
+                .tempdir()
+                .unwrap(),
+        )
     }
-}
-impl Drop for Fixture {
-    fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.0);
+
+    fn path(&self) -> &Path {
+        self.0.path()
     }
 }
 
@@ -31,8 +24,8 @@ impl Drop for Fixture {
 #[test]
 fn project_add_rejects_parent_symlink_before_creating_anything() {
     let fixture = Fixture::new();
-    let project = fixture.0.join("project");
-    let outside = fixture.0.join("outside");
+    let project = fixture.path().join("project");
+    let outside = fixture.path().join("outside");
     fs::create_dir(&project).unwrap();
     fs::create_dir(&outside).unwrap();
     std::os::unix::fs::symlink(&outside, project.join(".lbc")).unwrap();
@@ -56,8 +49,8 @@ fn project_add_rejects_parent_symlink_before_creating_anything() {
 #[test]
 fn symlinked_project_store_cannot_supply_knowledge() {
     let fixture = Fixture::new();
-    let project = fixture.0.join("project");
-    let outside = fixture.0.join("outside/knowledge");
+    let project = fixture.path().join("project");
+    let outside = fixture.path().join("outside/knowledge");
     fs::create_dir(&project).unwrap();
     fs::create_dir_all(&outside).unwrap();
     fs::write(
@@ -68,7 +61,7 @@ fn symlinked_project_store_cannot_supply_knowledge() {
     std::os::unix::fs::symlink(outside.parent().unwrap(), project.join(".lbc")).unwrap();
     let documents = librarycube::knowledge::loader::load_documents_with_data_dir(
         &project,
-        &fixture.0.join("packages"),
+        &fixture.path().join("packages"),
     )
     .unwrap();
     assert!(
@@ -81,8 +74,8 @@ fn symlinked_project_store_cannot_supply_knowledge() {
 #[test]
 fn reader_rejects_non_regular_and_oversized_inputs() {
     let fixture = Fixture::new();
-    assert!(read_text(&fixture.0, 1024).is_err());
-    let path = fixture.0.join("large.txt");
+    assert!(read_text(fixture.path(), 1024).is_err());
+    let path = fixture.path().join("large.txt");
     fs::write(&path, "x".repeat(1025)).unwrap();
     assert!(read_text(&path, 1024).is_err());
     fs::write(&path, "normal text").unwrap();
@@ -92,7 +85,7 @@ fn reader_rejects_non_regular_and_oversized_inputs() {
 #[test]
 fn add_rejects_an_id_in_a_differently_named_document() {
     let fixture = Fixture::new();
-    let store = fixture.0.join(".lbc/knowledge");
+    let store = fixture.path().join(".lbc/knowledge");
     fs::create_dir_all(&store).unwrap();
     fs::write(
         store.join("renamed.md"),
@@ -104,7 +97,7 @@ fn add_rejects_an_id_in_a_differently_named_document() {
         title: "Duplicate",
         kind: "note",
         body: "new body",
-        project: Some(&fixture.0),
+        project: Some(fixture.path()),
         overrides: None,
     });
     assert!(result.is_err());
@@ -120,11 +113,11 @@ fn add_never_saves_a_document_too_large_for_the_loader() {
         title: &huge_title,
         kind: "note",
         body: "body",
-        project: Some(&fixture.0),
+        project: Some(fixture.path()),
         overrides: None,
     });
     assert!(result.is_err());
-    assert!(!fixture.0.join(".lbc/knowledge/oversized.md").exists());
+    assert!(!fixture.path().join(".lbc/knowledge/oversized.md").exists());
 }
 
 #[cfg(unix)]
@@ -132,7 +125,7 @@ fn add_never_saves_a_document_too_large_for_the_loader() {
 fn fifo_input_fails_without_waiting_for_a_writer() {
     use std::os::unix::ffi::OsStrExt;
     let fixture = Fixture::new();
-    let path = fixture.0.join("pipe");
+    let path = fixture.path().join("pipe");
     let cpath = std::ffi::CString::new(path.as_os_str().as_bytes()).unwrap();
     // SAFETY: cpath is NUL-terminated and remains alive through mkfifo.
     assert_eq!(unsafe { libc::mkfifo(cpath.as_ptr(), 0o600) }, 0);
