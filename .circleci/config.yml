@@ -88,15 +88,234 @@ jobs:
 
             mkdir -p dist "${package_root}"
             install -m 0755 target/release/lbc "${package_root}/lbc"
+            install -m 0755 install.sh "${package_root}/install.sh"
             install -m 0644 README.md CHANGELOG.md LICENSE "${package_root}/"
             tar -czf "dist/${archive_name}" -C "${staging_root}" "$(basename "${package_root}")"
             (cd dist && sha256sum "${archive_name}" > "${archive_name}.sha256")
+
+            install_test_root="${staging_root}/install-test"
+            mkdir -p "${install_test_root}/archive" "${install_test_root}/prefix"
+            tar -xzf "dist/${archive_name}" -C "${install_test_root}/archive"
+            "${install_test_root}/archive/$(basename "${package_root}")/install.sh" \
+              --prefix "${install_test_root}/prefix"
+            test "$("${install_test_root}/prefix/lbc" --version)" = "lbc ${PACKAGE_VERSION}"
+            "${install_test_root}/archive/$(basename "${package_root}")/install.sh" \
+              --prefix "${install_test_root}/prefix" --uninstall
+            test ! -e "${install_test_root}/prefix/lbc"
       - save_cache:
           key: cargo-v2-{{ arch }}-rust-1.97.1-{{ checksum "Cargo.lock" }}
           paths:
             - ~/.cargo/git
             - ~/.cargo/registry
             - target
+      - store_artifacts:
+          path: dist
+          destination: release
+      - persist_to_workspace:
+          root: .
+          paths:
+            - dist
+
+  build_macos:
+    macos:
+      xcode: 26.6.0
+    resource_class: m4pro.medium
+    working_directory: ~/project
+    environment:
+      CARGO_INCREMENTAL: "0"
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: "1"
+    steps:
+      - checkout
+      - run:
+          name: Build, test, and package universal macOS release
+          command: |
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+              | sh -s -- -y --profile minimal --default-toolchain 1.97.1
+            source "${HOME}/.cargo/env"
+            rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+            ci_root="${TMPDIR}/librarycube-ci-${CIRCLE_WORKFLOW_ID}"
+            mkdir -p "${ci_root}/config" "${ci_root}/data" "${ci_root}/cache" "${ci_root}/tmp"
+            export LBC_CONFIG="${ci_root}/config.toml"
+            export XDG_CONFIG_HOME="${ci_root}/config"
+            export XDG_DATA_HOME="${ci_root}/data"
+            export XDG_CACHE_HOME="${ci_root}/cache"
+            export TMPDIR="$(cd "${ci_root}/tmp" && pwd -P)"
+
+            cargo test --locked
+            cargo build --locked --release --target aarch64-apple-darwin
+            cargo build --locked --release --target x86_64-apple-darwin
+
+            package_version="$(cargo metadata --no-deps --format-version 1 \
+              | jq -r '.packages[] | select(.name == "librarycube") | .version')"
+            if [[ -z "${package_version}" ]]; then
+              echo "Could not read the package version from Cargo.toml" >&2
+              exit 1
+            fi
+            if [[ -n "${CIRCLE_TAG:-}" && "${CIRCLE_TAG}" != "v${package_version}" ]]; then
+              echo "Release tag ${CIRCLE_TAG} does not match Cargo.toml version ${package_version}" >&2
+              exit 1
+            fi
+
+            staging_root="$(mktemp -d)"
+            package_name="lbc-${package_version}-universal-apple-darwin"
+            package_root="${staging_root}/${package_name}"
+            install_test_root="${staging_root}/install-test"
+            trap 'rm -rf "${staging_root}"' EXIT
+            mkdir -p dist "${package_root}"
+
+            lipo -create \
+              target/aarch64-apple-darwin/release/lbc \
+              target/x86_64-apple-darwin/release/lbc \
+              -output "${package_root}/lbc"
+            chmod 755 "${package_root}/lbc"
+            codesign --force --sign - "${package_root}/lbc"
+            codesign --verify --strict "${package_root}/lbc"
+            test "$("${package_root}/lbc" --version)" = "lbc ${package_version}"
+
+            export LBC_TEST_BINARY="${package_root}/lbc"
+            cargo test --locked --test cli
+
+            install -m 0755 install.sh "${package_root}/install.sh"
+            install -m 0644 README.md CHANGELOG.md LICENSE "${package_root}/"
+            tar -czf "dist/${package_name}.tar.gz" -C "${staging_root}" "${package_name}"
+            (cd dist && shasum -a 256 "${package_name}.tar.gz" > "${package_name}.tar.gz.sha256")
+
+            mkdir -p "${install_test_root}/archive" "${install_test_root}/prefix"
+            tar -xzf "dist/${package_name}.tar.gz" -C "${install_test_root}/archive"
+            "${install_test_root}/archive/${package_name}/install.sh" \
+              --prefix "${install_test_root}/prefix"
+            test "$("${install_test_root}/prefix/lbc" --version)" = "lbc ${package_version}"
+            "${install_test_root}/archive/${package_name}/install.sh" \
+              --prefix "${install_test_root}/prefix" --uninstall
+            test ! -e "${install_test_root}/prefix/lbc"
+
+            git diff --exit-code
+            git diff --check
+          no_output_timeout: 15m
+      - store_artifacts:
+          path: dist
+          destination: release
+      - persist_to_workspace:
+          root: .
+          paths:
+            - dist
+
+  build_windows:
+    machine:
+      image: windows-server-2022-gui:2026.05.1
+      shell: powershell.exe -NoProfile -ExecutionPolicy Bypass
+    resource_class: windows.medium
+    environment:
+      CARGO_INCREMENTAL: "0"
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: "1"
+    steps:
+      - checkout
+      - run:
+          name: Build, test, and package Windows release
+          command: |
+            $rustup = Join-Path $env:USERPROFILE ".cargo\bin\rustup.exe"
+            if (-not (Test-Path -LiteralPath $rustup -PathType Leaf)) {
+                $rustupInit = Join-Path $env:TEMP "rustup-init.exe"
+                Invoke-WebRequest -Uri "https://win.rustup.rs/x86_64" -OutFile $rustupInit
+                & $rustupInit -y --profile minimal --default-toolchain 1.97.1
+                if ($LASTEXITCODE -ne 0) { throw "rustup-init failed with exit code $LASTEXITCODE" }
+            }
+            $env:Path = "$(Split-Path -Parent $rustup);$env:Path"
+            & $rustup toolchain install 1.97.1 --profile minimal
+            if ($LASTEXITCODE -ne 0) { throw "rustup toolchain install failed" }
+            & $rustup default 1.97.1
+            if ($LASTEXITCODE -ne 0) { throw "rustup default failed" }
+
+            $ciRoot = Join-Path $env:TEMP "librarycube-ci-$env:CIRCLE_WORKFLOW_ID"
+            $configDir = Join-Path $ciRoot "config"
+            $dataDir = Join-Path $ciRoot "data"
+            $cacheDir = Join-Path $ciRoot "cache"
+            $fixtureTmp = Join-Path $ciRoot "tmp"
+            New-Item -ItemType Directory -Force -Path $configDir, $dataDir, $cacheDir, $fixtureTmp | Out-Null
+            $env:LBC_CONFIG = Join-Path $ciRoot "config.toml"
+            $env:XDG_CONFIG_HOME = $configDir
+            $env:XDG_DATA_HOME = $dataDir
+            $env:XDG_CACHE_HOME = $cacheDir
+            $env:TMPDIR = (Resolve-Path $fixtureTmp).Path
+
+            & cargo test --locked
+            if ($LASTEXITCODE -ne 0) { throw "cargo test failed" }
+            & cargo build --locked --release
+            if ($LASTEXITCODE -ne 0) { throw "cargo build failed" }
+
+            $metadata = (& cargo metadata --no-deps --format-version 1 | ConvertFrom-Json)
+            $packageVersion = ($metadata.packages | Where-Object name -eq "librarycube").version
+            if ([string]::IsNullOrWhiteSpace($packageVersion)) {
+                throw "Could not read the package version from Cargo.toml"
+            }
+            if ($env:CIRCLE_TAG -and $env:CIRCLE_TAG -ne "v$packageVersion") {
+                throw "Release tag $env:CIRCLE_TAG does not match Cargo.toml version $packageVersion"
+            }
+            $binary = Join-Path $PWD "target\release\lbc.exe"
+            $reportedVersion = (& $binary --version | Out-String).Trim()
+            if ($reportedVersion -ne "lbc $packageVersion") {
+                throw "Release binary reports '$reportedVersion' instead of 'lbc $packageVersion'"
+            }
+
+            $env:LBC_TEST_BINARY = $binary
+            & cargo test --locked --test cli
+            if ($LASTEXITCODE -ne 0) { throw "release binary CLI tests failed" }
+
+            $packageName = "lbc-$packageVersion-x86_64-pc-windows-msvc"
+            $stagingRoot = Join-Path $env:TEMP "$packageName-$env:CIRCLE_WORKFLOW_ID"
+            $packageRoot = Join-Path $stagingRoot $packageName
+            $distDir = Join-Path $PWD "dist"
+            New-Item -ItemType Directory -Force -Path $packageRoot, $distDir | Out-Null
+            Copy-Item -LiteralPath $binary -Destination (Join-Path $packageRoot "lbc.exe")
+            Copy-Item -LiteralPath "install.ps1" -Destination $packageRoot
+            Copy-Item -LiteralPath "README.md", "CHANGELOG.md", "LICENSE" -Destination $packageRoot
+
+            $archiveName = "$packageName.zip"
+            $archivePath = Join-Path $distDir $archiveName
+            Compress-Archive -Path $packageRoot -DestinationPath $archivePath -Force
+            $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $archivePath).Hash.ToLowerInvariant()
+            $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+            [IO.File]::WriteAllText(
+                (Join-Path $distDir "$archiveName.sha256"),
+                "$hash  $archiveName`n",
+                $utf8NoBom
+            )
+
+            $installTestRoot = Join-Path $stagingRoot "install-test"
+            $extractRoot = Join-Path $installTestRoot "archive"
+            $prefix = Join-Path $installTestRoot "prefix"
+            Expand-Archive -LiteralPath $archivePath -DestinationPath $extractRoot -Force
+            $packagedInstaller = Join-Path $extractRoot "$packageName\install.ps1"
+            & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $packagedInstaller `
+                -Prefix $prefix
+            if ($LASTEXITCODE -ne 0) { throw "packaged installer failed" }
+            $installedBinary = Join-Path $prefix "lbc.exe"
+            $installedVersion = (& $installedBinary --version | Out-String).Trim()
+            if ($installedVersion -ne "lbc $packageVersion") {
+                throw "Installed binary reports an unexpected version"
+            }
+            $userPath = [Environment]::GetEnvironmentVariable("Path", "User") -split ";"
+            if ($userPath -notcontains $prefix) {
+                throw "packaged installer did not add its prefix to the user PATH"
+            }
+            & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $packagedInstaller `
+                -Prefix $prefix -Uninstall
+            if ($LASTEXITCODE -ne 0 -or (Test-Path -LiteralPath $installedBinary)) {
+                throw "packaged uninstaller failed"
+            }
+            $userPath = [Environment]::GetEnvironmentVariable("Path", "User") -split ";"
+            if ($userPath -contains $prefix) {
+                throw "packaged uninstaller did not remove its prefix from the user PATH"
+            }
+
+            & git diff --exit-code
+            if ($LASTEXITCODE -ne 0) { throw "Build changed tracked files" }
+            & git diff --check
+            if ($LASTEXITCODE -ne 0) { throw "Whitespace errors found" }
+          no_output_timeout: 15m
       - store_artifacts:
           path: dist
           destination: release
@@ -125,9 +344,23 @@ workflows:
           filters:
             tags:
               only: /^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/
+      - build_macos:
+          filters:
+            branches:
+              only: main
+            tags:
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/
+      - build_windows:
+          filters:
+            branches:
+              only: main
+            tags:
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/
       - publish_github_release:
           requires:
             - build_and_test
+            - build_macos
+            - build_windows
           filters:
             branches:
               ignore: /.*/

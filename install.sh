@@ -8,7 +8,7 @@
 # Options:
 #   --system          Install system-wide to /usr/local/bin (may prompt for sudo)
 #   --prefix <DIR>    Install binary to custom directory (default: ~/.local/bin)
-#   --no-build        Skip cargo build step (use existing target/release/lbc)
+#   --no-build        Skip source build (use bundled lbc or target/release/lbc)
 #   --uninstall       Remove installed lbc binary from target directory
 #   -h, --help        Show this help message and exit
 #
@@ -58,7 +58,7 @@ Usage:
 Options:
   --system           Install system-wide to /usr/local/bin (may prompt for sudo)
   --prefix <DIR>     Install binary to custom directory (default: ~/.local/bin)
-  --no-build         Skip cargo build step (use existing target/release/lbc)
+  --no-build         Skip source build (use bundled lbc or target/release/lbc)
   --uninstall        Remove installed lbc binary from target directory
   -h, --help         Show this help message and exit
 
@@ -73,11 +73,6 @@ EOF
 # Resolve project root directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
-
-if [[ ! -f "Cargo.toml" ]] || ! grep -q 'name = "librarycube"' Cargo.toml 2>/dev/null; then
-  print_error "install.sh must be run from the libraryCube repository root directory."
-  exit 1
-fi
 
 INSTALL_DIR="${HOME}/.local/bin"
 SYSTEM_INSTALL=0
@@ -119,6 +114,17 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+SOURCE_TREE=0
+if [[ -f "Cargo.toml" ]] && grep -q 'name = "librarycube"' Cargo.toml 2>/dev/null; then
+  SOURCE_TREE=1
+fi
+BUNDLED_BIN="${SCRIPT_DIR}/lbc"
+
+if [[ "$DO_UNINSTALL" -eq 0 ]] && [[ "$SOURCE_TREE" -eq 0 ]] && [[ ! -f "$BUNDLED_BIN" ]]; then
+  print_error "No bundled lbc binary or libraryCube source tree was found beside install.sh."
+  exit 1
+fi
 
 # Handle uninstall
 if [[ "$DO_UNINSTALL" -eq 1 ]]; then
@@ -190,17 +196,22 @@ ensure_rust() {
   fi
 }
 
-# Pre-flight check & build
-if [[ "$DO_BUILD" -eq 1 ]]; then
+# Pre-flight check & build. Release archives contain a prebuilt binary and do
+# not require Rust; source checkouts retain the existing build-first behavior.
+if [[ "$DO_BUILD" -eq 1 ]] && [[ "$SOURCE_TREE" -eq 1 ]]; then
   ensure_rust
   print_info "Building libraryCube in release mode..."
-  cargo build --release
+  cargo build --locked --release
 fi
 
-RELEASE_BIN="${SCRIPT_DIR}/target/release/lbc"
+if [[ "$SOURCE_TREE" -eq 1 ]] && [[ -f "${SCRIPT_DIR}/target/release/lbc" ]]; then
+  RELEASE_BIN="${SCRIPT_DIR}/target/release/lbc"
+else
+  RELEASE_BIN="$BUNDLED_BIN"
+fi
 if [[ ! -f "$RELEASE_BIN" ]]; then
   print_error "Binary not found at ${RELEASE_BIN}."
-  print_error "Please run without '--no-build' to compile the binary first."
+  print_error "Run without '--no-build' in a source checkout, or use an official release archive."
   exit 1
 fi
 

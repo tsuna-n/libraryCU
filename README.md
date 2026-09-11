@@ -12,7 +12,35 @@ See the [changelog](CHANGELOG.md) for the version's changes.
 
 ## Install
 
-Run the installation script to build and install `lbc` to `~/.local/bin`:
+Download the archive for your platform from
+[GitHub Releases](https://github.com/tsuna-n/libraryCU/releases). Release
+archives contain a prebuilt executable, so installing them does not require
+Rust.
+
+On macOS (Apple Silicon and Intel), extract the universal archive and run:
+
+```bash
+./install.sh
+```
+
+On Windows x86-64, extract the ZIP and run from PowerShell:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
+# Open a new PowerShell window, then run: lbc --help
+```
+
+The Windows installer places `lbc.exe` under the current user's local programs
+directory and adds it to the user `PATH`. Use `-Prefix C:\path\to\bin` to choose
+another directory, `-System` from an elevated PowerShell for a machine-wide
+installation, or `-Uninstall` to remove it.
+
+Release binaries currently have no Developer ID/Authenticode signature or
+notarization. macOS Gatekeeper or Windows SmartScreen may therefore require the
+user to approve the downloaded executable before first use.
+
+From a source checkout, run the Unix/macOS installation script to build and
+install `lbc` to `~/.local/bin`:
 
 ```bash
 ./install.sh
@@ -26,7 +54,7 @@ Or customize the installation:
 ./install.sh --uninstall       # Remove installed binary
 ```
 
-Alternatively, build and install manually with Cargo:
+Alternatively, build and install manually with Cargo on any supported platform:
 
 ```bash
 cargo build --release
@@ -331,10 +359,11 @@ cargo test --locked
 cargo build --locked --release
 ```
 
-CircleCI runs these gates for every branch and pull request, packages the tested
-Linux release binary, and publishes it to GitHub Releases for matching version
-tags. See [CircleCI CI/CD setup](docs/circleci.md) for the one-time token setup
-and release procedure.
+CircleCI runs these gates for every branch and pull request. Main-branch and
+release-tag pipelines additionally test and package Linux, universal macOS, and
+Windows x86-64 binaries; matching version tags publish all artifacts to GitHub
+Releases. See [CircleCI CI/CD setup](docs/circleci.md) for the one-time token
+setup and release procedure.
 
 CLI tests use isolated XDG stores and a local mock HTTP provider; CI needs no API key or live service. Socket-restricted environments must allow loopback for provider tests; those tests fail rather than silently skip. The real timeout regression takes approximately 45 seconds.
 

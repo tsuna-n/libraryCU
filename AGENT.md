@@ -158,7 +158,9 @@ tests/
 
 knowledge/          built-in Markdown knowledge
 docs/               usage, readiness audits, specs/plans
-install.sh          source-build installer
+.circleci/           Linux/macOS/Windows CI and release publication
+install.sh           source and prebuilt Unix/macOS installer
+install.ps1          source and prebuilt Windows installer
 ```
 
 Prefer extending an existing subsystem over introducing a new top-level module without need.
