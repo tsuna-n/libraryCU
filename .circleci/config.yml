@@ -220,6 +220,7 @@ jobs:
             if (-not (Test-Path -LiteralPath $rustup -PathType Leaf)) {
                 $rustupInit = Join-Path $env:TEMP "rustup-init.exe"
                 Invoke-WebRequest -Uri "https://win.rustup.rs/x86_64" -OutFile $rustupInit
+                $env:RUSTUP_INIT_SKIP_PATH_CHECK = "yes"
                 & $rustupInit -y --profile minimal --default-toolchain 1.97.1
                 if ($LASTEXITCODE -ne 0) { throw "rustup-init failed with exit code $LASTEXITCODE" }
             }

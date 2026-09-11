@@ -1062,6 +1062,7 @@ fn mock_ai_receives_retrieved_passage_and_redacts_secrets() {
                 Err(error) => panic!("mock provider accept failed: {error}"),
             }
         };
+        stream.set_nonblocking(false).unwrap();
         stream
             .set_read_timeout(Some(std::time::Duration::from_secs(5)))
             .unwrap();

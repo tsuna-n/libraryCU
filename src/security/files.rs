@@ -1,7 +1,7 @@
 use std::{
     fs,
     io::Read,
-    path::{Path, PathBuf},
+    path::{Component, Path, PathBuf},
 };
 
 use anyhow::{Context, Result, bail};
@@ -17,6 +17,13 @@ pub fn reject_symlinks(path: &Path) -> Result<()> {
     let mut current = PathBuf::new();
     for component in absolute.components() {
         current.push(component.as_os_str());
+        // A Windows drive/device prefix (for example `C:` in `\\?\C:\...`)
+        // is not independently inspectable. The following rooted component
+        // and every real path component are still checked. A filesystem root
+        // itself cannot be replaced by a symlink on the supported platforms.
+        if matches!(component, Component::Prefix(_) | Component::RootDir) {
+            continue;
+        }
         match fs::symlink_metadata(&current) {
             Ok(metadata) if metadata.file_type().is_symlink() => {
                 bail!("refusing symlinked path {}", current.display());
