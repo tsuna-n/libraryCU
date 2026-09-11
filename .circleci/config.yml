@@ -75,8 +75,8 @@ jobs:
               exit 1
             fi
             test "$(./target/release/lbc --version)" = "lbc ${package_version}"
-            git diff --exit-code
-            git diff --check
+            git --no-pager diff --exit-code
+            git --no-pager diff --check
             printf 'export PACKAGE_VERSION=%q\n' "${package_version}" >> "${BASH_ENV}"
       - run:
           name: Package Linux release
@@ -191,8 +191,8 @@ jobs:
               --prefix "${install_test_root}/prefix" --uninstall
             test ! -e "${install_test_root}/prefix/lbc"
 
-            git diff --exit-code
-            git diff --check
+            git --no-pager diff --exit-code
+            git --no-pager diff --check
           no_output_timeout: 15m
       - store_artifacts:
           path: dist
