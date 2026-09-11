@@ -331,6 +331,11 @@ cargo test --locked
 cargo build --locked --release
 ```
 
+CircleCI runs these gates for every branch and pull request, packages the tested
+Linux release binary, and publishes it to GitHub Releases for matching version
+tags. See [CircleCI CI/CD setup](docs/circleci.md) for the one-time token setup
+and release procedure.
+
 CLI tests use isolated XDG stores and a local mock HTTP provider; CI needs no API key or live service. Socket-restricted environments must allow loopback for provider tests; those tests fail rather than silently skip. The real timeout regression takes approximately 45 seconds.
 
 To repeat the CLI walkthrough against the release binary, outside the source checkout (the fixtures set their own working directories):

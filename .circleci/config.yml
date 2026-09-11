@@ -1,0 +1,135 @@
+version: 2.1
+
+executors:
+  rust:
+    docker:
+      - image: cimg/rust:1.97.1
+    resource_class: medium
+    working_directory: ~/project
+    environment:
+      CARGO_INCREMENTAL: "0"
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: "1"
+
+commands:
+  prepare_test_environment:
+    steps:
+      - run:
+          name: Isolate libraryCube configuration and data
+          command: |
+            ci_root="${HOME}/.cache/librarycube-ci/${CIRCLE_WORKFLOW_ID}"
+            fixture_tmp="${ci_root}/tmp"
+            mkdir -p "${ci_root}/config" "${ci_root}/data" "${ci_root}/cache" "${fixture_tmp}"
+            fixture_tmp="$(cd "${fixture_tmp}" && pwd -P)"
+
+            {
+              printf 'export LBC_CONFIG=%q\n' "${ci_root}/config.toml"
+              printf 'export XDG_CONFIG_HOME=%q\n' "${ci_root}/config"
+              printf 'export XDG_DATA_HOME=%q\n' "${ci_root}/data"
+              printf 'export XDG_CACHE_HOME=%q\n' "${ci_root}/cache"
+              printf 'export TMPDIR=%q\n' "${fixture_tmp}"
+            } >> "${BASH_ENV}"
+
+jobs:
+  build_and_test:
+    executor: rust
+    steps:
+      - checkout
+      - prepare_test_environment
+      - restore_cache:
+          keys:
+            - cargo-v2-{{ arch }}-rust-1.97.1-{{ checksum "Cargo.lock" }}
+            - cargo-v2-{{ arch }}-rust-1.97.1-
+      - run:
+          name: Verify formatting
+          command: cargo fmt --check
+      - run:
+          name: Check locked dependencies
+          command: cargo check --locked
+      - run:
+          name: Run Clippy with warnings denied
+          command: cargo clippy --locked --all-targets --all-features -- -D warnings
+      - run:
+          name: Run test suite
+          command: cargo test --locked
+          no_output_timeout: 10m
+      - run:
+          name: Build release binary
+          command: cargo build --locked --release
+      - run:
+          name: Test the release binary
+          command: |
+            export LBC_TEST_BINARY="${PWD}/target/release/lbc"
+            cargo test --locked --test cli
+          no_output_timeout: 10m
+      - run:
+          name: Verify version and clean generated diff
+          command: |
+            package_version="$(sed -n '/^\[package\]/,/^\[/{s/^version = "\([^"]*\)"/\1/p;}' Cargo.toml)"
+            if [[ -z "${package_version}" ]]; then
+              echo "Could not read the package version from Cargo.toml" >&2
+              exit 1
+            fi
+            if [[ -n "${CIRCLE_TAG:-}" && "${CIRCLE_TAG}" != "v${package_version}" ]]; then
+              echo "Release tag ${CIRCLE_TAG} does not match Cargo.toml version ${package_version}" >&2
+              exit 1
+            fi
+            test "$(./target/release/lbc --version)" = "lbc ${package_version}"
+            git diff --exit-code
+            git diff --check
+            printf 'export PACKAGE_VERSION=%q\n' "${package_version}" >> "${BASH_ENV}"
+      - run:
+          name: Package Linux release
+          command: |
+            archive_name="lbc-${PACKAGE_VERSION}-x86_64-unknown-linux-gnu.tar.gz"
+            staging_root="$(mktemp -d)"
+            package_root="${staging_root}/lbc-${PACKAGE_VERSION}-x86_64-unknown-linux-gnu"
+            trap 'rm -rf "${staging_root}"' EXIT
+
+            mkdir -p dist "${package_root}"
+            install -m 0755 target/release/lbc "${package_root}/lbc"
+            install -m 0644 README.md CHANGELOG.md LICENSE "${package_root}/"
+            tar -czf "dist/${archive_name}" -C "${staging_root}" "$(basename "${package_root}")"
+            (cd dist && sha256sum "${archive_name}" > "${archive_name}.sha256")
+      - save_cache:
+          key: cargo-v2-{{ arch }}-rust-1.97.1-{{ checksum "Cargo.lock" }}
+          paths:
+            - ~/.cargo/git
+            - ~/.cargo/registry
+            - target
+      - store_artifacts:
+          path: dist
+          destination: release
+      - persist_to_workspace:
+          root: .
+          paths:
+            - dist
+
+  publish_github_release:
+    docker:
+      - image: cimg/base:2026.08
+    resource_class: small
+    working_directory: ~/project
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/project
+      - run:
+          name: Publish GitHub release assets
+          command: bash .circleci/publish-github-release.sh dist
+
+workflows:
+  ci_cd:
+    jobs:
+      - build_and_test:
+          filters:
+            tags:
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/
+      - publish_github_release:
+          requires:
+            - build_and_test
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/
