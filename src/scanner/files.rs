@@ -6,7 +6,10 @@ use walkdir::WalkDir;
 
 use crate::config::settings::ScannerConfig;
 
-use super::{detector::detect_project, ignore::should_ignore_directory, project::ProjectInfo};
+use super::{
+    context::is_gitignored_path, detector::detect_project, ignore::should_ignore_directory,
+    project::ProjectInfo,
+};
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct ScanEntry {
@@ -62,7 +65,12 @@ pub fn scan_project(path: &std::path::Path, config: &ScannerConfig) -> Result<Sc
             if entry.depth() == 0 || !entry.file_type().is_dir() {
                 return true;
             }
-            if should_ignore_directory(entry.path(), config.ignore_hidden) {
+            if should_ignore_directory(entry.path(), config.ignore_hidden)
+                || entry
+                    .path()
+                    .strip_prefix(&root)
+                    .is_ok_and(|relative| is_gitignored_path(&root, relative, true))
+            {
                 if let Some(name) = entry.file_name().to_str() {
                     ignored.insert(format!("{name}/"));
                 }
@@ -93,6 +101,9 @@ pub fn scan_project(path: &std::path::Path, config: &ScannerConfig) -> Result<Sc
                 .and_then(|name| name.to_str())
                 .is_some_and(|name| name.starts_with('.'))
         {
+            continue;
+        }
+        if is_gitignored_path(&root, &relative, entry.file_type().is_dir()) {
             continue;
         }
         report.entries.push(ScanEntry {

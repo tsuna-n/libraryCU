@@ -148,6 +148,8 @@ pub fn load_from(path: PathBuf) -> Result<LoadedConfig> {
 
 pub fn set_value(key: &str, value: &str) -> Result<PathBuf> {
     let path = config_path();
+    let lock_path = path.with_extension("lock");
+    let _lock = crate::security::storage::lock_exclusive(&lock_path)?;
     let mut config = load_from(path.clone())?.config;
 
     match key {
@@ -178,7 +180,7 @@ pub fn set_value(key: &str, value: &str) -> Result<PathBuf> {
             .with_context(|| format!("failed to create {}", parent.display()))?;
     }
     let encoded = toml::to_string_pretty(&config).context("failed to encode configuration")?;
-    fs::write(&path, encoded)
+    crate::security::storage::atomic_replace(&path, encoded.as_bytes(), true)
         .with_context(|| format!("failed to write configuration at {}", path.display()))?;
     Ok(path)
 }

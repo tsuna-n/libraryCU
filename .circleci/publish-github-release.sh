@@ -100,6 +100,9 @@ for artifact in "${artifacts[@]}"; do
     encoded_name="$(jq -rn --arg name "${asset_name}" '$name | @uri')"
     case "${asset_name}" in
         *.tar.gz) content_type="application/gzip" ;;
+        *.zip) content_type="application/zip" ;;
+        *.json) content_type="application/json" ;;
+        *.asc) content_type="application/pgp-signature" ;;
         *.sha256) content_type="text/plain" ;;
         *) content_type="application/octet-stream" ;;
     esac

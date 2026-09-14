@@ -60,6 +60,7 @@ fn add_entry_with_metadata(
         bail!("kind must be note, concept, or troubleshooting");
     }
     let (root, anchor) = if let Some(project) = input.project {
+        crate::security::files::reject_symlinks(project)?;
         let project = project
             .canonicalize()
             .with_context(|| format!("project path does not exist: {}", project.display()))?;
@@ -76,6 +77,7 @@ fn add_entry_with_metadata(
     crate::security::files::reject_symlinks(&root)?;
     fs::create_dir_all(&root).with_context(|| format!("failed to create {}", root.display()))?;
     ensure_store_is_safe(&root, &anchor)?;
+    let _lock = crate::security::storage::lock_exclusive(&store_lock_path(&root))?;
     let base = input
         .id
         .map(str::to_owned)
@@ -195,7 +197,10 @@ pub fn edit_entry(input: EditEntry<'_>) -> Result<KnowledgeDocument> {
     if input.create_override {
         if let Some(existing) = existing_override {
             let target = PathBuf::from(&existing.path);
+            let parent = target.parent().context("entry has no parent directory")?;
+            let _lock = crate::security::storage::lock_exclusive(&store_lock_path(parent))?;
             ensure_existing_target_is_safe(&target)?;
+            ensure_document_unchanged(existing, input.project)?;
             let encoded = encode_existing(existing, &body)?;
             parse_document_for_source("override.md", &encoded, "user", &existing.path, true)
                 .context("replacement is not a valid knowledge document")?;
@@ -215,7 +220,10 @@ pub fn edit_entry(input: EditEntry<'_>) -> Result<KnowledgeDocument> {
         );
     }
     let target = PathBuf::from(&original.path);
+    let parent = target.parent().context("entry has no parent directory")?;
+    let _lock = crate::security::storage::lock_exclusive(&store_lock_path(parent))?;
     ensure_existing_target_is_safe(&target)?;
+    ensure_document_unchanged(&original, input.project)?;
     let encoded = encode_existing(&original, &body)?;
     parse_document_for_source(
         target
@@ -356,6 +364,16 @@ fn atomic_write_new(path: &Path, bytes: &[u8]) -> Result<()> {
         .with_context(|| format!("refusing to overwrite {}", path.display()))?;
     Ok(())
 }
+fn store_lock_path(store: &Path) -> PathBuf {
+    let name = store
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("knowledge");
+    store
+        .parent()
+        .unwrap_or_else(|| Path::new("."))
+        .join(format!(".{name}.lock"))
+}
 fn atomic_replace(path: &Path, bytes: &[u8]) -> Result<()> {
     let temp = prepared_temp(path, bytes)?;
     temp.persist(path)
@@ -397,6 +415,17 @@ fn ensure_existing_target_is_safe(path: &Path) -> Result<()> {
     let canonical = path.canonicalize()?;
     if !canonical.starts_with(&parent) {
         bail!("entry escapes its selected store");
+    }
+    Ok(())
+}
+fn ensure_document_unchanged(original: &KnowledgeDocument, project: &Path) -> Result<()> {
+    let current = inspect_entry(&original.source_id, project)?;
+    if current.path != original.path
+        || current.metadata != original.metadata
+        || current.body != original.body
+        || current.verification_status != original.verification_status
+    {
+        bail!("knowledge entry changed during editing; the newer content was preserved");
     }
     Ok(())
 }

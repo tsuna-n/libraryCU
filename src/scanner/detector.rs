@@ -1,46 +1,22 @@
 use std::path::Path;
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 
 use super::project::ProjectInfo;
 
-const ROOT_MARKERS: &[&str] = &[
-    ".git",
-    "Cargo.toml",
-    "package.json",
-    "pyproject.toml",
-    "requirements.txt",
-    "go.mod",
-    "pom.xml",
-    "build.gradle",
-    "build.gradle.kts",
-    "Dockerfile",
-    "AGENT.md",
-    "README.md",
-];
-
 pub fn find_project_root(start: &Path) -> Result<std::path::PathBuf> {
+    crate::security::files::reject_symlinks(start)?;
     let start = start
         .canonicalize()
         .with_context(|| format!("project path does not exist: {}", start.display()))?;
-    let mut current = if start.is_file() {
-        start.parent().unwrap_or(&start).to_path_buf()
-    } else {
-        start
-    };
-    let fallback = current.clone();
-
-    loop {
-        if ROOT_MARKERS
-            .iter()
-            .any(|marker| current.join(marker).exists())
-        {
-            return Ok(current);
-        }
-        if !current.pop() {
-            return Ok(fallback);
-        }
+    if !start.is_dir() {
+        bail!(
+            "project path must be an explicit directory: {}",
+            start.display()
+        );
     }
+    crate::security::files::reject_symlinks(&start)?;
+    Ok(start)
 }
 
 pub fn detect_project(root: &Path) -> Result<ProjectInfo> {
@@ -224,12 +200,25 @@ mod tests {
     }
 
     #[test]
-    fn finds_root_from_nested_source_directory() -> Result<()> {
+    fn preserves_explicit_nested_project_scope() -> Result<()> {
         let root = project_dir("nested-root")?;
         let nested = root.join("src/deep");
         fs::create_dir_all(&nested)?;
         fs::write(root.join("Cargo.toml"), "[package]")?;
-        assert_eq!(find_project_root(&nested)?, root.canonicalize()?);
+        assert_eq!(find_project_root(&nested)?, nested.canonicalize()?);
+        fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn rejects_a_symlink_supplied_as_project_scope() -> Result<()> {
+        let root = project_dir("symlink-scope")?;
+        let project = root.join("project");
+        let link = root.join("project-link");
+        fs::create_dir(&project)?;
+        std::os::unix::fs::symlink(&project, &link)?;
+        assert!(find_project_root(&link).is_err());
         fs::remove_dir_all(root)?;
         Ok(())
     }

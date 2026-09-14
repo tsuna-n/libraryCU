@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.5.0 — 2026-09-14
+
+- Added pinned `cargo audit` and `cargo deny` policy checks to a dedicated
+  dependency-security CI job.
+- Added release CycloneDX SBOM generation, artifact digest provenance, detached
+  OpenPGP signatures, and signature verification before publication.
+- Added the security policy, vulnerability response targets, repository ruleset
+  checklist, and signed-release operating procedure.
+- Project commands now use the exact supplied directory instead of discovering
+  and ascending to a parent root. Git ignore matching supports Git-compatible
+  recursive patterns, character classes, escapes, negation, and nested files.
+- Knowledge package installs now stage and publish atomically under an advisory
+  process lock. New installs include SHA-256 integrity manifests; corrupted
+  packages are excluded while legacy packages remain readable as unverified.
+- Added advisory locking and atomic replacement for mutable configuration,
+  history, knowledge, and package stores, plus concurrent package-install tests.
+- Override validation now rejects self-overrides and cycles while preserving the
+  existing deterministic same-priority conflict checks.
+
 ## 0.4.0 — 2026-09-07
 
 - Added `fix --ai --apply --verify "COMMAND"`, with explicit executable/arguments,

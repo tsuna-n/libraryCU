@@ -1,9 +1,4 @@
-use std::{
-    env, fs,
-    io::Write,
-    path::PathBuf,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::{env, fs, path::PathBuf};
 
 use anyhow::{Context, Result, bail};
 
@@ -50,6 +45,7 @@ pub fn load() -> Result<Vec<String>> {
 pub fn save(messages: &[String]) -> Result<PathBuf> {
     let path = history_path();
     let parent = path.parent().context("history path has no parent")?;
+    let _lock = crate::security::storage::lock_exclusive(&parent.join(".history.lock"))?;
     crate::security::files::reject_symlinks(&path)?;
     fs::create_dir_all(parent)?;
     if fs::symlink_metadata(parent)?.file_type().is_symlink() {
@@ -61,30 +57,14 @@ pub fn save(messages: &[String]) -> Result<PathBuf> {
         .collect();
     bound(&mut messages);
     let encoded = serde_json::to_vec_pretty(&messages)?;
-    let temp = parent.join(format!(
-        ".history-{}-{}.tmp",
-        std::process::id(),
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|duration| duration.as_nanos())
-            .unwrap_or_default()
-    ));
-    let mut options = fs::OpenOptions::new();
-    options.write(true).create_new(true);
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::OpenOptionsExt;
-        options.mode(0o600);
-    }
-    let mut file = options.open(&temp)?;
-    file.write_all(&encoded)?;
-    file.sync_all()?;
-    fs::rename(&temp, &path)?;
+    crate::security::storage::atomic_replace(&path, &encoded, true)?;
     Ok(path)
 }
 
 pub fn clear() -> Result<bool> {
     let path = history_path();
+    let parent = path.parent().context("history path has no parent")?;
+    let _lock = crate::security::storage::lock_exclusive(&parent.join(".history.lock"))?;
     crate::security::files::reject_symlinks(&path)?;
     if !path.exists() {
         return Ok(false);

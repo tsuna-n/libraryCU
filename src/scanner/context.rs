@@ -55,7 +55,7 @@ pub fn collect_diagnostic_evidence(
             warnings.push(format!("excluded ignored evidence {relative_display}"));
             continue;
         }
-        if is_gitignored(&root, &relative) {
+        if is_gitignored_path(&root, &relative, false) {
             warnings.push(format!("excluded .gitignore evidence {relative_display}"));
             continue;
         }
@@ -132,57 +132,48 @@ fn should_exclude_relative(path: &Path, ignore_hidden: bool) -> bool {
     })
 }
 
-/// A deliberately small subset for common exact paths and ignored directories.
-/// Complex gitignore syntax remains scanner metadata rather than being guessed.
 pub(crate) fn is_gitignored(root: &Path, relative: &Path) -> bool {
-    let Ok(content) = crate::security::files::read_text(&root.join(".gitignore"), 256 * 1024)
-    else {
-        return false;
-    };
-    let candidate = relative.to_string_lossy().replace('\\', "/");
+    is_gitignored_path(root, relative, false)
+}
+
+pub(crate) fn is_gitignored_path(root: &Path, relative: &Path, is_dir: bool) -> bool {
+    if relative.is_absolute()
+        || relative
+            .components()
+            .any(|component| !matches!(component, Component::Normal(_)))
+    {
+        return true;
+    }
+    let candidate = root.join(relative);
+    let mut directories = vec![root.to_path_buf()];
+    let mut current = root.to_path_buf();
+    let parent_components = relative.components().count().saturating_sub(1);
+    for component in relative.components().take(parent_components) {
+        current.push(component.as_os_str());
+        directories.push(current.clone());
+    }
     let mut ignored = false;
-    for line in content.lines().map(str::trim) {
-        if line.is_empty() || line.starts_with('#') {
+    for directory in directories {
+        let ignore_file = directory.join(".gitignore");
+        if !ignore_file.is_file() {
             continue;
         }
-        let (negated, pattern) = line
-            .strip_prefix('!')
-            .map_or((false, line), |pattern| (true, pattern));
-        let directory = pattern.ends_with('/');
-        let pattern = pattern.trim_start_matches('/').trim_end_matches('/');
-        let matches = if pattern.contains('/') {
-            glob_matches(pattern, &candidate)
-                || (directory && candidate.starts_with(&format!("{pattern}/")))
-        } else {
-            candidate
-                .split('/')
-                .any(|component| glob_matches(pattern, component))
+        let mut builder = ignore::gitignore::GitignoreBuilder::new(&directory);
+        if builder.add(&ignore_file).is_some() {
+            return true;
+        }
+        let Ok(matcher) = builder.build() else {
+            return true;
         };
-        if matches {
-            ignored = !negated;
+        let relative_to_ignore = candidate.strip_prefix(&directory).unwrap_or(&candidate);
+        let matched = matcher.matched_path_or_any_parents(relative_to_ignore, is_dir);
+        if matched.is_ignore() {
+            ignored = true;
+        } else if matched.is_whitelist() {
+            ignored = false;
         }
     }
     ignored
-}
-
-fn glob_matches(pattern: &str, value: &str) -> bool {
-    let pattern: Vec<_> = pattern.chars().collect();
-    let value: Vec<_> = value.chars().collect();
-    let mut table = vec![vec![false; value.len() + 1]; pattern.len() + 1];
-    table[0][0] = true;
-    for index in 0..pattern.len() {
-        if pattern[index] == '*' {
-            table[index + 1][0] = table[index][0];
-        }
-        for position in 0..value.len() {
-            table[index + 1][position + 1] = match pattern[index] {
-                '*' => table[index][position + 1] || table[index + 1][position],
-                '?' => table[index][position],
-                character => table[index][position] && character == value[position],
-            };
-        }
-    }
-    table[pattern.len()][value.len()]
 }
 
 #[cfg(test)]
@@ -254,6 +245,28 @@ mod tests {
         );
         assert!(evidence.is_empty());
         assert!(warnings.iter().any(|warning| warning.contains("oversized")));
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn gitignore_supports_recursive_patterns_classes_escapes_and_negation() {
+        let root = temporary_root();
+        fs::create_dir_all(root.join("logs/deep")).unwrap();
+        fs::create_dir_all(root.join("nested")).unwrap();
+        fs::write(
+            root.join(".gitignore"),
+            "logs/**/[0-9].log\n\\#literal\n*.secret\n!public.secret\n",
+        )
+        .unwrap();
+        fs::write(root.join("nested/.gitignore"), "*.tmp\n!keep.tmp\n").unwrap();
+
+        assert!(is_gitignored(&root, Path::new("logs/deep/7.log")));
+        assert!(is_gitignored(&root, Path::new("#literal")));
+        assert!(is_gitignored(&root, Path::new("private.secret")));
+        assert!(!is_gitignored(&root, Path::new("public.secret")));
+        assert!(is_gitignored(&root, Path::new("nested/drop.tmp")));
+        assert!(!is_gitignored(&root, Path::new("nested/keep.tmp")));
+
         fs::remove_dir_all(root).unwrap();
     }
 

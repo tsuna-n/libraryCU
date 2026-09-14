@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     fs,
     path::{Path, PathBuf},
 };
@@ -144,6 +144,15 @@ fn load_all_documents_with_roots(
             .collect();
         entries.sort_by_key(|entry| entry.file_name());
         for entry in entries {
+            if packages::package_has_integrity_manifest(&entry.path())
+                && let Err(error) = packages::verify_package_integrity(&entry.path())
+            {
+                invalid.push(InvalidDocument {
+                    path: entry.path().display().to_string(),
+                    error: format!("package integrity verification failed: {error}"),
+                });
+                continue;
+            }
             let manifest_path = entry.path().join("package.toml");
             let manifest = crate::security::files::read_text(&manifest_path, MAX_DOCUMENT_BYTES)
                 .with_context(|| format!("failed to read {}", manifest_path.display()))
@@ -320,6 +329,51 @@ fn mark_duplicate_ids(documents: &mut [KnowledgeDocument], invalid: &mut Vec<Inv
 }
 
 fn apply_overrides(documents: &mut [KnowledgeDocument], invalid: &mut Vec<InvalidDocument>) {
+    let positions: HashMap<_, _> = documents
+        .iter()
+        .enumerate()
+        .map(|(position, document)| (document.source_id.clone(), position))
+        .collect();
+    let mut cycle_members = HashSet::new();
+    for start in 0..documents.len() {
+        if documents[start].metadata.overrides.is_none() || !documents[start].effective {
+            continue;
+        }
+        let mut path = Vec::new();
+        let mut current = start;
+        loop {
+            if let Some(cycle_start) = path.iter().position(|position| *position == current) {
+                cycle_members.extend(path[cycle_start..].iter().copied());
+                break;
+            }
+            path.push(current);
+            let Some(target) = documents[current].metadata.overrides.as_ref() else {
+                break;
+            };
+            let Some(next) = positions.get(target).copied() else {
+                break;
+            };
+            current = next;
+        }
+    }
+    for position in cycle_members {
+        documents[position].effective = false;
+        let target = documents[position]
+            .metadata
+            .overrides
+            .as_deref()
+            .unwrap_or_default();
+        let error = if target == documents[position].source_id {
+            "knowledge entry cannot override itself".to_owned()
+        } else {
+            format!("override cycle includes {}", documents[position].source_id)
+        };
+        invalid.push(InvalidDocument {
+            path: documents[position].path.clone(),
+            error,
+        });
+    }
+
     let mut groups: HashMap<String, Vec<(u8, usize)>> = HashMap::new();
     for (position, document) in documents.iter_mut().enumerate() {
         let Some(target) = document.metadata.overrides.clone() else {
@@ -553,6 +607,37 @@ mod tests {
                 && document.overridden_by.as_deref() == Some("project:project-e0308")
         }));
         fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn rejects_self_overrides_and_override_cycles() -> Result<()> {
+        let self_override =
+            "---\nid: self\noverrides: user:self\n---\nSELF OVERRIDE MUST NOT APPLY\n";
+        let first = "---\nid: first\noverrides: user:second\n---\nFIRST\n";
+        let second = "---\nid: second\noverrides: user:first\n---\nSECOND\n";
+        let mut documents = vec![
+            parse_document_for_source("self.md", self_override, "user", "/self.md", true)?,
+            parse_document_for_source("first.md", first, "user", "/first.md", true)?,
+            parse_document_for_source("second.md", second, "user", "/second.md", true)?,
+        ];
+        let mut invalid = Vec::new();
+
+        apply_overrides(&mut documents, &mut invalid);
+
+        assert!(documents.iter().all(|document| !document.effective));
+        assert!(
+            invalid
+                .iter()
+                .any(|item| item.error.contains("cannot override itself"))
+        );
+        assert_eq!(
+            invalid
+                .iter()
+                .filter(|item| item.error.contains("override cycle"))
+                .count(),
+            2
+        );
         Ok(())
     }
 }

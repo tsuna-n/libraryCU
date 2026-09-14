@@ -31,6 +31,64 @@ commands:
             } >> "${BASH_ENV}"
 
 jobs:
+  dependency_security:
+    executor: rust
+    environment:
+      CARGO_AUDIT_VERSION: "0.22.2"
+      CARGO_DENY_VERSION: "0.20.2"
+      CARGO_CYCLONEDX_VERSION: "0.5.9"
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - cargo-security-v1-{{ arch }}-{{ .Environment.CARGO_AUDIT_VERSION }}-{{ .Environment.CARGO_DENY_VERSION }}-{{ .Environment.CARGO_CYCLONEDX_VERSION }}
+      - run:
+          name: Install pinned supply-chain tools
+          command: |
+            if ! cargo audit --version | grep -Fq "${CARGO_AUDIT_VERSION}"; then
+              cargo install cargo-audit --version "${CARGO_AUDIT_VERSION}" --locked
+            fi
+            if ! cargo deny --version | grep -Fq "${CARGO_DENY_VERSION}"; then
+              cargo install cargo-deny --version "${CARGO_DENY_VERSION}" --locked
+            fi
+            if ! cargo cyclonedx --version | grep -Fq "${CARGO_CYCLONEDX_VERSION}"; then
+              cargo install cargo-cyclonedx --version "${CARGO_CYCLONEDX_VERSION}" --locked
+            fi
+          no_output_timeout: 20m
+      - run:
+          name: Audit vulnerabilities, licenses, bans, and sources
+          command: |
+            cargo audit
+            cargo deny check
+      - run:
+          name: Generate and validate CycloneDX SBOM
+          command: |
+            package_version="$(cargo metadata --locked --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "librarycube") | .version')"
+            cargo cyclonedx --format json --all-features --override-filename "lbc-${package_version}.cdx"
+            sbom="lbc-${package_version}.cdx.json"
+            test -s "${sbom}"
+            jq -e '
+              (.components | length > 0) and
+              all(.components[]; (.name | length > 0) and (.version | length > 0) and ((.licenses // []) | length > 0)) and
+              any(.components[]; ((.hashes // []) | length > 0))
+            ' "${sbom}" >/dev/null
+            mkdir -p dist
+            mv "${sbom}" dist/
+      - save_cache:
+          key: cargo-security-v1-{{ arch }}-{{ .Environment.CARGO_AUDIT_VERSION }}-{{ .Environment.CARGO_DENY_VERSION }}-{{ .Environment.CARGO_CYCLONEDX_VERSION }}
+          paths:
+            - ~/.cargo/bin/cargo-audit
+            - ~/.cargo/bin/cargo-deny
+            - ~/.cargo/bin/cargo-cyclonedx
+            - ~/.cargo/advisory-db
+      - store_artifacts:
+          path: dist
+          destination: release-security
+      - persist_to_workspace:
+          root: .
+          paths:
+            - dist
+
   build_and_test:
     executor: rust
     steps:
@@ -335,12 +393,21 @@ jobs:
       - attach_workspace:
           at: ~/project
       - run:
-          name: Publish GitHub release assets
+          name: Generate provenance and sign release assets
+          command: |
+            bash .circleci/generate-provenance.sh dist
+            bash .circleci/sign-release-assets.sh dist
+      - run:
+          name: Publish signed GitHub release assets
           command: bash .circleci/publish-github-release.sh dist
 
 workflows:
   ci_cd:
     jobs:
+      - dependency_security:
+          filters:
+            tags:
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/
       - build_and_test:
           filters:
             tags:
@@ -359,6 +426,7 @@ workflows:
               only: /^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/
       - publish_github_release:
           requires:
+            - dependency_security
             - build_and_test
             - build_macos
             - build_windows

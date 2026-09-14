@@ -20,6 +20,7 @@ fn install(source: &Path) -> Result<()> {
     println!("  Name:        {}", installed.name);
     println!("  Version:     {}", installed.version);
     println!("  Documents:   {}", installed.documents);
+    println!("  Integrity:   {}", installed.integrity);
     println!("  Location:    {}", installed.path.display());
     Ok(())
 }
@@ -36,8 +37,8 @@ fn list() -> Result<()> {
     println!("Installed");
     for package in &packages {
         println!(
-            "  {} {} ({} documents)",
-            package.name, package.version, package.documents
+            "  {} {} ({} documents; integrity: {})",
+            package.name, package.version, package.documents, package.integrity
         );
         if !package.description.is_empty() {
             println!("    {}", package.description);

@@ -6,8 +6,8 @@ The Rust package and crate are named `librarycube`; the executable is `lbc`.
 
 For copy-paste examples covering every command, see the
 [complete usage examples](docs/usage-examples.md).
-The [0.4.0 release audit](docs/release-0.4.0.md) records verification, recovery,
-cross-platform validation, and remaining limitations.
+The [v0.5 roadmap checkpoint](docs/roadmap-progress.md) records current
+verification, external release gates, and remaining limitations.
 See the [changelog](CHANGELOG.md) for the version's changes.
 
 ## Install
@@ -35,9 +35,22 @@ directory and adds it to the user `PATH`. Use `-Prefix C:\path\to\bin` to choose
 another directory, `-System` from an elevated PowerShell for a machine-wide
 installation, or `-Uninstall` to remove it.
 
-Release binaries currently have no Developer ID/Authenticode signature or
-notarization. macOS Gatekeeper or Windows SmartScreen may therefore require the
-user to approve the downloaded executable before first use.
+The `v0.5.x` release pipeline publishes every archive, checksum, SBOM, and
+provenance file with a detached `.asc` signature. Download
+`lbc-release-signing-key.asc`, compare its full
+fingerprint with the value published by the maintainer through a separate trusted
+channel, then verify before installation:
+
+```bash
+gpg --import lbc-release-signing-key.asc
+gpg --verify lbc-0.5.0-x86_64-unknown-linux-gnu.tar.gz.asc \
+  lbc-0.5.0-x86_64-unknown-linux-gnu.tar.gz
+sha256sum -c lbc-0.5.0-x86_64-unknown-linux-gnu.tar.gz.sha256
+```
+
+The detached signature covers macOS and Windows archives too, but their binaries
+do not yet have Developer ID/Authenticode signatures or notarization. Gatekeeper
+or SmartScreen may therefore require approval before first use.
 
 From a source checkout, run the Unix/macOS installation script to build and
 install `lbc` to `~/.local/bin`:
@@ -309,7 +322,11 @@ lbc knowledge list
 lbc knowledge remove team-rules
 ```
 
-A package contains `package.toml` with `name`, `version`, and optional `description`, plus valid Markdown documents. Installation validates every document before copying.
+A package contains `package.toml` with `name`, `version`, and optional
+`description`, plus valid Markdown documents. Installation validates a complete
+snapshot, stages it under a process lock, records `SHA256SUMS`, and publishes the
+directory atomically. `lbc knowledge list` reports `verified`, `unverified`
+(legacy install), or `corrupt`; corrupt packages are not loaded.
 
 The source checkout includes 40 bilingual Python/FastAPI notes in
 `packages/python-fastapi-basics`. Install them explicitly:
@@ -335,7 +352,13 @@ lbc config show --json
 lbc doctor --json
 ```
 
-`scan` is a lightweight inventory; it does not imply that every source file was read. JSON commands print one machine-readable value to stdout, while warnings go to stderr. `doctor` exits nonzero when any check fails, including with `--json`; the JSON report is still printed.
+`scan` is a lightweight inventory; it does not imply that every source file was
+read. `--project` and `--path` use the exact supplied directory and never ascend
+to a parent project root. Git-compatible `.gitignore` rules and nested ignore
+files are applied to inventory and diagnostic evidence. JSON commands print one
+machine-readable value to stdout, while warnings go to stderr. `doctor` exits
+nonzero when any check fails, including with `--json`; the JSON report is still
+printed.
 
 ## Safety boundaries
 
@@ -347,7 +370,11 @@ Input limits: questions/search queries are at most 8 KiB; notes are at most 256 
 
 Note creation publishes a fully written temporary file without overwriting an existing target. Edits atomically replace a validated document; failed editor launches and cancellations clean up temporary files. Builtin overrides preserve retrieval metadata, and changed bodies reset verification to `unverified`. Editor arguments support quoting without launching a shell implicitly. Bounded text readers reject special files and symlinked path components (including parent directories); use real, non-symlinked storage paths.
 
-Production readiness remains **under audit**, especially ignored-file handling, concurrent writers, and complete Thai diagnostic content. See [the readiness audit](docs/readiness-audit.md) before using project context with sensitive repositories.
+Mutable config, history, knowledge, and package stores use advisory process locks
+and atomic file/directory publication. These controls require cooperating LBC
+processes and do not make shared writable stores safe against a hostile local
+user. Production readiness remains under audit, especially directory-replacement
+races, recovery authentication, and complete Thai diagnostic content.
 
 ## Development
 
@@ -357,6 +384,9 @@ cargo check --locked
 cargo clippy --locked --all-targets --all-features -- -D warnings
 cargo test --locked
 cargo build --locked --release
+cargo audit
+cargo deny check
+cargo cyclonedx --format json --all-features
 ```
 
 CircleCI runs these gates for every branch and pull request. Main-branch and
