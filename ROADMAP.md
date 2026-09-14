@@ -79,13 +79,13 @@
 
 ## Known Gaps
 
-- [ ] Full `.gitignore` semantics
+- [x] Full `.gitignore` semantics
 - [x] Strict project boundary
 - [x] Transaction-safe package installation
 - [x] Multi-process file locking
 - [ ] Multi-user store validation
-- [ ] Authenticated recovery records
-- [ ] Recovery retention policy
+- [x] Authenticated recovery records
+- [x] Recovery retention policy
 - [x] Complete override cycle validation
 - [ ] Signed binaries
 - [x] SBOM
@@ -183,7 +183,7 @@ lbc-0.5.0.provenance.json
 - [x] Implement strict explicit project scope
 - [x] Prevent project root escape
 - [x] Complete `.gitignore` behavior or use a proven Git-compatible matcher
-- [ ] Improve symlink race protections
+- [x] Improve symlink race protections
 - [x] Add file locking for mutable stores
 - [x] Transaction-safe package installation
 - [x] Atomic config/history/package updates
@@ -191,7 +191,7 @@ lbc-0.5.0.provenance.json
 - [x] Validate override cycles
 - [x] Validate self-overrides
 - [x] Validate same-priority conflicts
-- [ ] Add failure-injection tests
+- [x] Add failure-injection tests
 - [x] Add concurrent-write tests
 
 ## Release Gate

@@ -219,14 +219,18 @@ direct child; it does not guarantee termination of detached descendant processes
 
 Every CLI application first saves a private recovery record under
 `<project>/.lbc/fixes/<recovery_id>.json`, containing the original and applied
-source snapshots. A failed, unavailable, or timed-out verifier triggers rollback
-and exits nonzero. `lbc rollback ID --project PATH` also restores an applied patch
-in a later invocation without AI. Both forms refuse to overwrite source that no
-longer matches the recorded applied content. Only the selected file is restored;
-side effects of the verification command are outside the rollback. Records remain
-for manual recovery and can be removed after you no longer need them. Keep
-`.lbc/fixes/` out of version control; records are local source backups and are not
-authenticated against local tampering. Power-loss durability is not guaranteed.
+source snapshots. Version 2 records are authenticated with HMAC-SHA256 using a
+random project-local key at `<project>/.lbc/recovery.key`; altered records and
+keys with unsafe Unix ownership or permissions are refused. A failed, unavailable,
+or timed-out verifier triggers rollback and exits nonzero. `lbc rollback ID
+--project PATH` also restores an applied patch in a later invocation without AI.
+Both forms refuse to overwrite source that no longer matches the recorded applied
+content. Only the selected file is restored; side effects of the verification
+command are outside the rollback. LBC keeps at most 100 records and removes
+records older than 30 days when preparing a new patch. Version 1 records from
+older releases are unauthenticated and must be inspected and recovered manually.
+Keep `.lbc/fixes/` and `.lbc/recovery.key` out of version control. Power-loss
+durability is not guaranteed.
 
 The exact `--project` directory is the boundary. Targets must be regular UTF-8
 files of at most 256 KiB; the seven-line excerpt is at most 8 KiB, and provider
@@ -234,8 +238,10 @@ patch JSON is at most 8 KiB. Replacements must match uniquely, intersect the
 reported line, and keep the resulting file within 256 KiB. Symlinked paths,
 hidden/generated targets, recognized `.gitignore` matches, and targets containing
 recognizable secrets are refused. Source content is checked again before atomic
-replacement, and file permissions are retained. As with note editing, this is
-not a guarantee against every concurrent writer or hostile directory race.
+replacement, and file permissions are retained. On Unix, final publication is
+anchored to an opened parent-directory descriptor and rejects a replaced parent;
+other platforms retain portable component checks. Advisory locks still require
+cooperating writers.
 
 JSON reports contain `status` (`offline_guidance`, `proposed`, `applied`,
 `verified`, `rolled_back`, or `failed`), `applied`, `verification_status`,
@@ -371,10 +377,12 @@ Input limits: questions/search queries are at most 8 KiB; notes are at most 256 
 Note creation publishes a fully written temporary file without overwriting an existing target. Edits atomically replace a validated document; failed editor launches and cancellations clean up temporary files. Builtin overrides preserve retrieval metadata, and changed bodies reset verification to `unverified`. Editor arguments support quoting without launching a shell implicitly. Bounded text readers reject special files and symlinked path components (including parent directories); use real, non-symlinked storage paths.
 
 Mutable config, history, knowledge, and package stores use advisory process locks
-and atomic file/directory publication. These controls require cooperating LBC
-processes and do not make shared writable stores safe against a hostile local
-user. Production readiness remains under audit, especially directory-replacement
-races, recovery authentication, and complete Thai diagnostic content.
+and atomic file/directory publication. Unix file replacement anchors validation
+and rename to an opened directory descriptor to prevent parent-symlink redirects.
+These controls require cooperating LBC processes and do not make shared writable
+stores safe against a hostile local user. Production readiness remains under
+audit, especially multi-user store ownership, non-Unix directory races, and
+complete Thai diagnostic content.
 
 ## Development
 

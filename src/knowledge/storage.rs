@@ -375,10 +375,8 @@ fn store_lock_path(store: &Path) -> PathBuf {
         .join(format!(".{name}.lock"))
 }
 fn atomic_replace(path: &Path, bytes: &[u8]) -> Result<()> {
-    let temp = prepared_temp(path, bytes)?;
-    temp.persist(path)
-        .with_context(|| format!("failed to replace {}", path.display()))?;
-    Ok(())
+    crate::security::storage::atomic_replace(path, bytes, false)
+        .with_context(|| format!("failed to replace {}", path.display()))
 }
 fn prepared_temp(path: &Path, bytes: &[u8]) -> Result<tempfile::NamedTempFile> {
     let parent = path.parent().context("entry has no parent directory")?;

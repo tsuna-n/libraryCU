@@ -44,7 +44,6 @@ pub struct Target {
     excerpt_start: usize,
     line_start: usize,
     line_end: usize,
-    permissions: fs::Permissions,
 }
 
 impl Target {
@@ -154,7 +153,6 @@ impl Target {
             excerpt_start,
             line_start,
             line_end,
-            permissions,
         })
     }
 
@@ -262,16 +260,8 @@ impl Target {
         })?)?;
         self.check_unchanged()?;
         let updated = self.original.replacen(&patch.before, &patch.after, 1);
-        let parent = self.path.parent().context("patch target has no parent")?;
-        let mut temporary = tempfile::NamedTempFile::new_in(parent)?;
-        temporary.write_all(updated.as_bytes())?;
-        temporary
-            .as_file()
-            .set_permissions(self.permissions.clone())?;
-        temporary.as_file().sync_all()?;
         self.check_unchanged()?;
-        temporary
-            .persist(&self.path)
+        security::storage::atomic_replace(&self.path, updated.as_bytes(), false)
             .context("failed to publish patch atomically")?;
         Ok(())
     }
@@ -421,7 +411,16 @@ mod tests {
         let id = rollback::prepare(&target, &patch).unwrap();
         let record = root.path().join(".lbc/fixes").join(format!("{id}.json"));
         assert_eq!(
-            fs::metadata(record).unwrap().permissions().mode() & 0o777,
+            fs::metadata(&record).unwrap().permissions().mode() & 0o777,
+            0o600
+        );
+        let encoded: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(record).unwrap()).unwrap();
+        assert_eq!(encoded["version"], 2);
+        assert_eq!(encoded["authentication"].as_str().unwrap().len(), 64);
+        let key = root.path().join(".lbc/recovery.key");
+        assert_eq!(
+            fs::metadata(key).unwrap().permissions().mode() & 0o777,
             0o600
         );
         target.apply(&patch).unwrap();

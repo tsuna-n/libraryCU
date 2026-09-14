@@ -144,7 +144,46 @@ pub(crate) fn is_gitignored_path(root: &Path, relative: &Path, is_dir: bool) -> 
     {
         return true;
     }
+    let components: Vec<_> = relative.components().collect();
+    let mut prefix = PathBuf::new();
+    for (index, component) in components.iter().enumerate() {
+        prefix.push(component.as_os_str());
+        let prefix_is_dir = index + 1 < components.len() || is_dir;
+        if gitignore_match(root, &prefix, prefix_is_dir) {
+            // Git cannot re-include a child of an ignored directory because
+            // the directory is not traversed. Checking each prefix in order
+            // preserves that rule for direct diagnostic paths too.
+            return true;
+        }
+    }
+    false
+}
+
+fn gitignore_match(root: &Path, relative: &Path, is_dir: bool) -> bool {
     let candidate = root.join(relative);
+    let has_git_metadata = root.join(".git").exists();
+    let mut ignored = false;
+
+    if has_git_metadata {
+        let (global, error) = ignore::gitignore::GitignoreBuilder::new(root).build_global();
+        if error.is_some() {
+            return true;
+        }
+        update_ignore_state(&mut ignored, global.matched(&candidate, is_dir));
+
+        let exclude_file = root.join(".git/info/exclude");
+        if exclude_file.is_file() {
+            let mut builder = ignore::gitignore::GitignoreBuilder::new(root);
+            if builder.add(&exclude_file).is_some() {
+                return true;
+            }
+            let Ok(matcher) = builder.build() else {
+                return true;
+            };
+            update_ignore_state(&mut ignored, matcher.matched(relative, is_dir));
+        }
+    }
+
     let mut directories = vec![root.to_path_buf()];
     let mut current = root.to_path_buf();
     let parent_components = relative.components().count().saturating_sub(1);
@@ -152,7 +191,6 @@ pub(crate) fn is_gitignored_path(root: &Path, relative: &Path, is_dir: bool) -> 
         current.push(component.as_os_str());
         directories.push(current.clone());
     }
-    let mut ignored = false;
     for directory in directories {
         let ignore_file = directory.join(".gitignore");
         if !ignore_file.is_file() {
@@ -166,14 +204,17 @@ pub(crate) fn is_gitignored_path(root: &Path, relative: &Path, is_dir: bool) -> 
             return true;
         };
         let relative_to_ignore = candidate.strip_prefix(&directory).unwrap_or(&candidate);
-        let matched = matcher.matched_path_or_any_parents(relative_to_ignore, is_dir);
-        if matched.is_ignore() {
-            ignored = true;
-        } else if matched.is_whitelist() {
-            ignored = false;
-        }
+        update_ignore_state(&mut ignored, matcher.matched(relative_to_ignore, is_dir));
     }
     ignored
+}
+
+fn update_ignore_state<T>(ignored: &mut bool, matched: ignore::Match<T>) {
+    if matched.is_ignore() {
+        *ignored = true;
+    } else if matched.is_whitelist() {
+        *ignored = false;
+    }
 }
 
 #[cfg(test)]
@@ -266,6 +307,29 @@ mod tests {
         assert!(!is_gitignored(&root, Path::new("public.secret")));
         assert!(is_gitignored(&root, Path::new("nested/drop.tmp")));
         assert!(!is_gitignored(&root, Path::new("nested/keep.tmp")));
+
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn gitignore_honors_repository_excludes_and_ignored_parent_rules() {
+        let root = temporary_root();
+        fs::create_dir_all(root.join(".git/info")).unwrap();
+        fs::create_dir_all(root.join("ignored")).unwrap();
+        fs::write(
+            root.join(".git/info/exclude"),
+            "local.cache\nvisible.cache\n",
+        )
+        .unwrap();
+        fs::write(
+            root.join(".gitignore"),
+            "!visible.cache\nignored/\n!ignored/keep.txt\n",
+        )
+        .unwrap();
+
+        assert!(is_gitignored(&root, Path::new("local.cache")));
+        assert!(!is_gitignored(&root, Path::new("visible.cache")));
+        assert!(is_gitignored(&root, Path::new("ignored/keep.txt")));
 
         fs::remove_dir_all(root).unwrap();
     }

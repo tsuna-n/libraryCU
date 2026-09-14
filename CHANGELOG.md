@@ -10,12 +10,17 @@
   checklist, and signed-release operating procedure.
 - Project commands now use the exact supplied directory instead of discovering
   and ascending to a parent root. Git ignore matching supports Git-compatible
-  recursive patterns, character classes, escapes, negation, and nested files.
+  recursive patterns, character classes, escapes, negation, nested files, global
+  excludes, repository excludes, and ignored-parent behavior.
 - Knowledge package installs now stage and publish atomically under an advisory
   process lock. New installs include SHA-256 integrity manifests; corrupted
   packages are excluded while legacy packages remain readable as unverified.
 - Added advisory locking and atomic replacement for mutable configuration,
   history, knowledge, and package stores, plus concurrent package-install tests.
+- Hardened Unix atomic replacement against parent-directory symlink swaps and
+  added failure-injection coverage for file and package publication.
+- Recovery records now use HMAC-SHA256 authentication with a private per-project
+  key and prune to a maximum of 100 records and 30 days.
 - Override validation now rejects self-overrides and cycles while preserving the
   existing deterministic same-priority conflict checks.
 

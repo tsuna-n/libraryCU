@@ -202,6 +202,44 @@ fn scan_detects_this_rust_project() {
 }
 
 #[test]
+fn scan_honors_git_global_and_repository_excludes_inside_the_explicit_scope() {
+    let home = temporary_home("scan-git-excludes");
+    let project = home.join("project");
+    std::fs::create_dir_all(project.join(".git/info")).unwrap();
+    std::fs::create_dir_all(home.join("config/git")).unwrap();
+    std::fs::write(project.join("visible.rs"), "fn visible() {}\n").unwrap();
+    std::fs::write(project.join("global.global"), "ignored globally\n").unwrap();
+    std::fs::write(project.join("local.cache"), "ignored locally\n").unwrap();
+    std::fs::write(home.join("config/git/ignore"), "*.global\n").unwrap();
+    std::fs::write(project.join(".git/info/exclude"), "*.cache\n").unwrap();
+
+    let output = isolated_lbc(&home)
+        .args(["scan", "--path"])
+        .arg(&project)
+        .args(["--tree", "--json"])
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    let paths: Vec<_> = report["entries"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|entry| entry["path"].as_str())
+        .collect();
+    assert!(paths.contains(&"visible.rs"));
+    assert!(!paths.contains(&"global.global"));
+    assert!(!paths.contains(&"local.cache"));
+
+    std::fs::remove_dir_all(home).unwrap();
+}
+
+#[test]
 fn search_finds_exact_rust_error_code() {
     let output = lbc()
         .args(["search", "E0382"])

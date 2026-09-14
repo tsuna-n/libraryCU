@@ -1,6 +1,6 @@
 # Complete libraryCube usage examples
 
-This guide covers the knowledge and analysis commands in libraryCube 0.3.4. Commands run
+This guide covers the knowledge and analysis commands in libraryCube 0.5.0. Commands run
 offline unless `--ai` is explicitly supplied. Paths, scores, and document counts
 in the sample output will vary by machine. An ellipsis (`...`) means that only a
 relevant part of a longer result is shown.
@@ -19,7 +19,7 @@ lbc --help
 Example output:
 
 ```text
-lbc 0.3.4
+lbc 0.5.0
 
 libraryCube - terminal knowledge library
 
@@ -37,6 +37,7 @@ Commands:
   scan       Inspect the current project
   explain    Explain compiler or runtime errors
   fix        Generate a minimal AI patch grounded in local knowledge
+  rollback   Restore a patch from a local recovery record
   search     Search local technical knowledge
   config     View or modify LBC configuration
   doctor     Check the LBC environment
@@ -816,6 +817,7 @@ Installed knowledge package
   Name:        team-rules
   Version:     1.0.0
   Documents:   2
+  Integrity:   verified
   Location:    /home/alice/.local/share/lbc/knowledge/team-rules
 
 Knowledge Packages
@@ -824,7 +826,7 @@ Data directory
   /home/alice/.local/share/lbc/knowledge
 
 Installed
-  team-rules 1.0.0 (2 documents)
+  team-rules 1.0.0 (2 documents; integrity: verified)
     Shared team knowledge
 
 ✓ Removed knowledge package team-rules
@@ -833,7 +835,10 @@ Location
   /home/alice/.local/share/lbc/knowledge/team-rules
 ```
 
-Every document is validated before installation. Packages live under
+Every document is validated before installation. The staged package receives a
+`SHA256SUMS` manifest and is verified again before atomic publication. Legacy
+packages without that manifest are listed as `unverified`; corrupt packages are
+listed as `corrupt` and excluded from retrieval. Packages live under
 `$XDG_DATA_HOME/lbc/knowledge`, with a fallback under `~/.local/share/lbc`.
 
 ## 16. JSON in scripts
@@ -909,7 +914,10 @@ On Windows quote paths with spaces, for example
 `--verify "'C:/Program Files/nodejs/node.exe' check.js"`.
 Output is bounded/redacted. Failure or timeout attempts single-file rollback;
 later edits prevent automatic overwrite and leave the recovery record for manual
-inspection. Records stay under `.lbc/fixes/`; keep them out of version control.
+inspection. Version 2 records are HMAC-authenticated using the private
+`.lbc/recovery.key`. LBC retains at most 100 records for 30 days, pruning when a
+new record is prepared. Version 1 records require manual recovery. Keep the
+records and key out of version control.
 See [verification and recovery semantics](../README.md#propose-and-apply-a-small-patch)
 for command side effects, descendant-process limits, and output limits.
 
@@ -919,8 +927,8 @@ seven-line excerpt and provider patch JSON are each limited to 8 KiB. Hidden,
 generated, recognized gitignored, symlinked, secret-bearing, and special-file
 targets are rejected. Before text must match uniquely near the reported line.
 Detected source changes abort application; successful replacement retains file
-permissions. Atomic replacement is not full concurrency or crash-durability
-protection.
+permissions. Unix publication rejects a swapped parent directory; advisory locks
+still require cooperating writers, and power-loss durability is not guaranteed.
 
 `--json` reports `status`, boolean `applied`, `verification_status`,
 offline `guidance`, optional `patch` (`path`, `before`, `after`,
@@ -945,6 +953,7 @@ specific repair; patch generation requires an adequate match.
 | Persistent history | `$XDG_DATA_HOME/lbc/history/default.json` |
 | Project notes | `<project>/.lbc/knowledge` |
 | Fix recovery records | `<project>/.lbc/fixes/<recovery_id>.json` |
+| Fix recovery key | `<project>/.lbc/recovery.key` |
 | Configuration | `$XDG_CONFIG_HOME/lbc/config.toml` |
 
 When XDG variables are absent, user data falls back to `~/.local/share/lbc` and

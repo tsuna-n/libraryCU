@@ -70,6 +70,17 @@ pub fn data_dir() -> PathBuf {
 /// Validate a package directory and publish a checksummed snapshot.
 /// Only markdown documents, the manifest, and generated checksums are installed.
 pub fn install_package(source: &Path, data_dir: &Path) -> Result<InstalledPackage> {
+    install_package_with_hook(source, data_dir, || Ok(()))
+}
+
+fn install_package_with_hook<F>(
+    source: &Path,
+    data_dir: &Path,
+    before_publish: F,
+) -> Result<InstalledPackage>
+where
+    F: FnOnce() -> Result<()>,
+{
     crate::security::files::reject_symlinks(source)?;
     crate::security::files::reject_symlinks(data_dir)?;
     let manifest_path = source.join(MANIFEST_FILE);
@@ -116,6 +127,7 @@ pub fn install_package(source: &Path, data_dir: &Path) -> Result<InstalledPackag
     )
     .context("failed to write package integrity manifest")?;
     verify_package_integrity(staging.path())?;
+    before_publish()?;
     fs::rename(staging.path(), &target)
         .with_context(|| format!("failed to publish package at {}", target.display()))?;
     crate::security::storage::sync_directory(data_dir)?;
@@ -501,6 +513,33 @@ mod tests {
             0
         );
 
+        fs::remove_dir_all(source).unwrap();
+        fs::remove_dir_all(data).unwrap();
+    }
+
+    #[test]
+    fn failure_before_publish_leaves_no_partial_package() {
+        let source = temp_dir("failure-source");
+        let data = temp_dir("failure-data");
+        write_package(&source);
+
+        let result = install_package_with_hook(&source, &data, || {
+            bail!("injected package publication failure")
+        });
+
+        assert!(result.is_err());
+        assert!(!data.join("demo-pack").exists());
+        assert_eq!(
+            fs::read_dir(&data)
+                .unwrap()
+                .filter_map(Result::ok)
+                .filter(|entry| entry
+                    .file_name()
+                    .to_string_lossy()
+                    .starts_with(".package-install-"))
+                .count(),
+            0
+        );
         fs::remove_dir_all(source).unwrap();
         fs::remove_dir_all(data).unwrap();
     }

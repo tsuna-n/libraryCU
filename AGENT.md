@@ -192,11 +192,14 @@ applied source is unchanged. `passed` only describes that command's exit status.
 Every CLI apply must persist a bounded private recovery record first. Failed
 verification attempts rollback; explicit `rollback ID` supports later recovery.
 Both restore only when the current source equals the applied snapshot. Preserve
-later edits, retain recovery records, and report recovery failures with nonzero
-exit status and JSON when requested. Recovery is single-file, does not undo
-verification side effects, and is not authenticated against local tampering.
-Structural validation does not establish semantic correctness. Atomic replacement and content rechecks
-do not guarantee protection from hostile directory races or all concurrent writers.
+later edits, authenticate version 2 records with the private project recovery key,
+enforce the 30-day/100-record retention bound when preparing a record, and report
+recovery failures with nonzero exit status and JSON when requested. Version 1
+records are legacy unauthenticated data and require manual recovery. Recovery is
+single-file and does not undo verification side effects. Structural validation
+does not establish semantic correctness. Unix directory-descriptor publication
+protects final rename from parent-symlink replacement; portable fallbacks and
+content rechecks do not protect against every non-cooperating concurrent writer.
 
 ### 2.6 Privacy is correctness
 
@@ -657,7 +660,7 @@ Do not document these as solved until implementation and regression tests prove 
 - non-cooperating writers, shared multi-user stores, and cross-session history merging,
 - transactional duplicate-ID behavior across legacy and current project stores,
 - durability beyond atomic rename,
-- global Git excludes and `.git/info/exclude` outside project `.gitignore` matching,
+- platform-complete ownership and access validation for shared mutable stores,
 - complete Thai diagnostic localization,
 - broader malformed/oversized provider cases,
 - pattern-based redaction cannot detect every secret,

@@ -5,6 +5,25 @@ This checkpoint covers the local `release/v0.5.0` worktree based on revision
 candidate, not evidence that GitHub controls, cross-platform CI, or production
 signing have completed.
 
+## Follow-up hardening — `roadmap/complete-v0.4-v0.5`
+
+The follow-up branch based on `e37439ac7de9a537ed718acad16b902c308e11b1`
+adds the remaining locally actionable v0.4/v0.5 hardening:
+
+- Git-compatible matching now combines global excludes, `.git/info/exclude`,
+  project/nested ignore files, precedence, negation, and ignored-parent behavior.
+- Unix atomic replacement anchors validation and rename to an opened parent
+  directory and rejects a parent-symlink swap. Injected failures cover atomic
+  file replacement and staged package publication cleanup.
+- Version 2 recovery records are HMAC-SHA256 authenticated with a private random
+  project key and retained for at most 30 days/100 records. Version 1 records are
+  rejected as unauthenticated and remain available for manual inspection.
+
+After these changes, strict Clippy passed and the full debug suite passed 154
+tests (89 library, 1 CI config, 52 CLI, 6 filesystem, 6 privacy). Final audit,
+release-binary, SBOM, provenance, and signing results are recorded in
+`docs/roadmap-progress.md`; all local checks passed against the completed diff.
+
 ## Behavior covered
 
 - Exact explicit project scope, including nested directories, path escapes, and
@@ -54,6 +73,10 @@ environmental failure was not treated as a product regression or skipped result.
 
 ## Gates that remain open
 
+- Public GitHub API evidence on 2026-09-14 reports no repository rulesets and
+  private vulnerability reporting disabled. The base revision `e37439a` has
+  successful CircleCI `build_and_test` and `dependency_security` statuses, but
+  those results precede the follow-up hardening branch.
 - Apply and test the hosted GitHub ruleset described in
   [repository-security.md](repository-security.md): required pull request,
   review, required checks, resolved conversations, and blocked deletion/force push.
@@ -64,8 +87,8 @@ environmental failure was not treated as a product regression or skipped result.
 - Run the candidate revision in CircleCI on Linux, universal macOS, and Windows.
 - Confirm the tag workflow produces all archives, checksums, SBOM, provenance,
   public key, and signatures, then verify them before publishing `v0.5.0`.
-- Native Windows Authenticode, macOS Developer ID/notarization, stronger hostile
-  directory-race protection, authenticated recovery records, and SLSA Level 2
-  provenance remain roadmap work and are not claimed by this candidate.
+- Native Windows Authenticode, macOS Developer ID/notarization, multi-user store
+  validation, non-Unix directory-race hardening, and SLSA Build Level 2 provenance
+  remain roadmap work and are not claimed by this candidate.
 
 Do not create or push the `v0.5.0` tag until these release gates are complete.
