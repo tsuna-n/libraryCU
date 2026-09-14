@@ -198,7 +198,7 @@ lbc-0.5.0.provenance.json
 
 `v0.5.0` ห้าม release จนกว่า:
 
-- [ ] CI ผ่าน Linux
+- [x] CI ผ่าน Linux
 - [ ] CI ผ่าน macOS
 - [ ] CI ผ่าน Windows
 - [x] `cargo audit` ผ่าน

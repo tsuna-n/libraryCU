@@ -74,9 +74,10 @@ environmental failure was not treated as a product regression or skipped result.
 ## Gates that remain open
 
 - Public GitHub API evidence on 2026-09-14 reports no repository rulesets and
-  private vulnerability reporting disabled. The base revision `e37439a` has
-  successful CircleCI `build_and_test` and `dependency_security` statuses, but
-  those results precede the follow-up hardening branch.
+  private vulnerability reporting disabled. Follow-up revision `54820a8` passed
+  CircleCI [build and test 19](https://circleci.com/gh/tsuna-n/libraryCU/19) and
+  [dependency security 20](https://circleci.com/gh/tsuna-n/libraryCU/20), including
+  Linux packaging/install tests and SBOM artifact upload.
 - Apply and test the hosted GitHub ruleset described in
   [repository-security.md](repository-security.md): required pull request,
   review, required checks, resolved conversations, and blocked deletion/force push.
@@ -84,7 +85,8 @@ environmental failure was not treated as a product regression or skipped result.
 - Provision the restricted CircleCI release context with
   `LBC_RELEASE_SIGNING_KEY_BASE64` and `LBC_RELEASE_SIGNING_FINGERPRINT`; publish
   the fingerprint through an independent trusted channel.
-- Run the candidate revision in CircleCI on Linux, universal macOS, and Windows.
+- Run the candidate revision in CircleCI on universal macOS and Windows; Linux
+  passed on follow-up revision `54820a8`.
 - Confirm the tag workflow produces all archives, checksums, SBOM, provenance,
   public key, and signatures, then verify them before publishing `v0.5.0`.
 - Native Windows Authenticode, macOS Developer ID/notarization, multi-user store

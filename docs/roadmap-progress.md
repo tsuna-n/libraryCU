@@ -47,8 +47,10 @@
   SBOM, and provenance; independent `gpgv` checks passed with a disposable
   one-day key. Temporary key material and artifacts were removed.
 - `bash -n` for CircleCI/release shell scripts and `git diff --check`: passed.
-- The base revision has successful public CircleCI statuses for `build_and_test`
-  and `dependency_security`. These do not validate the new branch revision.
+- CircleCI build 19 passed `build_and_test` for code revision `54820a8`, including
+  the full suite, release-binary suite, version/diff checks, Linux packaging,
+  packaged install/uninstall, and artifact upload. Build 20 passed dependency
+  audit/deny, SBOM validation, and artifact upload for the same revision.
 - Cross-compilation was not run because `rustup` is not installed in this
   environment. Hosted platform gates must be run after the diff is committed.
 
@@ -72,8 +74,7 @@
 
 ## Next actionable work
 
-1. Open a pull request from this branch for the required human review and wait for
-   its Linux build/test and dependency-security statuses.
+1. Open a pull request from this branch for the required human review.
 2. With repository-admin access, apply and adversarially test
    `docs/repository-security.md`, enable private vulnerability reporting, and
    require signed maintainer changes.
