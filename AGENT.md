@@ -400,10 +400,10 @@ The scanner is a lightweight inventory/evidence collector, not a full semantic c
 
 Project evidence must remain bounded and contained in the resolved project boundary. Preserve warnings/rejection for unsafe paths, symlinks where prohibited, special files, inaccessible files, and oversized evidence.
 
-Project and nested `.gitignore` files are parsed with a Git-compatible matcher.
-They remain **not a confidentiality boundary**: ignore rules are mutable project
-configuration rather than access control, and global excludes plus
-`.git/info/exclude` are outside the selected project evidence contract.
+Project and nested `.gitignore` files, `.git/info/exclude`, and configured global
+Git excludes are parsed with a Git-compatible matcher. They remain **not a
+confidentiality boundary**: ignore rules are mutable project/user configuration
+rather than access control.
 
 ### Diagnostics
 

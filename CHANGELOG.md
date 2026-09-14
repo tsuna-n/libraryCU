@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.5.0 — 2026-09-14
+## 0.5.0 — Unreleased (release-candidate checkpoint 2026-09-14)
 
 - Added pinned `cargo audit` and `cargo deny` policy checks to a dedicated
   dependency-security CI job.
@@ -18,7 +18,19 @@
 - Added advisory locking and atomic replacement for mutable configuration,
   history, knowledge, and package stores, plus concurrent package-install tests.
 - Hardened Unix atomic replacement against parent-directory symlink swaps and
-  added failure-injection coverage for file and package publication.
+  added failure-injection coverage for file and package publication. Mutable
+  store lock paths now reject FIFOs and other non-regular files without blocking.
+- Package staging is synced before anchored directory publication; Linux uses a
+  no-clobber rename, and symlinked package content and observed existing targets
+  are rejected.
+- Release publication now requires the exact three-platform archive/checksum
+  set and a valid SBOM, records their final digests, verifies every detached
+  signature independently, and keeps the GitHub Release in draft state until
+  every verified asset is uploaded.
+- Added disposable-key and mock-GitHub-API CI regressions for missing
+  credentials, fingerprint mismatch, missing assets, bad checksums, tampered
+  release bytes, interrupted uploads, complete publication, and refusal to
+  modify a public release.
 - Recovery records now use HMAC-SHA256 authentication with a private per-project
   key and prune to a maximum of 100 records and 30 days.
 - Override validation now rejects self-overrides and cycles while preserving the

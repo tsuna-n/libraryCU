@@ -108,8 +108,11 @@ where
         .prefix(".package-install-")
         .tempdir_in(data_dir)
         .with_context(|| format!("failed to stage package in {}", data_dir.display()))?;
-    fs::write(staging.path().join(MANIFEST_FILE), &manifest_content)
-        .with_context(|| format!("failed to stage manifest for {:?}", manifest.name))?;
+    write_synced(
+        staging.path().join(MANIFEST_FILE),
+        manifest_content.as_bytes(),
+    )
+    .with_context(|| format!("failed to stage manifest for {:?}", manifest.name))?;
     for (relative, content) in &documents {
         let destination = staging.path().join(relative);
         if let Some(parent) = destination.parent() {
@@ -118,19 +121,19 @@ where
         }
         // Write the validated snapshot; reopening the source could copy a
         // different (or now symlinked) file after validation.
-        fs::write(&destination, content).with_context(|| format!("failed to copy {relative}"))?;
+        write_synced(&destination, content.as_bytes())
+            .with_context(|| format!("failed to copy {relative}"))?;
     }
     let checksums = package_checksums(&manifest_content, &documents);
-    fs::write(
+    write_synced(
         staging.path().join(CHECKSUM_FILE),
-        encode_checksums(&checksums),
+        encode_checksums(&checksums).as_bytes(),
     )
     .context("failed to write package integrity manifest")?;
     verify_package_integrity(staging.path())?;
+    sync_staged_directories(staging.path())?;
     before_publish()?;
-    fs::rename(staging.path(), &target)
-        .with_context(|| format!("failed to publish package at {}", target.display()))?;
-    crate::security::storage::sync_directory(data_dir)?;
+    crate::security::storage::atomic_publish_directory(staging, &target)?;
 
     Ok(InstalledPackage {
         name: manifest.name,
@@ -333,6 +336,9 @@ fn collect_documents(package_root: &Path) -> Result<Vec<(String, String)>> {
     let mut documents = Vec::new();
     for entry in WalkDir::new(package_root).follow_links(false) {
         let entry = entry.with_context(|| format!("failed to walk {}", package_root.display()))?;
+        if entry.file_type().is_symlink() {
+            bail!("package contains a symlink: {}", entry.path().display());
+        }
         if !entry.file_type().is_file()
             || entry.path().extension().and_then(|ext| ext.to_str()) != Some("md")
         {
@@ -368,6 +374,30 @@ fn collect_documents(package_root: &Path) -> Result<Vec<(String, String)>> {
     }
     documents.sort();
     Ok(documents)
+}
+
+fn write_synced(path: impl AsRef<Path>, bytes: &[u8]) -> Result<()> {
+    let path = path.as_ref();
+    let mut file = fs::File::create(path)?;
+    use std::io::Write;
+    file.write_all(bytes)?;
+    file.sync_all()?;
+    Ok(())
+}
+
+fn sync_staged_directories(root: &Path) -> Result<()> {
+    let mut directories = WalkDir::new(root)
+        .follow_links(false)
+        .into_iter()
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| entry.file_type().is_dir())
+        .map(|entry| entry.into_path())
+        .collect::<Vec<_>>();
+    directories.sort_by_key(|path| std::cmp::Reverse(path.components().count()));
+    for directory in directories {
+        crate::security::storage::sync_directory(&directory)?;
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -542,5 +572,56 @@ mod tests {
         );
         fs::remove_dir_all(source).unwrap();
         fs::remove_dir_all(data).unwrap();
+    }
+
+    #[test]
+    fn target_created_during_install_is_preserved_without_partial_publication() {
+        let source = temp_dir("target-race-source");
+        let data = temp_dir("target-race-data");
+        write_package(&source);
+
+        let result = install_package_with_hook(&source, &data, || {
+            fs::create_dir(data.join("demo-pack"))?;
+            fs::write(data.join("demo-pack/concurrent"), "newer owner")?;
+            Ok(())
+        });
+
+        assert!(result.is_err());
+        assert_eq!(
+            fs::read_to_string(data.join("demo-pack/concurrent")).unwrap(),
+            "newer owner"
+        );
+        assert!(!data.join("demo-pack/doc.md").exists());
+        assert_eq!(
+            fs::read_dir(&data)
+                .unwrap()
+                .filter_map(Result::ok)
+                .filter(|entry| entry
+                    .file_name()
+                    .to_string_lossy()
+                    .starts_with(".package-install-"))
+                .count(),
+            0
+        );
+
+        fs::remove_dir_all(source).unwrap();
+        fs::remove_dir_all(data).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn install_rejects_symlinked_package_content() {
+        let source = temp_dir("symlink-source");
+        let data = temp_dir("symlink-data");
+        write_package(&source);
+        std::os::unix::fs::symlink(source.join("doc.md"), source.join("linked.md")).unwrap();
+
+        assert!(install_package(&source, &data).is_err());
+        assert!(!data.join("demo-pack").exists());
+
+        fs::remove_dir_all(source).unwrap();
+        if data.exists() {
+            fs::remove_dir_all(data).unwrap();
+        }
     }
 }

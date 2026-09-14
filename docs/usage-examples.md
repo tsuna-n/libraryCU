@@ -836,7 +836,10 @@ Location
 ```
 
 Every document is validated before installation. The staged package receives a
-`SHA256SUMS` manifest and is verified again before atomic publication. Legacy
+`SHA256SUMS` manifest, is synced and verified again, and is published without
+replacing an observed existing package. Linux uses a final no-replace rename;
+other platforms retain a smaller non-cooperating target-creation race. Symlinked
+package content is rejected. Legacy
 packages without that manifest are listed as `unverified`; corrupt packages are
 listed as `corrupt` and excluded from retrieval. Packages live under
 `$XDG_DATA_HOME/lbc/knowledge`, with a fallback under `~/.local/share/lbc`.

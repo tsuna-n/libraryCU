@@ -24,7 +24,13 @@ The independent `dependency_security` job installs pinned `cargo-audit 0.22.2`,
 `cargo-deny 0.20.2`, and `cargo-cyclonedx 0.5.9`. It enforces the RustSec,
 license, banned-crate, duplicate-version, and source policies in `deny.toml`, then
 generates and validates `lbc-VERSION.cdx.json`. The SBOM must contain dependency
-names, versions, licenses, and registry hashes.
+names, versions, licenses, and registry hashes. It also runs
+`.circleci/test-release-scripts.sh` with a disposable one-day OpenPGP key and a
+local GitHub API fixture, so provenance/signature failure modes and draft
+publication behavior are exercised without production credentials or network
+publication. The fixture proves that a complete 17-asset set is published, an
+interrupted upload remains private, and an existing public release is not
+modified.
 
 Configuration, data, cache, and temporary directories are isolated inside each
 job. Cargo downloads and Linux build output are cached by architecture, Rust
@@ -37,11 +43,15 @@ The platform jobs produce and test these installable archives:
   universal `lbc` binary and `install.sh`.
 - `lbc-VERSION-x86_64-pc-windows-msvc.zip`, with `lbc.exe` and `install.ps1`.
 
-Every archive has a sibling `.sha256` file. The release job also records the
-source commit, CircleCI workflow, generation time, and artifact SHA-256 digests
-in `lbc-VERSION.provenance.json`. It signs all archives, checksums, SBOM, and
-provenance files with detached armored OpenPGP signatures and verifies them
-before upload. The macOS and Windows jobs run the
+Every archive has a sibling `.sha256` file. The release job refuses to continue
+unless all three exact archives, their matching checksum files, and a valid SBOM
+are present. It records the source commit, CircleCI workflow, and every input
+SHA-256 digest in `lbc-VERSION.provenance.json`. It signs all archives, checksums,
+SBOM, and provenance files with detached armored OpenPGP signatures, imports the
+exported public key into a clean keyring, and verifies the exact manifest again
+before upload. The GitHub Release remains a draft until every expected asset is
+uploaded; failures leave a non-public draft instead of a partial public release.
+The macOS and Windows jobs run the
 full test suite, exercise the packaged release binary, install it into a
 temporary prefix, verify the installed version, and exercise uninstall. These
 jobs run for pushes to `main` and release tags; Linux CI continues to run for
@@ -51,17 +61,20 @@ The macOS universal binary receives an ad-hoc signature so its combined binary
 is internally consistent. Native Developer ID signing/notarization and Windows
 Authenticode remain separate plans that require Apple and Microsoft credentials;
 the OpenPGP release signature still authenticates both downloadable archives.
+The exact ordering, credential boundaries, commands, failure behavior, and
+completion evidence are defined in
+[native-code-signing.md](native-code-signing.md).
 
 ## CD setup
 
 1. Add this GitHub repository as a CircleCI project. CircleCI automatically
    reads `.circleci/config.yml`.
-2. In **Project Settings → Environment Variables**, add `GITHUB_TOKEN`. Use a
-   fine-grained GitHub token limited to this repository with **Contents: Read
-   and write** permission. CI for branches and pull requests does not need this
-   secret.
+2. Create a restricted CircleCI context named exactly `lbc-release`; the publish
+   workflow is bound to this context. Add `GITHUB_TOKEN` to it. Use a fine-grained
+   GitHub token limited to this repository with **Contents: Read and write**
+   permission. CI for branches and pull requests does not receive this secret.
 3. Create a dedicated OpenPGP release-signing subkey kept outside the repository.
-   In a restricted CircleCI release context, add the armored private key encoded
+   In the `lbc-release` context, add the armored private key encoded
    as `LBC_RELEASE_SIGNING_KEY_BASE64` and the uppercase full fingerprint as
    `LBC_RELEASE_SIGNING_FINGERPRINT`. Mask both values and restrict the context
    to release maintainers. Publish the fingerprint through a separate trusted
@@ -82,10 +95,19 @@ the OpenPGP release signature still authenticates both downloadable archives.
 Tags must match `vMAJOR.MINOR.PATCH`, with optional SemVer prerelease and build
 suffixes, and must equal `v` plus the package version in `Cargo.toml`. After all
 CI gates pass on all three operating systems, `publish_github_release` creates a
-GitHub Release with generated notes and uploads every archive, checksum, SBOM,
-provenance record, public signing key, and detached signature.
-Re-running the publish job replaces assets of the same name, so recovery from a
-failed upload is safe.
+draft GitHub Release with generated notes and uploads every archive, checksum,
+SBOM, provenance record, public signing key, and detached signature. It publishes
+the draft only after the complete remote asset set is confirmed. Re-running a
+failed draft replaces expected assets of the same name; it refuses to modify an
+already-public release.
+
+The provenance is generated and signed by repository-controlled scripts running
+inside CircleCI. It is SLSA v1-shaped metadata, not hosted-builder/control-plane
+attestation and not a claim of SLSA Build Level 2. To complete that gate, move
+attestation generation/signing to a hosted control plane whose identity the
+repository job cannot forge, bind every final subject digest and the exact source
+revision, verify issuer/builder/workflow/ref policy with an independent verifier,
+and retain the signed attestation plus verification output with the release.
 
 The pipeline deliberately does not publish to crates.io. Add a separate,
 approval-gated job and a scoped `CARGO_REGISTRY_TOKEN` if crate publication is

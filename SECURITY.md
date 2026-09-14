@@ -9,8 +9,9 @@ supported only for reproducing and validating a report.
 
 ## Reporting a vulnerability
 
-Do not open a public issue for a suspected vulnerability. Use GitHub private
-vulnerability reporting for `tsuna-n/libraryCU`:
+Do not open a public issue for a suspected vulnerability. Once the repository
+owner enables it, use GitHub private vulnerability reporting for
+`tsuna-n/libraryCU`:
 
 1. Open the repository's **Security** tab.
 2. Choose **Advisories** and **Report a vulnerability**.
@@ -18,7 +19,9 @@ vulnerability reporting for `tsuna-n/libraryCU`:
    and any suggested mitigation. Remove API keys, proprietary source, and other
    secrets from the report.
 
-If private reporting is unavailable, contact the repository owner privately and
+At the 2026-09-14 release-candidate checkpoint, public API evidence shows that
+private vulnerability reporting is not yet enabled. Until it is enabled, contact
+the repository owner privately and
 ask for a secure reporting channel without including exploit details in the
 first message.
 

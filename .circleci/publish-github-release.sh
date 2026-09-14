@@ -3,6 +3,18 @@ set -euo pipefail
 
 dist_dir="${1:-dist}"
 api_url="${GITHUB_API_URL:-https://api.github.com}"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=release-common.sh
+source "${script_dir}/release-common.sh"
+
+version="$(release_version)"
+if [[ -z "${version}" ]]; then
+    echo "Could not read the package version from Cargo.toml" >&2
+    exit 1
+fi
+validate_release_tag "${version}"
+bash "${script_dir}/verify-release-assets.sh" "${dist_dir}"
+set_release_inputs "${version}" true
 
 : "${GITHUB_TOKEN:?Set GITHUB_TOKEN in the CircleCI project settings}"
 : "${CIRCLE_TAG:?This job must run for a Git tag}"
@@ -41,11 +53,15 @@ show_api_error() {
 status="$(github_request GET "${release_endpoint}/tags/${CIRCLE_TAG}")"
 case "${status}" in
     200)
+        if [[ "$(jq -r '.draft' "${response_file}")" != "true" ]]; then
+            echo "Refusing to replace assets on an already-published release ${CIRCLE_TAG}" >&2
+            exit 1
+        fi
         ;;
     404)
         jq -n \
             --arg tag "${CIRCLE_TAG}" \
-            '{tag_name: $tag, name: $tag, generate_release_notes: true}' \
+            '{tag_name: $tag, name: $tag, draft: true, generate_release_notes: true}' \
             > "${payload_file}"
         status="$(github_request POST "${release_endpoint}" \
             --header 'Content-Type: application/json' \
@@ -75,17 +91,11 @@ if [[ "${status}" != "200" ]]; then
 fi
 assets_json="$(<"${response_file}")"
 
-shopt -s nullglob
-artifacts=("${dist_dir}"/*)
-if [[ "${#artifacts[@]}" -eq 0 ]]; then
-    echo "No release artifacts found in ${dist_dir}" >&2
-    exit 1
-fi
+artifacts=("${RELEASE_INPUTS[@]}" "${RELEASE_INPUTS[@]/%/.asc}" "lbc-release-signing-key.asc")
 
 uploaded_count=0
-for artifact in "${artifacts[@]}"; do
-    [[ -f "${artifact}" ]] || continue
-    asset_name="$(basename "${artifact}")"
+for asset_name in "${artifacts[@]}"; do
+    artifact="${dist_dir}/${asset_name}"
     existing_id="$(jq -r --arg name "${asset_name}" \
         '.[] | select(.name == $name) | .id' <<<"${assets_json}" | head -n 1)"
 
@@ -118,7 +128,32 @@ for artifact in "${artifacts[@]}"; do
     uploaded_count=$((uploaded_count + 1))
 done
 
-if [[ "${uploaded_count}" -eq 0 ]]; then
-    echo "No regular release artifacts found in ${dist_dir}" >&2
+if [[ "${uploaded_count}" -ne "${#artifacts[@]}" ]]; then
+    echo "Not every verified release artifact was uploaded" >&2
+    exit 1
+fi
+
+status="$(github_request GET "${release_endpoint}/${release_id}/assets?per_page=100")"
+if [[ "${status}" != "200" ]]; then
+    show_api_error "verifying uploaded assets for release ${CIRCLE_TAG}" "${status}"
+    exit 1
+fi
+if ! jq -e --argjson expected "${#artifacts[@]}" 'length == $expected' "${response_file}" >/dev/null; then
+    echo "Draft release contains an unexpected or incomplete asset set" >&2
+    exit 1
+fi
+for asset_name in "${artifacts[@]}"; do
+    if ! jq -e --arg name "${asset_name}" 'any(.[]; .name == $name)' "${response_file}" >/dev/null; then
+        echo "Uploaded release is missing ${asset_name}" >&2
+        exit 1
+    fi
+done
+
+jq -n '{draft: false}' > "${payload_file}"
+status="$(github_request PATCH "${release_endpoint}/${release_id}" \
+    --header 'Content-Type: application/json' \
+    --data-binary "@${payload_file}")"
+if [[ "${status}" != "200" ]]; then
+    show_api_error "publishing completed release ${CIRCLE_TAG}" "${status}"
     exit 1
 fi

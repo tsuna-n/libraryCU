@@ -320,6 +320,26 @@ fn decode_hex(value: &str) -> Result<Vec<u8>> {
 mod tests {
     use super::*;
 
+    fn recovery_fixture() -> (tempfile::TempDir, Target, Patch, String) {
+        let root = tempfile::tempdir().unwrap();
+        fs::write(root.path().join("main.rs"), "old\n").unwrap();
+        let diagnostic = Diagnostic {
+            source: Some("rustc".into()),
+            code: Some("E0308".into()),
+            message: "mismatched types".into(),
+            file: Some("main.rs".into()),
+            line: Some(1),
+            column: Some(1),
+        };
+        let target = Target::read(root.path(), &diagnostic).unwrap();
+        let patch = target
+            .validate_response(r#"{"before":"old","after":"new"}"#)
+            .unwrap();
+        let id = prepare(&target, &patch).unwrap();
+        target.apply(&patch).unwrap();
+        (root, target, patch, id)
+    }
+
     #[test]
     fn pruning_is_bounded_and_does_not_follow_symlinks() {
         let root = tempfile::tempdir().unwrap();
@@ -359,5 +379,88 @@ mod tests {
             now - MAX_RECOVERY_AGE - Duration::from_secs(1)
         ));
         assert!(!recovery_record_expired(now, now + Duration::from_secs(1)));
+    }
+
+    #[test]
+    fn missing_invalid_and_malformed_recovery_authentication_are_refused() {
+        let (root, target, _patch, id) = recovery_fixture();
+        let key_path = root.path().join(".lbc/recovery.key");
+        let valid_key = fs::read(&key_path).unwrap();
+
+        fs::remove_file(&key_path).unwrap();
+        assert!(restore(root.path(), &id).is_err());
+        assert_eq!(fs::read_to_string(&target.path).unwrap(), "new\n");
+
+        fs::write(&key_path, "not-a-hex-key").unwrap();
+        assert!(restore(root.path(), &id).is_err());
+        assert_eq!(fs::read_to_string(&target.path).unwrap(), "new\n");
+
+        fs::write(&key_path, valid_key).unwrap();
+        let record_path = root.path().join(".lbc/fixes").join(format!("{id}.json"));
+        fs::write(&record_path, "{malformed").unwrap();
+        assert!(restore(root.path(), &id).is_err());
+        assert_eq!(fs::read_to_string(&target.path).unwrap(), "new\n");
+    }
+
+    #[test]
+    fn every_authenticated_recovery_field_is_tamper_evident() {
+        let (root, target, _patch, id) = recovery_fixture();
+        let record_path = root.path().join(".lbc/fixes").join(format!("{id}.json"));
+        let original: serde_json::Value =
+            serde_json::from_slice(&fs::read(&record_path).unwrap()).unwrap();
+
+        for (field, replacement) in [
+            ("version", serde_json::json!(3)),
+            ("root", serde_json::json!("/different-project")),
+            ("path", serde_json::json!("other.rs")),
+            ("original", serde_json::json!("different original\n")),
+            ("applied", serde_json::json!("different applied\n")),
+            ("created_at_unix", serde_json::json!(0)),
+            ("authentication", serde_json::json!("00".repeat(32))),
+        ] {
+            let mut changed = original.clone();
+            changed[field] = replacement;
+            fs::write(&record_path, serde_json::to_vec(&changed).unwrap()).unwrap();
+            assert!(
+                restore(root.path(), &id).is_err(),
+                "accepted tampered {field}"
+            );
+            assert_eq!(fs::read_to_string(&target.path).unwrap(), "new\n");
+        }
+    }
+
+    #[test]
+    fn legacy_unauthenticated_records_require_manual_recovery() {
+        let (root, target, _patch, id) = recovery_fixture();
+        let record_path = root.path().join(".lbc/fixes").join(format!("{id}.json"));
+        fs::write(
+            &record_path,
+            serde_json::json!({
+                "version": 1,
+                "root": root.path(),
+                "path": "main.rs",
+                "original": "old\n",
+                "applied": "new\n",
+                "created_at_unix": 0
+            })
+            .to_string(),
+        )
+        .unwrap();
+
+        let error = restore(root.path(), &id).unwrap_err().to_string();
+        assert!(error.contains("legacy unauthenticated"), "{error}");
+        assert_eq!(fs::read_to_string(&target.path).unwrap(), "new\n");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn recovery_key_with_public_permissions_is_refused() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let (root, target, _patch, id) = recovery_fixture();
+        let key_path = root.path().join(".lbc/recovery.key");
+        fs::set_permissions(&key_path, fs::Permissions::from_mode(0o644)).unwrap();
+        assert!(restore(root.path(), &id).is_err());
+        assert_eq!(fs::read_to_string(&target.path).unwrap(), "new\n");
     }
 }

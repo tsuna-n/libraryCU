@@ -71,11 +71,11 @@
 - [x] Z.ai / GLM support
 - [x] Ollama support
 - [x] OpenAI-compatible endpoints
-- [x] Linux CI
-- [x] macOS CI
-- [x] Windows CI
-- [x] Release binary tests
-- [x] SHA-256 release artifact checksums
+- [x] Linux CI pipeline
+- [x] macOS CI pipeline
+- [x] Windows CI pipeline
+- [x] Release-binary test pipeline
+- [x] SHA-256 release-checksum pipeline
 
 ## Known Gaps
 
@@ -83,17 +83,17 @@
 - [x] Strict project boundary
 - [x] Transaction-safe package installation
 - [x] Multi-process file locking
-- [ ] Multi-user store validation
+- [ ] Cross-platform multi-user/shared-store ownership and ACL validation
 - [x] Authenticated recovery records
 - [x] Recovery retention policy
 - [x] Complete override cycle validation
-- [ ] Signed binaries
-- [x] SBOM
-- [x] Dependency vulnerability scanning
-- [ ] Enterprise policy system
-- [ ] Organization audit logging
-- [ ] RBAC / SSO
-- [ ] Organization knowledge server
+- [ ] Production native platform-signed binaries and notarization
+- [x] SBOM generation pipeline
+- [x] Dependency vulnerability-scanning pipeline
+- [ ] Enterprise policy system (v0.7 scope)
+- [ ] Organization audit logging (v0.7 scope)
+- [ ] RBAC / SSO (v0.8 scope)
+- [ ] Organization knowledge server (v0.6 scope)
 
 ---
 
@@ -133,13 +133,14 @@ must pass before publishing.
 
 ## SBOM
 
-- [x] Generate CycloneDX SBOM
-- [x] Generate SBOM for every release
-- [x] Attach SBOM to GitHub Release
+- [x] Implement CycloneDX SBOM generation and validation
+- [x] Require an SBOM in the release artifact manifest
+- [x] Implement SBOM upload to a draft GitHub Release
 - [x] Include dependency name
 - [x] Include dependency version
 - [x] Include license information
 - [x] Include package hashes when supported
+- [ ] Generate, independently validate, and attach the production `v0.5.0` SBOM
 
 Example:
 
@@ -152,20 +153,25 @@ lbc-0.5.0.provenance.json
 
 ## Release Signing
 
-- [x] Cryptographically sign release artifacts
-- [x] Linux artifact signing
+- [x] Implement fail-closed detached OpenPGP release signing
+- [x] Include the Linux archive in the signed release manifest
 - [x] Windows Authenticode signing plan
 - [x] macOS Developer ID signing plan
 - [x] macOS notarization plan
-- [x] Publish artifact signatures
-- [x] Verify signature in installation documentation
+- [x] Implement signature and public-key publication to a draft release
+- [x] Document independent signature verification before installation
+- [ ] Sign and independently verify the production `v0.5.0` release artifacts
+
+Native platform plans and their required external evidence are specified in
+`docs/native-code-signing.md`; their existence does not mean native signing has
+run.
 
 ## Build Provenance
 
-- [x] Generate build provenance
+- [x] Implement tenant-generated SLSA v1-shaped provenance metadata
 - [x] Record source commit SHA
-- [x] Record build environment
-- [x] Record artifact digest
+- [x] Record CircleCI workflow and builder metadata
+- [x] Record every final archive, checksum, and SBOM digest
 - [ ] Target SLSA Build Level 2 or equivalent workflow
 
 ## Security Process
@@ -198,15 +204,19 @@ lbc-0.5.0.provenance.json
 
 `v0.5.0` ห้าม release จนกว่า:
 
-- [x] CI ผ่าน Linux
-- [ ] CI ผ่าน macOS
-- [ ] CI ผ่าน Windows
-- [x] `cargo audit` ผ่าน
-- [x] `cargo deny check` ผ่าน
-- [x] Tests ผ่านทั้งหมด
-- [x] SBOM ถูกสร้าง
-- [ ] Artifact checksums ถูกสร้าง
-- [ ] Artifact signatures ถูกสร้าง
+- [x] Local Linux validation ผ่านทั้งหมด
+- [ ] Hosted CI ผ่าน Linux บน exact release revision
+- [ ] Hosted CI ผ่าน macOS บน exact release revision
+- [ ] Hosted CI ผ่าน Windows บน exact release revision
+- [x] Local `cargo audit` ผ่าน
+- [x] Local `cargo deny check` ผ่าน
+- [x] Local tests ผ่านทั้งหมด
+- [x] Local CycloneDX SBOM generation/validation ผ่าน
+- [x] Release scripts reject missing, mismatched, or tampered inputs
+- [ ] Production artifact checksums ถูกสร้างและตรวจสอบ
+- [ ] Production artifact signatures ถูกสร้างและตรวจสอบอย่างอิสระ
+- [ ] Production provenance ถูกสร้างและตรวจสอบกับ published artifacts
+- [ ] GitHub repository security controls ถูกเปิดใช้และทดสอบ
 - [x] Security documentation พร้อม
 
 ---

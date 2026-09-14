@@ -74,6 +74,9 @@ jobs:
             ' "${sbom}" >/dev/null
             mkdir -p dist
             mv "${sbom}" dist/
+      - run:
+          name: Validate provenance and signing scripts with a disposable key
+          command: bash .circleci/test-release-scripts.sh
       - save_cache:
           key: cargo-security-v1-{{ arch }}-{{ .Environment.CARGO_AUDIT_VERSION }}-{{ .Environment.CARGO_DENY_VERSION }}-{{ .Environment.CARGO_CYCLONEDX_VERSION }}
           paths:
@@ -425,6 +428,7 @@ workflows:
             tags:
               only: /^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/
       - publish_github_release:
+          context: lbc-release
           requires:
             - dependency_security
             - build_and_test

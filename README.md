@@ -2,6 +2,9 @@
 
 libraryCube (`lbc`) is a terminal knowledge library. You can save ordinary Markdown notes, find and inspect them, ask questions against retrieved passages, and use the same knowledge when explaining diagnostics. Retrieval and cited offline answers work without an API key, network connection, model, vector database, or Python service. Optional AI expands the retrieved answer; it never replaces retrieval.
 
+Version `0.5.0` is currently a release candidate. No production `v0.5.0`
+release or signed artifact set has been verified yet.
+
 The Rust package and crate are named `librarycube`; the executable is `lbc`.
 
 For copy-paste examples covering every command, see the
@@ -35,8 +38,9 @@ directory and adds it to the user `PATH`. Use `-Prefix C:\path\to\bin` to choose
 another directory, `-System` from an elevated PowerShell for a machine-wide
 installation, or `-Uninstall` to remove it.
 
-The `v0.5.x` release pipeline publishes every archive, checksum, SBOM, and
-provenance file with a detached `.asc` signature. Download
+After every hosted and repository gate passes, the `v0.5.x` release pipeline is
+configured to publish every archive, checksum, SBOM, and provenance file with a
+detached `.asc` signature. Download
 `lbc-release-signing-key.asc`, compare its full
 fingerprint with the value published by the maintainer through a separate trusted
 channel, then verify before installation:
@@ -50,7 +54,9 @@ sha256sum -c lbc-0.5.0-x86_64-unknown-linux-gnu.tar.gz.sha256
 
 The detached signature covers macOS and Windows archives too, but their binaries
 do not yet have Developer ID/Authenticode signatures or notarization. Gatekeeper
-or SmartScreen may therefore require approval before first use.
+or SmartScreen may therefore require approval before first use. See the
+[native platform signing plan](docs/native-code-signing.md) for the remaining
+credentialed release work and required evidence.
 
 From a source checkout, run the Unix/macOS installation script to build and
 install `lbc` to `~/.local/bin`:
@@ -330,8 +336,11 @@ lbc knowledge remove team-rules
 
 A package contains `package.toml` with `name`, `version`, and optional
 `description`, plus valid Markdown documents. Installation validates a complete
-snapshot, stages it under a process lock, records `SHA256SUMS`, and publishes the
-directory atomically. `lbc knowledge list` reports `verified`, `unverified`
+snapshot, stages and syncs it under a process lock, records `SHA256SUMS`, and
+publishes the directory atomically after checking that the target is absent.
+Unix publication is anchored to an opened parent directory; Linux also uses a
+kernel no-replace rename so a concurrently created target is preserved. `lbc
+knowledge list` reports `verified`, `unverified`
 (legacy install), or `corrupt`; corrupt packages are not loaded.
 
 The source checkout includes 40 bilingual Python/FastAPI notes in
@@ -378,11 +387,14 @@ Note creation publishes a fully written temporary file without overwriting an ex
 
 Mutable config, history, knowledge, and package stores use advisory process locks
 and atomic file/directory publication. Unix file replacement anchors validation
-and rename to an opened directory descriptor to prevent parent-symlink redirects.
+and rename to an opened directory descriptor to prevent parent-symlink redirects,
+and rechecks the target digest so a same-size concurrent edit is not silently
+overwritten during publication.
 These controls require cooperating LBC processes and do not make shared writable
 stores safe against a hostile local user. Production readiness remains under
 audit, especially multi-user store ownership, non-Unix directory races, and
-complete Thai diagnostic content.
+the final target-creation race on non-Linux platforms, and complete Thai
+diagnostic content.
 
 ## Development
 
@@ -395,9 +407,12 @@ cargo build --locked --release
 cargo audit
 cargo deny check
 cargo cyclonedx --format json --all-features
+bash .circleci/test-release-scripts.sh
 ```
 
-CircleCI runs these gates for every branch and pull request. Main-branch and
+CircleCI runs these gates for every branch and pull request. The dependency job
+also exercises provenance and signing with a disposable one-day test key.
+Main-branch and
 release-tag pipelines additionally test and package Linux, universal macOS, and
 Windows x86-64 binaries; matching version tags publish all artifacts to GitHub
 Releases. See [CircleCI CI/CD setup](docs/circleci.md) for the one-time token
