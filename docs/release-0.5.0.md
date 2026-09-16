@@ -2,9 +2,10 @@
 
 This audit covers branch `roadmap/complete-v0.4-v0.5`, whose starting checkpoint
 was `61381debe1a9d3f35c79b0bdab84db09da71b64d`, plus the release-candidate
-hardening recorded here. It is repository-side and local
-evidence; it is not evidence that hosted exact-revision CI, GitHub controls,
-production signing, or the final release have completed.
+hardening recorded here. It is repository-side, local, and hosted candidate
+evidence; it is not evidence that GitHub controls, production signing, or the
+final release have completed. Any later candidate commit must repeat the four
+hosted jobs before it can become the release revision.
 
 ## Candidate outcome
 
@@ -42,14 +43,19 @@ all passed. Exact commands and counts are maintained in
 The requirement-by-requirement classification is maintained in
 [requirement-matrix-v0.4-v0.5.md](requirement-matrix-v0.4-v0.5.md).
 
+## Hosted candidate evidence
+
+- [Dependency-security build 28](https://circleci.com/gh/tsuna-n/libraryCU/28),
+  [Linux build/test build 26](https://circleci.com/gh/tsuna-n/libraryCU/26),
+  [macOS build 27](https://circleci.com/gh/tsuna-n/libraryCU/27), and
+  [Windows build 25](https://circleci.com/gh/tsuna-n/libraryCU/25) all passed on
+  exact candidate SHA `76e5df64bf1af2ab43ec5941d1595e4baaa4deb0`.
+- The dependency result supersedes failed
+  [build 24](https://circleci.com/gh/tsuna-n/libraryCU/24), which found
+  `RUSTSEC-2026-0285` in rustls 0.23.43 at the starting checkpoint.
+
 ## Evidence that remains open
 
-- Committed HEAD passed hosted
-  [Linux build/test build 23](https://circleci.com/gh/tsuna-n/libraryCU/23) but
-  failed [dependency-security build 24](https://circleci.com/gh/tsuna-n/libraryCU/24)
-  on the now-fixed `rustls` advisory. Neither run covers the candidate tree.
-- That committed workflow skipped macOS and Windows on the candidate branch;
-  the scheduling fix needs hosted evidence after commit and push.
 - Public evidence showed no rulesets, private vulnerability reporting disabled,
   an unsigned candidate commit, and no `v0.5.0` tag or release. Authenticated
   branch-protection state and release-context secrets were unavailable.

@@ -28,8 +28,8 @@
   Developer ID/notarization plans but no production native signatures; and the
   repository generates accurate SLSA v1-shaped provenance but not hosted-builder
   SLSA Build Level 2 provenance.
-- **Hosted test required:** `dependency_security`, Linux, macOS, and Windows must
-  pass on the exact committed candidate that contains this worktree.
+- **Hosted tested:** `dependency_security`, Linux, macOS, and Windows passed on
+  exact candidate SHA `76e5df64bf1af2ab43ec5941d1595e4baaa4deb0`.
 - **External configuration required:** GitHub branch/tag rulesets, private
   vulnerability reporting, signed-maintainer evidence, the restricted CircleCI
   `lbc-release` context, and any hosted provenance control plane.
@@ -39,9 +39,9 @@
   policy and audit logging are v0.7 scope; RBAC/SSO is v0.8 scope. None was
   started as part of this candidate.
 
-The unchecked v0.4/v0.5 roadmap items therefore remain unchecked for a concrete
-reason: incomplete cross-platform implementation, hosted validation, external
-configuration, release-time evidence, or an explicitly later milestone. No
+The remaining unchecked v0.4/v0.5 roadmap items remain unchecked for a concrete
+reason: incomplete cross-platform implementation, external configuration,
+release-time evidence, or an explicitly later milestone. No
 checkbox is being used to claim evidence that does not exist.
 
 ## Repository-side work completed
@@ -114,16 +114,14 @@ checkbox is being used to claim evidence that does not exist.
 
 ## Hosted and external evidence
 
-- Committed HEAD `61381debe1a9d3f35c79b0bdab84db09da71b64d` passed hosted
-  [Linux build/test build 23](https://circleci.com/gh/tsuna-n/libraryCU/23).
-- The same commit failed hosted
-  [dependency-security build 24](https://circleci.com/gh/tsuna-n/libraryCU/24)
-  because its lockfile contained vulnerable `rustls` 0.23.43. The current
-  candidate fixes that dependency and passes locally, but there is no hosted run
-  for the fix yet.
-- macOS and Windows did not run for the starting checkpoint because its checked-in
-  workflow still filtered those jobs to `main` and tags. The candidate removes
-  those branch filters; it still needs hosted confirmation after commit/push.
+- Exact candidate SHA `76e5df64bf1af2ab43ec5941d1595e4baaa4deb0`
+  passed [dependency security build 28](https://circleci.com/gh/tsuna-n/libraryCU/28),
+  [Linux build/test build 26](https://circleci.com/gh/tsuna-n/libraryCU/26),
+  [macOS build 27](https://circleci.com/gh/tsuna-n/libraryCU/27), and
+  [Windows build 25](https://circleci.com/gh/tsuna-n/libraryCU/25).
+- The dependency result supersedes failed
+  [build 24](https://circleci.com/gh/tsuna-n/libraryCU/24) on the starting
+  checkpoint, whose lockfile contained vulnerable rustls 0.23.43.
 - Public GitHub API responses on 2026-09-16 showed zero repository rulesets,
   private vulnerability reporting disabled, the starting checkpoint marked `unsigned`,
   and no `v0.5.0` tag or release. The branch-protection endpoint required
@@ -134,8 +132,9 @@ checkbox is being used to claim evidence that does not exist.
 
 ## Remaining gates and exact next actions
 
-1. Review, commit, and push the candidate. Run `dependency_security`,
-   `build_and_test`, `build_macos`, and `build_windows` on that exact revision.
+1. Re-run `dependency_security`, `build_and_test`, `build_macos`, and
+   `build_windows` after any later candidate commit; all four must pass on the
+   final release revision.
 2. With repository-admin access, apply and test both rulesets from
    [repository-security.md](repository-security.md), enable private vulnerability
    reporting, and record authenticated API exports plus negative-test evidence.

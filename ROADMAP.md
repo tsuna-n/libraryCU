@@ -205,10 +205,10 @@ run.
 `v0.5.0` ห้าม release จนกว่า:
 
 - [x] Local Linux validation ผ่านทั้งหมด
-- [ ] Hosted dependency-security CI ผ่านบน exact release revision
-- [ ] Hosted CI ผ่าน Linux บน exact release revision
-- [ ] Hosted CI ผ่าน macOS บน exact release revision
-- [ ] Hosted CI ผ่าน Windows บน exact release revision
+- [x] Hosted dependency-security CI ผ่านบน exact release revision
+- [x] Hosted CI ผ่าน Linux บน exact release revision
+- [x] Hosted CI ผ่าน macOS บน exact release revision
+- [x] Hosted CI ผ่าน Windows บน exact release revision
 - [x] Local `cargo audit` ผ่าน
 - [x] Local `cargo deny check` ผ่าน
 - [x] Local tests ผ่านทั้งหมด
