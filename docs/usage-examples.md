@@ -930,8 +930,10 @@ seven-line excerpt and provider patch JSON are each limited to 8 KiB. Hidden,
 generated, recognized gitignored, symlinked, secret-bearing, and special-file
 targets are rejected. Before text must match uniquely near the reported line.
 Detected source changes abort application; successful replacement retains file
-permissions. Unix publication rejects a swapped parent directory; advisory locks
-still require cooperating writers, and power-loss durability is not guaranteed.
+permissions. Unix publication rejects a swapped parent directory. Existing Unix
+lock files must be regular, owned by the current effective user, and grant no
+group or other permissions. Advisory locks still require cooperating writers,
+and power-loss durability is not guaranteed.
 
 `--json` reports `status`, boolean `applied`, `verification_status`,
 offline `guidance`, optional `patch` (`path`, `before`, `after`,

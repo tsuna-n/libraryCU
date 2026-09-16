@@ -1,8 +1,8 @@
 # CircleCI CI/CD
 
 The CircleCI pipeline in `.circleci/config.yml` validates every branch and pull
-request. On `main` and version tags it also builds and tests native packages for
-Linux, macOS, and Windows. Version tags publish all release assets together.
+request on Linux, macOS, and Windows. Version tags run the same platform gates
+and, only after their prerequisites pass, publish all release assets together.
 
 ## CI behavior
 
@@ -28,9 +28,9 @@ names, versions, licenses, and registry hashes. It also runs
 `.circleci/test-release-scripts.sh` with a disposable one-day OpenPGP key and a
 local GitHub API fixture, so provenance/signature failure modes and draft
 publication behavior are exercised without production credentials or network
-publication. The fixture proves that a complete 17-asset set is published, an
-interrupted upload remains private, and an existing public release is not
-modified.
+publication. The fixture proves complete and resumed 17-asset publication,
+private retention after an interrupted upload, and rejection of missing,
+malformed, unexpected, duplicate, remotely tampered, or already-public state.
 
 Configuration, data, cache, and temporary directories are isolated inside each
 job. Cargo downloads and Linux build output are cached by architecture, Rust
@@ -49,13 +49,14 @@ are present. It records the source commit, CircleCI workflow, and every input
 SHA-256 digest in `lbc-VERSION.provenance.json`. It signs all archives, checksums,
 SBOM, and provenance files with detached armored OpenPGP signatures, imports the
 exported public key into a clean keyring, and verifies the exact manifest again
-before upload. The GitHub Release remains a draft until every expected asset is
-uploaded; failures leave a non-public draft instead of a partial public release.
+before upload. The GitHub Release remains a draft until every remote asset name,
+byte size, upload state, and SHA-256 digest exactly matches the verified local
+manifest; failures leave a non-public draft instead of a partial public release.
 The macOS and Windows jobs run the
 full test suite, exercise the packaged release binary, install it into a
 temporary prefix, verify the installed version, and exercise uninstall. These
-jobs run for pushes to `main` and release tags; Linux CI continues to run for
-every branch and pull request.
+jobs run for every branch, pull request, and release tag so the exact candidate
+can be validated before tagging. Release publication itself remains tag-only.
 
 The macOS universal binary receives an ad-hoc signature so its combined binary
 is internally consistent. Native Developer ID signing/notarization and Windows
@@ -94,12 +95,14 @@ completion evidence are defined in
 
 Tags must match `vMAJOR.MINOR.PATCH`, with optional SemVer prerelease and build
 suffixes, and must equal `v` plus the package version in `Cargo.toml`. After all
-CI gates pass on all three operating systems, `publish_github_release` creates a
+CI gates pass on all three operating systems and dependency security,
+`publish_github_release` creates a
 draft GitHub Release with generated notes and uploads every archive, checksum,
 SBOM, provenance record, public signing key, and detached signature. It publishes
-the draft only after the complete remote asset set is confirmed. Re-running a
-failed draft replaces expected assets of the same name; it refuses to modify an
-already-public release.
+the draft only after the complete remote asset names, sizes, states, and SHA-256
+digests are confirmed. Re-running a failed draft replaces expected assets of the
+same name; unexpected or duplicate assets prevent publication, and the script
+refuses to modify an already-public release.
 
 The provenance is generated and signed by repository-controlled scripts running
 inside CircleCI. It is SLSA v1-shaped metadata, not hosted-builder/control-plane

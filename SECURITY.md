@@ -19,7 +19,7 @@ owner enables it, use GitHub private vulnerability reporting for
    and any suggested mitigation. Remove API keys, proprietary source, and other
    secrets from the report.
 
-At the 2026-09-14 release-candidate checkpoint, public API evidence shows that
+At the 2026-09-16 release-candidate checkpoint, public API evidence shows that
 private vulnerability reporting is not yet enabled. Until it is enabled, contact
 the repository owner privately and
 ask for a secure reporting channel without including exploit details in the

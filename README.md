@@ -389,7 +389,8 @@ Mutable config, history, knowledge, and package stores use advisory process lock
 and atomic file/directory publication. Unix file replacement anchors validation
 and rename to an opened directory descriptor to prevent parent-symlink redirects,
 and rechecks the target digest so a same-size concurrent edit is not silently
-overwritten during publication.
+overwritten during publication. Unix lock files must also be regular files owned
+by the current effective user with no group or other permissions.
 These controls require cooperating LBC processes and do not make shared writable
 stores safe against a hostile local user. Production readiness remains under
 audit, especially multi-user store ownership, non-Unix directory races, and
@@ -412,11 +413,12 @@ bash .circleci/test-release-scripts.sh
 
 CircleCI runs these gates for every branch and pull request. The dependency job
 also exercises provenance and signing with a disposable one-day test key.
-Main-branch and
-release-tag pipelines additionally test and package Linux, universal macOS, and
-Windows x86-64 binaries; matching version tags publish all artifacts to GitHub
-Releases. See [CircleCI CI/CD setup](docs/circleci.md) for the one-time token
-setup and release procedure.
+Linux, universal macOS, and Windows x86-64 jobs test and package every candidate
+branch and pull request as well as matching version tags. Only matching version
+tags can publish artifacts to GitHub Releases, after the remote names, sizes,
+states, and SHA-256 digests match the canonical manifest. See
+[CircleCI CI/CD setup](docs/circleci.md) for the one-time token setup and release
+procedure.
 
 CLI tests use isolated XDG stores and a local mock HTTP provider; CI needs no API key or live service. Socket-restricted environments must allow loopback for provider tests; those tests fail rather than silently skip. The real timeout regression takes approximately 45 seconds.
 

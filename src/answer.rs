@@ -179,7 +179,7 @@ pub fn enhance_stream(
     mut on_event: Option<&mut (dyn FnMut(ai::StreamEvent) + Send)>,
 ) -> Result<()> {
     let client = ai::resolve_client(ai_config)?;
-    let request = build_ai_request(report, &ai_config.model, history);
+    let request = build_ai_request(report, ai_config.effective_model(), history);
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()?;
@@ -197,7 +197,7 @@ pub fn enhance_stream(
         runtime.block_on(client.chat(request))?
     };
     report.ai = Some(AiContribution {
-        provider: client.name().to_owned(),
+        provider: ai_config.provider.clone(),
         model: response.model,
         confidence: ai::parse_confidence(&response.content)
             .unwrap_or("unspecified")

@@ -1142,15 +1142,14 @@ fn mock_ai_receives_retrieved_passage_and_redacts_secrets() {
     });
     std::fs::write(
         home.join("config/lbc/config.toml"),
-        format!(
-            "[ai]\nprovider = \"openai-compat\"\nmodel = \"mock-model\"\nbase_url = \"http://{address}/v1\"\n"
-        ),
+        format!("[ai]\nprovider = \"openai\"\nbase_url = \"http://{address}/v1\"\n"),
     )
     .unwrap();
     let output = isolated_lbc(&home)
         .args(["ask", "How does orange cedar recovery work?", "--project"])
         .arg(&home)
         .args(["--ai", "--json"])
+        .env("OPENAI_API_KEY", "sk-fixture-provider-key")
         .output()
         .unwrap();
     assert!(
@@ -1163,7 +1162,12 @@ fn mock_ai_receives_retrieved_passage_and_redacts_secrets() {
     assert!(request.contains("ORANGE-CEDAR"));
     assert!(request.contains("user:orange-cedar"));
     assert!(!request.contains("never-send-this-secret"));
+    let (_, request_body) = request.split_once("\r\n\r\n").unwrap();
+    assert!(!request_body.contains("sk-fixture-provider-key"));
+    let request_json: serde_json::Value = serde_json::from_str(request_body).unwrap();
+    assert_eq!(request_json["model"], "gpt-4o-mini");
     let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["ai"]["provider"], "openai");
     assert_eq!(report["ai"]["analysis"], "Grounded response.");
     std::fs::remove_dir_all(home).unwrap();
 }

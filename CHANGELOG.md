@@ -1,9 +1,13 @@
 # Changelog
 
-## 0.5.0 — Unreleased (release-candidate checkpoint 2026-09-14)
+## 0.5.0 — Unreleased (release-candidate checkpoint 2026-09-16)
 
 - Added pinned `cargo audit` and `cargo deny` policy checks to a dedicated
   dependency-security CI job.
+- Fixed `ask --ai` and `chat --ai` to send the documented default model for
+  named providers and report the configured provider identity in JSON.
+- Updated locked `rustls` from 0.23.43 to 0.23.45 to resolve
+  `RUSTSEC-2026-0285` in the release-candidate dependency gate.
 - Added release CycloneDX SBOM generation, artifact digest provenance, detached
   OpenPGP signatures, and signature verification before publication.
 - Added the security policy, vulnerability response targets, repository ruleset
@@ -19,18 +23,25 @@
   history, knowledge, and package stores, plus concurrent package-install tests.
 - Hardened Unix atomic replacement against parent-directory symlink swaps and
   added failure-injection coverage for file and package publication. Mutable
-  store lock paths now reject FIFOs and other non-regular files without blocking.
+  store lock paths now reject FIFOs, symlinks, other non-regular files, a
+  different owner, and group/other-accessible modes without blocking.
 - Package staging is synced before anchored directory publication; Linux uses a
   no-clobber rename, and symlinked package content and observed existing targets
   are rejected.
 - Release publication now requires the exact three-platform archive/checksum
   set and a valid SBOM, records their final digests, verifies every detached
   signature independently, and keeps the GitHub Release in draft state until
-  every verified asset is uploaded.
+  every verified remote asset name, size, state, and SHA-256 digest matches.
 - Added disposable-key and mock-GitHub-API CI regressions for missing
   credentials, fingerprint mismatch, missing assets, bad checksums, tampered
-  release bytes, interrupted uploads, complete publication, and refusal to
-  modify a public release.
+  release bytes, interrupted and resumed uploads, API and response failures,
+  unexpected/duplicate assets, remote digest mismatch, complete publication,
+  and refusal to modify a public release.
+- Candidate branches and pull requests now run the macOS and Windows package
+  jobs as well as Linux, leaving publication restricted to matching version tags.
+- Expanded package-integrity regressions for malformed, duplicate, missing,
+  unexpected, symlinked, and tampered content, plus post-validation source
+  mutation; recovery retention now proves expired records are actually removed.
 - Recovery records now use HMAC-SHA256 authentication with a private per-project
   key and prune to a maximum of 100 records and 30 days.
 - Override validation now rejects self-overrides and cycles while preserving the

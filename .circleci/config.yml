@@ -417,14 +417,10 @@ workflows:
               only: /^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/
       - build_macos:
           filters:
-            branches:
-              only: main
             tags:
               only: /^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/
       - build_windows:
           filters:
-            branches:
-              only: main
             tags:
               only: /^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/
       - publish_github_release:

@@ -15,8 +15,13 @@ validate_release_tag "${version}"
 require_release_inputs "${dist_dir}" "${version}" false
 
 source_sha="${CIRCLE_SHA1:-$(git rev-parse HEAD)}"
-repository="${CIRCLE_PROJECT_USERNAME:-unknown}/${CIRCLE_PROJECT_REPONAME:-unknown}"
+repository="$(release_repository)"
 workflow_id="${CIRCLE_WORKFLOW_ID:-local}"
+workflow_name="${CIRCLE_WORKFLOW_NAME:-ci_cd}"
+job_name="${CIRCLE_JOB:-local}"
+build_url="${CIRCLE_BUILD_URL:-local}"
+branch="${CIRCLE_BRANCH:-}"
+tag="${CIRCLE_TAG:-}"
 records="$(mktemp)"
 provenance_tmp="$(mktemp "${dist_dir}/.lbc-provenance.XXXXXX")"
 trap 'rm -f "${records}" "${provenance_tmp}"' EXIT
@@ -40,6 +45,11 @@ jq -s \
     --arg source_sha "${source_sha}" \
     --arg repository "${repository}" \
     --arg workflow_id "${workflow_id}" \
+    --arg workflow_name "${workflow_name}" \
+    --arg job_name "${job_name}" \
+    --arg build_url "${build_url}" \
+    --arg branch "${branch}" \
+    --arg tag "${tag}" \
     '{
         _type: "https://in-toto.io/Statement/v1",
         predicateType: "https://slsa.dev/provenance/v1",
@@ -51,8 +61,15 @@ jq -s \
                 resolvedDependencies: [{uri: ("git+https://github.com/" + $repository), digest: {gitCommit: $source_sha}}]
             },
             runDetails: {
-                builder: {id: "https://circleci.com/"},
-                metadata: {invocationId: $workflow_id}
+                builder: {id: ("https://circleci.com/gh/" + $repository)},
+                metadata: {
+                    invocationId: $workflow_id,
+                    workflowName: $workflow_name,
+                    jobName: $job_name,
+                    buildUrl: $build_url,
+                    branch: $branch,
+                    tag: $tag
+                }
             }
         }
     }' "${records}" > "${provenance_tmp}"

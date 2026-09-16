@@ -4,6 +4,10 @@ This is a hardening checkpoint, not certification of the entire implementation
 contract or every operating system. The existing completion checklist must not
 be read as evidence that all production edge cases were tested.
 
+This document is historical. Several listed gaps were addressed during v0.5
+hardening; use [the current v0.4/v0.5 requirement matrix](requirement-matrix-v0.4-v0.5.md)
+for present status and keep any item without current evidence open.
+
 ## Fixes covered by regressions
 
 - UTF-8-safe redaction of multiple structured credentials, URI user information,

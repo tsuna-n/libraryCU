@@ -14,7 +14,7 @@ if [[ -z "${version}" ]]; then
 fi
 validate_release_tag "${version}"
 bash "${script_dir}/verify-release-assets.sh" "${dist_dir}"
-set_release_inputs "${version}" true
+set_release_assets "${version}"
 
 : "${GITHUB_TOKEN:?Set GITHUB_TOKEN in the CircleCI project settings}"
 : "${CIRCLE_TAG:?This job must run for a Git tag}"
@@ -91,10 +91,8 @@ if [[ "${status}" != "200" ]]; then
 fi
 assets_json="$(<"${response_file}")"
 
-artifacts=("${RELEASE_INPUTS[@]}" "${RELEASE_INPUTS[@]/%/.asc}" "lbc-release-signing-key.asc")
-
 uploaded_count=0
-for asset_name in "${artifacts[@]}"; do
+for asset_name in "${RELEASE_ASSETS[@]}"; do
     artifact="${dist_dir}/${asset_name}"
     existing_id="$(jq -r --arg name "${asset_name}" \
         '.[] | select(.name == $name) | .id' <<<"${assets_json}" | head -n 1)"
@@ -128,7 +126,7 @@ for asset_name in "${artifacts[@]}"; do
     uploaded_count=$((uploaded_count + 1))
 done
 
-if [[ "${uploaded_count}" -ne "${#artifacts[@]}" ]]; then
+if [[ "${uploaded_count}" -ne "${#RELEASE_ASSETS[@]}" ]]; then
     echo "Not every verified release artifact was uploaded" >&2
     exit 1
 fi
@@ -138,16 +136,23 @@ if [[ "${status}" != "200" ]]; then
     show_api_error "verifying uploaded assets for release ${CIRCLE_TAG}" "${status}"
     exit 1
 fi
-if ! jq -e --argjson expected "${#artifacts[@]}" 'length == $expected' "${response_file}" >/dev/null; then
-    echo "Draft release contains an unexpected or incomplete asset set" >&2
+expected_assets="$(mktemp)"
+trap 'rm -f "${response_file}" "${payload_file}" "${expected_assets}"' EXIT
+for asset_name in "${RELEASE_ASSETS[@]}"; do
+    artifact="${dist_dir}/${asset_name}"
+    digest="sha256:$(sha256sum "${artifact}" | awk '{print $1}')"
+    size="$(wc -c < "${artifact}")"
+    jq -cn --arg name "${asset_name}" --arg digest "${digest}" --argjson size "${size}" \
+        '{name: $name, size: $size, digest: $digest, state: "uploaded"}' >> "${expected_assets}"
+done
+expected_json="$(jq -s 'sort_by(.name)' "${expected_assets}")"
+if ! jq -e --argjson expected "${expected_json}" '
+    map({name, size, digest, state}) | sort_by(.name) == $expected
+' "${response_file}" >/dev/null; then
+    echo "Draft release contains an unexpected, incomplete, or digest-mismatched asset set" >&2
+    jq -S 'map({name, size, digest, state}) | sort_by(.name)' "${response_file}" >&2
     exit 1
 fi
-for asset_name in "${artifacts[@]}"; do
-    if ! jq -e --arg name "${asset_name}" 'any(.[]; .name == $name)' "${response_file}" >/dev/null; then
-        echo "Uploaded release is missing ${asset_name}" >&2
-        exit 1
-    fi
-done
 
 jq -n '{draft: false}' > "${payload_file}"
 status="$(github_request PATCH "${release_endpoint}/${release_id}" \

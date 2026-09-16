@@ -33,11 +33,26 @@ pub fn lock_exclusive(path: &Path) -> Result<StoreLock> {
     let file = options
         .open(path)
         .with_context(|| format!("failed to open store lock {}", path.display()))?;
+    let metadata = file.metadata()?;
     ensure!(
-        file.metadata()?.is_file(),
+        metadata.is_file(),
         "store lock is not a regular file: {}",
         path.display()
     );
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::{MetadataExt, PermissionsExt};
+        ensure!(
+            metadata.uid() == unsafe { libc::geteuid() },
+            "store lock has a different owner: {}",
+            path.display()
+        );
+        ensure!(
+            metadata.permissions().mode() & 0o077 == 0,
+            "store lock permissions must not grant group or other access: {}",
+            path.display()
+        );
+    }
     file.lock_exclusive()
         .with_context(|| format!("failed to lock mutable store at {}", path.display()))?;
     Ok(StoreLock { file })
@@ -616,6 +631,24 @@ mod tests {
         let cpath = std::ffi::CString::new(path.as_os_str().as_bytes())?;
         assert_eq!(unsafe { libc::mkfifo(cpath.as_ptr(), 0o600) }, 0);
         assert!(lock_exclusive(&path).is_err());
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn store_lock_rejects_symlinks_and_unsafe_permissions() -> Result<()> {
+        use std::os::unix::fs::{PermissionsExt, symlink};
+
+        let root = tempfile::tempdir()?;
+        let target = root.path().join("target.lock");
+        fs::write(&target, "")?;
+        symlink(&target, root.path().join("linked.lock"))?;
+        assert!(lock_exclusive(&root.path().join("linked.lock")).is_err());
+
+        fs::set_permissions(&target, fs::Permissions::from_mode(0o644))?;
+        assert!(lock_exclusive(&target).is_err());
+        fs::set_permissions(&target, fs::Permissions::from_mode(0o600))?;
+        assert!(lock_exclusive(&target).is_ok());
         Ok(())
     }
 

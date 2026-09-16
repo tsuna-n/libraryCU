@@ -36,6 +36,11 @@ trap 'rm -rf "${verification_home}"' EXIT
 chmod 700 "${verification_home}"
 export GNUPGHOME="${verification_home}"
 gpg --batch --import "${public_key}" >/dev/null 2>&1
+primary_key_count="$(gpg --batch --with-colons --list-keys | awk -F: '$1 == "pub" {count++} END {print count + 0}')"
+if [[ "${primary_key_count}" -ne 1 ]]; then
+    echo "Release public key file must contain exactly one primary key" >&2
+    exit 1
+fi
 actual_fingerprint="$(gpg --batch --with-colons --list-keys "${LBC_RELEASE_SIGNING_FINGERPRINT}" | awk -F: '$1 == "fpr" {print $10; exit}')"
 if [[ "${actual_fingerprint}" != "${LBC_RELEASE_SIGNING_FINGERPRINT}" ]]; then
     echo "Release public key fingerprint does not match the configured fingerprint" >&2
@@ -46,10 +51,13 @@ for name in "${RELEASE_INPUTS[@]}"; do
 done
 
 # Refuse to publish accidental or stale files that are outside the manifest.
-allowed="$(printf '%s\n' "${RELEASE_INPUTS[@]}" "${RELEASE_INPUTS[@]/%/.asc}" "lbc-release-signing-key.asc" | sort)"
+set_release_assets "${version}"
+allowed="$(printf '%s\n' "${RELEASE_ASSETS[@]}" | sort)"
 actual="$(find "${dist_dir}" -maxdepth 1 \( -type f -o -type l \) -printf '%f\n' | sort)"
 if [[ "${actual}" != "${allowed}" ]]; then
     echo "Release directory contains files outside the verified manifest" >&2
-    diff -u <(printf '%s\n' "${allowed}") <(printf '%s\n' "${actual}") >&2 || true
+    if ! diff -u <(printf '%s\n' "${allowed}") <(printf '%s\n' "${actual}") >&2; then
+        echo "Release manifest mismatch shown above" >&2
+    fi
     exit 1
 fi

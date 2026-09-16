@@ -2,42 +2,64 @@
 """Local GitHub Releases API fixture for fail-closed publication tests."""
 
 import argparse
+import hashlib
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 
-def expected_assets(version: str) -> list[str]:
-    inputs = [
-        f"lbc-{version}-x86_64-unknown-linux-gnu.tar.gz",
-        f"lbc-{version}-x86_64-unknown-linux-gnu.tar.gz.sha256",
-        f"lbc-{version}-universal-apple-darwin.tar.gz",
-        f"lbc-{version}-universal-apple-darwin.tar.gz.sha256",
-        f"lbc-{version}-x86_64-pc-windows-msvc.zip",
-        f"lbc-{version}-x86_64-pc-windows-msvc.zip.sha256",
-        f"lbc-{version}.cdx.json",
-        f"lbc-{version}.provenance.json",
-    ]
-    return inputs + [f"{name}.asc" for name in inputs] + ["lbc-release-signing-key.asc"]
-
-
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=["success", "fail-upload", "public"], required=True)
+    parser.add_argument(
+        "--mode",
+        choices=[
+            "success",
+            "resume",
+            "fail-upload",
+            "public",
+            "api-error",
+            "malformed",
+            "unexpected",
+            "duplicate",
+            "tampered",
+        ],
+        required=True,
+    )
     parser.add_argument("--port-file", type=Path, required=True)
     parser.add_argument("--state-file", type=Path, required=True)
     parser.add_argument("--version", required=True)
+    parser.add_argument("--expected-assets-file", type=Path, required=True)
     args = parser.parse_args()
-    expected = expected_assets(args.version)
+    expected = args.expected_assets_file.read_text(encoding="utf-8").splitlines()
+    if not expected or len(expected) != len(set(expected)):
+        raise ValueError("expected asset manifest must be nonempty and unique")
+    initial_assets: list[dict[str, object]] = []
+    if args.mode == "resume":
+        initial_assets.extend(
+            {"id": index + 1, "name": name, "size": 1, "digest": "sha256:00", "state": "uploaded"}
+            for index, name in enumerate(expected[:2])
+        )
+    if args.mode == "unexpected":
+        initial_assets.append(
+            {"id": 1, "name": "unexpected.txt", "size": 1, "digest": "sha256:00", "state": "uploaded"}
+        )
+    if args.mode == "duplicate":
+        initial_assets.extend(
+            {"id": index + 1, "name": expected[0], "size": 1, "digest": "sha256:00", "state": "uploaded"}
+            for index in range(2)
+        )
     state = {
         "mode": args.mode,
         "created_draft": False,
         "draft": args.mode != "public",
         "published": args.mode == "public",
-        "assets": [],
+        "assets": initial_assets,
+        "uploads": [],
+        "deletes": [],
         "error": None,
     }
+    next_asset_id = max((int(asset["id"]) for asset in initial_assets), default=0) + 1
 
     def save_state() -> None:
         args.state_file.write_text(json.dumps(state, sort_keys=True), encoding="utf-8")
@@ -67,6 +89,12 @@ def main() -> None:
                 return
             parsed = urlparse(self.path)
             if parsed.path.endswith(f"/releases/tags/v{args.version}"):
+                if args.mode == "api-error":
+                    self.send_json(500, {"message": "injected API failure"})
+                    return
+                if args.mode == "malformed":
+                    self.send_json(200, {"draft": True, "id": 1})
+                    return
                 if args.mode == "public":
                     self.send_json(
                         200,
@@ -76,19 +104,28 @@ def main() -> None:
                             "upload_url": f"http://127.0.0.1:{self.server.server_port}/uploads/1/assets{{?name,label}}",
                         },
                     )
+                elif args.mode in {"resume", "unexpected", "duplicate"}:
+                    self.send_json(
+                        200,
+                        {
+                            "id": 1,
+                            "draft": True,
+                            "upload_url": f"http://127.0.0.1:{self.server.server_port}/uploads/1/assets{{?name,label}}",
+                        },
+                    )
                 else:
                     self.send_json(404, {"message": "not found"})
                 return
             if parsed.path.endswith("/releases/1/assets"):
-                assets = [
-                    {"id": index + 1, "name": name}
-                    for index, name in enumerate(state["assets"])
-                ]
+                assets = list(state["assets"])
+                if args.mode == "tampered" and assets:
+                    assets[0] = {**assets[0], "digest": "sha256:" + "0" * 64}
                 self.send_json(200, assets)
                 return
             self.send_json(404, {"message": "unexpected GET"})
 
         def do_POST(self) -> None:  # noqa: N802 - BaseHTTPRequestHandler API
+            nonlocal next_asset_id
             if not self.authorized():
                 return
             parsed = urlparse(self.path)
@@ -115,7 +152,8 @@ def main() -> None:
                 return
             if parsed.path == "/uploads/1/assets":
                 name = parse_qs(parsed.query).get("name", [""])[0]
-                if name not in expected or name in state["assets"]:
+                names = [asset["name"] for asset in state["assets"]]
+                if name not in expected or name in names:
                     state["error"] = f"unexpected upload {name!r}"
                     save_state()
                     self.send_json(422, {"message": state["error"]})
@@ -124,9 +162,19 @@ def main() -> None:
                     save_state()
                     self.send_json(500, {"message": "injected upload failure"})
                     return
-                state["assets"].append(name)
+                state["assets"].append(
+                    {
+                        "id": next_asset_id,
+                        "name": name,
+                        "size": len(body),
+                        "digest": f"sha256:{hashlib.sha256(body).hexdigest()}",
+                        "state": "uploaded",
+                    }
+                )
+                next_asset_id += 1
+                state["uploads"].append(name)
                 save_state()
-                self.send_json(201, {"id": len(state["assets"]), "name": name})
+                self.send_json(201, state["assets"][-1])
                 return
             self.send_json(404, {"message": "unexpected POST"})
 
@@ -137,7 +185,7 @@ def main() -> None:
             length = int(self.headers.get("Content-Length", "0"))
             payload = json.loads(self.rfile.read(length))
             if parsed.path.endswith("/releases/1") and payload == {"draft": False}:
-                if sorted(state["assets"]) != sorted(expected):
+                if sorted(asset["name"] for asset in state["assets"]) != sorted(expected):
                     state["error"] = "publication attempted with incomplete assets"
                     save_state()
                     self.send_json(422, {"message": state["error"]})
@@ -148,6 +196,24 @@ def main() -> None:
                 self.send_json(200, {"id": 1, "draft": False})
                 return
             self.send_json(404, {"message": "unexpected PATCH"})
+
+        def do_DELETE(self) -> None:  # noqa: N802 - BaseHTTPRequestHandler API
+            if not self.authorized():
+                return
+            parsed = urlparse(self.path)
+            if "/releases/assets/" not in parsed.path:
+                self.send_json(404, {"message": "unexpected DELETE"})
+                return
+            asset_id = int(parsed.path.rsplit("/", 1)[-1])
+            state["deletes"].append(asset_id)
+            before = len(state["assets"])
+            state["assets"] = [asset for asset in state["assets"] if asset["id"] != asset_id]
+            if len(state["assets"]) == before:
+                self.send_json(404, {"message": "asset not found"})
+                return
+            save_state()
+            self.send_response(204)
+            self.end_headers()
 
     save_state()
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)

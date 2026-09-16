@@ -382,6 +382,28 @@ mod tests {
     }
 
     #[test]
+    fn pruning_removes_expired_records_and_keeps_fresh_records() {
+        let root = tempfile::tempdir().unwrap();
+        let expired = root.path().join("fix-expired.json");
+        let fresh = root.path().join("fix-fresh.json");
+        fs::write(&expired, "expired").unwrap();
+        fs::write(&fresh, "fresh").unwrap();
+        let now = SystemTime::now();
+        let expired_time = now - MAX_RECOVERY_AGE - Duration::from_secs(1);
+        fs::File::options()
+            .write(true)
+            .open(&expired)
+            .unwrap()
+            .set_times(fs::FileTimes::new().set_modified(expired_time))
+            .unwrap();
+
+        prune_records(root.path(), now).unwrap();
+
+        assert!(!expired.exists());
+        assert!(fresh.exists());
+    }
+
+    #[test]
     fn missing_invalid_and_malformed_recovery_authentication_are_refused() {
         let (root, target, _patch, id) = recovery_fixture();
         let key_path = root.path().join(".lbc/recovery.key");

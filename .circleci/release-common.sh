@@ -21,18 +21,53 @@ set_release_inputs() {
     local macos="lbc-${version}-universal-apple-darwin.tar.gz"
     local windows="lbc-${version}-x86_64-pc-windows-msvc.zip"
 
+    RELEASE_ARCHIVES=("${linux}" "${macos}" "${windows}")
     RELEASE_INPUTS=(
-        "${linux}"
-        "${linux}.sha256"
-        "${macos}"
-        "${macos}.sha256"
-        "${windows}"
-        "${windows}.sha256"
+        "${RELEASE_ARCHIVES[0]}"
+        "${RELEASE_ARCHIVES[0]}.sha256"
+        "${RELEASE_ARCHIVES[1]}"
+        "${RELEASE_ARCHIVES[1]}.sha256"
+        "${RELEASE_ARCHIVES[2]}"
+        "${RELEASE_ARCHIVES[2]}.sha256"
         "lbc-${version}.cdx.json"
     )
     if [[ "${include_provenance}" == "true" ]]; then
         RELEASE_INPUTS+=("lbc-${version}.provenance.json")
     fi
+}
+
+# The one canonical production release manifest. Tests and publication callers
+# must consume this array rather than maintaining their own asset-name lists.
+set_release_assets() {
+    local version="$1"
+    set_release_inputs "${version}" true
+    RELEASE_ASSETS=(
+        "${RELEASE_INPUTS[@]}"
+        "${RELEASE_INPUTS[@]/%/.asc}"
+        "lbc-release-signing-key.asc"
+    )
+}
+
+release_repository() {
+    local repository
+    if [[ -n "${CIRCLE_PROJECT_USERNAME:-}" && -n "${CIRCLE_PROJECT_REPONAME:-}" ]]; then
+        repository="${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}"
+    else
+        local remote
+        if ! remote="$(git remote get-url origin 2>/dev/null)"; then
+            remote=""
+        fi
+        remote="${remote%.git}"
+        remote="${remote#git@github.com:}"
+        remote="${remote#ssh://git@github.com/}"
+        remote="${remote#https://github.com/}"
+        repository="${remote}"
+    fi
+    if [[ ! "${repository}" =~ ^[^/[:space:]]+/[^/[:space:]]+$ ]]; then
+        echo "Could not determine the GitHub repository identity" >&2
+        return 1
+    fi
+    printf '%s\n' "${repository}"
 }
 
 require_release_inputs() {
@@ -54,11 +89,7 @@ require_release_inputs() {
     done
 
     local archive checksum expected actual
-    for archive in \
-        "lbc-${version}-x86_64-unknown-linux-gnu.tar.gz" \
-        "lbc-${version}-universal-apple-darwin.tar.gz" \
-        "lbc-${version}-x86_64-pc-windows-msvc.zip"
-    do
+    for archive in "${RELEASE_ARCHIVES[@]}"; do
         checksum="${dist_dir}/${archive}.sha256"
         expected="$(sha256sum "${dist_dir}/${archive}" | awk -v name="${archive}" '{print $1 "  " name}')"
         actual="$(tr -d '\r' < "${checksum}")"
@@ -93,6 +124,8 @@ validate_provenance() {
     local dist_dir="$1"
     local version="$2"
     local source_sha="${CIRCLE_SHA1:-$(git rev-parse HEAD)}"
+    local repository
+    repository="$(release_repository)"
     local records
     records="$(mktemp)"
     local name digest
@@ -106,15 +139,21 @@ validate_provenance() {
     expected="$(jq -s '.' "${records}")"
     rm -f "${records}"
 
-    if ! jq -e --argjson expected "${expected}" --arg source_sha "${source_sha}" '
+    if ! jq -e \
+        --argjson expected "${expected}" \
+        --arg source_sha "${source_sha}" \
+        --arg repository "${repository}" '
         ._type == "https://in-toto.io/Statement/v1" and
         .predicateType == "https://slsa.dev/provenance/v1" and
         .subject == $expected and
         (.predicate.buildDefinition.resolvedDependencies | length == 1) and
-        (.predicate.buildDefinition.resolvedDependencies[0].uri | startswith("git+https://github.com/")) and
+        .predicate.buildDefinition.resolvedDependencies[0].uri == ("git+https://github.com/" + $repository) and
         .predicate.buildDefinition.resolvedDependencies[0].digest.gitCommit == $source_sha and
-        (.predicate.runDetails.builder.id | length > 0) and
-        (.predicate.runDetails.metadata.invocationId | length > 0)
+        .predicate.runDetails.builder.id == ("https://circleci.com/gh/" + $repository) and
+        (.predicate.runDetails.metadata.invocationId | length > 0) and
+        (.predicate.runDetails.metadata.jobName | length > 0) and
+        (.predicate.runDetails.metadata.buildUrl | length > 0) and
+        (.predicate.runDetails.metadata.workflowName | length > 0)
     ' "${dist_dir}/lbc-${version}.provenance.json" >/dev/null; then
         echo "Provenance does not describe the exact release inputs and source revision" >&2
         return 1

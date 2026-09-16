@@ -18,6 +18,17 @@ fn release_pipeline_parses_and_requires_supply_chain_gate() {
     let release_jobs = release
         .as_sequence()
         .expect("workflow jobs must be a sequence");
+    for required in [
+        "dependency_security",
+        "build_and_test",
+        "build_macos",
+        "build_windows",
+    ] {
+        assert!(
+            release_jobs.iter().any(|job| job.get(required).is_some()),
+            "workflow must retain {required}"
+        );
+    }
     let publish = release_jobs
         .iter()
         .find_map(|job| job.get("publish_github_release"))
@@ -37,6 +48,28 @@ fn release_pipeline_parses_and_requires_supply_chain_gate() {
         );
     }
     assert_eq!(publish["context"], Value::from("lbc-release"));
+    assert_eq!(
+        publish["filters"]["branches"]["ignore"],
+        Value::from("/.*/")
+    );
+    assert!(
+        publish["filters"]["tags"]["only"]
+            .as_str()
+            .is_some_and(|filter| filter.contains("v[0-9]+")),
+        "release publication must remain tag-only"
+    );
+
+    for platform in ["build_macos", "build_windows"] {
+        let workflow_job = release_jobs
+            .iter()
+            .find_map(|job| job.get(platform))
+            .expect("platform job must be in the workflow");
+        assert!(
+            workflow_job["filters"].get("branches").is_none(),
+            "{platform} must run on release-candidate branches before tagging"
+        );
+        assert!(workflow_job["filters"]["tags"]["only"].is_string());
+    }
 
     let dependency_steps = jobs[&Value::from("dependency_security")]["steps"]
         .as_sequence()
@@ -46,6 +79,51 @@ fn release_pipeline_parses_and_requires_supply_chain_gate() {
             .as_str()
             .is_some_and(|command| command.contains("test-release-scripts.sh"))
     }));
+    let dependency_commands = dependency_steps
+        .iter()
+        .filter_map(|step| step["run"]["command"].as_str())
+        .collect::<Vec<_>>()
+        .join("\n");
+    for required in [
+        "cargo audit",
+        "cargo deny check",
+        "cargo cyclonedx",
+        "test-release-scripts.sh",
+    ] {
+        assert!(
+            dependency_commands.contains(required),
+            "dependency security must execute {required}"
+        );
+    }
+
+    let publish_steps = jobs[&Value::from("publish_github_release")]["steps"]
+        .as_sequence()
+        .expect("publisher steps must be a sequence");
+    let publish_commands = publish_steps
+        .iter()
+        .filter_map(|step| step["run"]["command"].as_str())
+        .collect::<Vec<_>>()
+        .join("\n");
+    for required in [
+        "generate-provenance.sh",
+        "sign-release-assets.sh",
+        "publish-github-release.sh",
+    ] {
+        assert!(
+            publish_commands.contains(required),
+            "publisher must execute {required}"
+        );
+    }
+
+    for platform in ["build_and_test", "build_macos", "build_windows"] {
+        let serialized = serde_yaml::to_string(&jobs[&Value::from(platform)]).unwrap();
+        let lowercase = serialized.to_ascii_lowercase();
+        assert!(
+            serialized.contains("CIRCLE_TAG")
+                && (lowercase.contains("package_version") || lowercase.contains("packageversion")),
+            "{platform} must enforce Cargo version/tag consistency"
+        );
+    }
 
     let publisher = include_str!("../.circleci/publish-github-release.sh");
     assert!(publisher.contains("verify-release-assets.sh"));
@@ -96,6 +174,12 @@ fn provenance_command(dist: &Path) -> std::process::Output {
         .env("CIRCLE_PROJECT_USERNAME", "fixture-owner")
         .env("CIRCLE_PROJECT_REPONAME", "fixture-repository")
         .env("CIRCLE_WORKFLOW_ID", "fixture-workflow")
+        .env("CIRCLE_WORKFLOW_NAME", "ci_cd")
+        .env("CIRCLE_JOB", "publish_github_release")
+        .env(
+            "CIRCLE_BUILD_URL",
+            "https://circleci.example.invalid/build/1",
+        )
         .output()
         .unwrap()
 }
@@ -147,6 +231,18 @@ fn provenance_covers_the_exact_archives_checksums_and_sbom() {
     assert_eq!(
         provenance["predicate"]["buildDefinition"]["resolvedDependencies"][0]["digest"]["gitCommit"],
         "1111111111111111111111111111111111111111"
+    );
+    assert_eq!(
+        provenance["predicate"]["buildDefinition"]["resolvedDependencies"][0]["uri"],
+        "git+https://github.com/fixture-owner/fixture-repository"
+    );
+    assert_eq!(
+        provenance["predicate"]["runDetails"]["metadata"]["jobName"],
+        "publish_github_release"
+    );
+    assert_eq!(
+        provenance["predicate"]["runDetails"]["metadata"]["buildUrl"],
+        "https://circleci.example.invalid/build/1"
     );
 }
 

@@ -1,5 +1,9 @@
 # 0.4.0 release audit — 2026-09-07
 
+This is the historical v0.4 checkpoint. Later v0.5 hardening supersedes several
+limitations below; current classifications are in
+[the v0.4/v0.5 requirement matrix](requirement-matrix-v0.4-v0.5.md).
+
 This release adds explicit fix verification, local recovery records,
 broader diagnostic parsing/rules, and a three-OS GitHub Actions workflow.
 Cargo package and lockfile versions agree on 0.4.0.

@@ -501,6 +501,39 @@ mod tests {
         assert!(verify_package_integrity(&installed.path).is_err());
         fs::remove_file(installed.path.join("unexpected.bin")).unwrap();
 
+        let checksum_path = installed.path.join(CHECKSUM_FILE);
+        let checksums = fs::read_to_string(&checksum_path).unwrap();
+        fs::write(&checksum_path, "not-a-digest  doc.md\n").unwrap();
+        assert!(verify_package_integrity(&installed.path).is_err());
+        fs::write(&checksum_path, format!("{checksums}{checksums}")).unwrap();
+        assert!(verify_package_integrity(&installed.path).is_err());
+        fs::write(
+            &checksum_path,
+            checksums
+                .lines()
+                .filter(|line| !line.ends_with("doc.md"))
+                .collect::<Vec<_>>()
+                .join("\n"),
+        )
+        .unwrap();
+        assert!(verify_package_integrity(&installed.path).is_err());
+        fs::write(&checksum_path, &checksums).unwrap();
+
+        #[cfg(unix)]
+        {
+            let outside = source.join("outside.md");
+            fs::write(&outside, "outside").unwrap();
+            fs::remove_file(installed.path.join("doc.md")).unwrap();
+            std::os::unix::fs::symlink(&outside, installed.path.join("doc.md")).unwrap();
+            assert!(verify_package_integrity(&installed.path).is_err());
+            fs::remove_file(installed.path.join("doc.md")).unwrap();
+            fs::write(
+                installed.path.join("doc.md"),
+                "---\nid: demo-doc\ntags:\n  - demo\n---\n# Demo\n\nBody.\n",
+            )
+            .unwrap();
+        }
+
         fs::write(installed.path.join("doc.md"), "tampered").unwrap();
         assert!(verify_package_integrity(&installed.path).is_err());
         let listed = list_packages(&data);
@@ -602,6 +635,33 @@ mod tests {
                     .starts_with(".package-install-"))
                 .count(),
             0
+        );
+
+        fs::remove_dir_all(source).unwrap();
+        fs::remove_dir_all(data).unwrap();
+    }
+
+    #[test]
+    fn source_mutation_after_validation_cannot_change_the_staged_snapshot() {
+        let source = temp_dir("source-race-source");
+        let data = temp_dir("source-race-data");
+        write_package(&source);
+
+        let installed = install_package_with_hook(&source, &data, || {
+            fs::write(source.join("doc.md"), "mutated after validation")?;
+            Ok(())
+        })
+        .expect("validated snapshot should publish");
+
+        assert_eq!(verify_package_integrity(&installed.path).unwrap(), 1);
+        assert!(
+            fs::read_to_string(installed.path.join("doc.md"))
+                .unwrap()
+                .contains("Body.")
+        );
+        assert_eq!(
+            fs::read_to_string(source.join("doc.md")).unwrap(),
+            "mutated after validation"
         );
 
         fs::remove_dir_all(source).unwrap();
