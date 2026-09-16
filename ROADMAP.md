@@ -84,6 +84,11 @@
 - [x] Transaction-safe package installation
 - [x] Multi-process file locking
 - [ ] Cross-platform multi-user/shared-store ownership and ACL validation
+
+Repository policy and native regressions now exist in
+`docs/shared-store-security.md`; this item remains open until the changed
+candidate passes Linux/macOS/Windows tests. Writable multi-user collaboration
+is not v0.4 scope: unsafe shared mutable stores must be rejected.
 - [x] Authenticated recovery records
 - [x] Recovery retention policy
 - [x] Complete override cycle validation
@@ -205,10 +210,10 @@ run.
 `v0.5.0` ห้าม release จนกว่า:
 
 - [x] Local Linux validation ผ่านทั้งหมด
-- [x] Hosted dependency-security CI ผ่านบน exact release revision
-- [x] Hosted CI ผ่าน Linux บน exact release revision
-- [x] Hosted CI ผ่าน macOS บน exact release revision
-- [x] Hosted CI ผ่าน Windows บน exact release revision
+- [ ] Hosted dependency-security CI ผ่านบน exact release revision
+- [ ] Hosted CI ผ่าน Linux บน exact release revision
+- [ ] Hosted CI ผ่าน macOS บน exact release revision
+- [ ] Hosted CI ผ่าน Windows บน exact release revision
 - [x] Local `cargo audit` ผ่าน
 - [x] Local `cargo deny check` ผ่าน
 - [x] Local tests ผ่านทั้งหมด

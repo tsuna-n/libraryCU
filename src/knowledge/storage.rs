@@ -75,6 +75,7 @@ fn add_entry_with_metadata(
         (root, anchor)
     };
     crate::security::files::reject_symlinks(&root)?;
+    crate::security::permissions::validate_directory(&root)?;
     fs::create_dir_all(&root).with_context(|| format!("failed to create {}", root.display()))?;
     ensure_store_is_safe(&root, &anchor)?;
     let _lock = crate::security::storage::lock_exclusive(&store_lock_path(&root))?;
@@ -383,9 +384,11 @@ fn atomic_replace(path: &Path, bytes: &[u8]) -> Result<()> {
 }
 fn prepared_temp(path: &Path, bytes: &[u8]) -> Result<tempfile::NamedTempFile> {
     let parent = path.parent().context("entry has no parent directory")?;
+    crate::security::permissions::validate_directory(parent)?;
     let mut temp = tempfile::Builder::new()
         .prefix(".lbc-write-")
         .tempfile_in(parent)?;
+    crate::security::permissions::validate_file(temp.as_file(), true)?;
     temp.write_all(bytes)?;
     temp.as_file().sync_all()?;
     Ok(temp)

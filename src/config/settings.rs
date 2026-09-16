@@ -133,7 +133,7 @@ pub fn load_from(path: PathBuf) -> Result<LoadedConfig> {
         });
     }
 
-    let content = crate::security::files::read_text(&path, 256 * 1024)
+    let content = crate::security::files::read_store_text(&path, 256 * 1024, false)
         .with_context(|| format!("failed to read configuration at {}", path.display()))?;
     let config: Config = toml::from_str(&content)
         .with_context(|| format!("invalid configuration at {}", path.display()))?;
@@ -243,7 +243,8 @@ mod tests {
 
     #[test]
     fn partial_config_inherits_defaults() -> Result<()> {
-        let path = temporary_path("partial-config");
+        let root = tempfile::tempdir()?;
+        let path = root.path().join("config.toml");
         fs::write(&path, "[output]\nlanguage = \"th\"\n")?;
         let loaded = load_from(path.clone())?;
         assert_eq!(loaded.config.output.language, "th");
@@ -262,7 +263,8 @@ mod tests {
 
     #[test]
     fn openai_compat_requires_a_base_url_and_model() -> Result<()> {
-        let path = temporary_path("ai-compat");
+        let root = tempfile::tempdir()?;
+        let path = root.path().join("config.toml");
         fs::write(
             &path,
             "[ai]\nprovider = \"openai-compat\"\nmodel = \"llama3\"\n",
@@ -280,7 +282,8 @@ mod tests {
 
     #[test]
     fn named_providers_use_effective_defaults_and_allow_overrides() -> Result<()> {
-        let path = temporary_path("named-providers");
+        let root = tempfile::tempdir()?;
+        let path = root.path().join("config.toml");
         fs::write(&path, "[ai]\nprovider = \"openai\"\n")?;
         let loaded = load_from(path.clone())?;
         assert_eq!(loaded.config.ai.provider, "openai");

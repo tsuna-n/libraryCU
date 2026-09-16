@@ -227,7 +227,7 @@ Every CLI application first saves a private recovery record under
 `<project>/.lbc/fixes/<recovery_id>.json`, containing the original and applied
 source snapshots. Version 2 records are authenticated with HMAC-SHA256 using a
 random project-local key at `<project>/.lbc/recovery.key`; altered records and
-keys with unsafe Unix ownership or permissions are refused. A failed, unavailable,
+keys with unsafe ownership, permissions, or ACL grants are refused. A failed, unavailable,
 or timed-out verifier triggers rollback and exits nonzero. `lbc rollback ID
 --project PATH` also restores an applied patch in a later invocation without AI.
 Both forms refuse to overwrite source that no longer matches the recorded applied
@@ -389,11 +389,14 @@ Mutable config, history, knowledge, and package stores use advisory process lock
 and atomic file/directory publication. Unix file replacement anchors validation
 and rename to an opened directory descriptor to prevent parent-symlink redirects,
 and rechecks the target digest so a same-size concurrent edit is not silently
-overwritten during publication. Unix lock files must also be regular files owned
-by the current effective user with no group or other permissions.
-These controls require cooperating LBC processes and do not make shared writable
-stores safe against a hostile local user. Production readiness remains under
-audit, especially multi-user store ownership, non-Unix directory races, and
+overwritten during publication. Mutable stores follow the fail-closed
+[single-owner ownership and ACL policy](docs/shared-store-security.md): unsafe
+owners, shared writable directories, extended/default ACL grants, and Windows
+reparse points are refused. Locks and private key/history data require private
+access; owner-controlled public configuration and notes remain supported.
+These controls require cooperating LBC processes; shared writable collaboration
+is not supported. Production readiness remains under
+audit, especially non-Unix directory races, and
 the final target-creation race on non-Linux platforms, and complete Thai
 diagnostic content.
 

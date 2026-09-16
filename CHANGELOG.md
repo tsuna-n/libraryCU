@@ -47,6 +47,12 @@
 - Override validation now rejects self-overrides and cycles while preserving the
   existing deterministic same-priority conflict checks.
 
+- Added fail-closed single-owner mutable-store validation on Linux, macOS, and
+  Windows: descriptor/handle ownership and ACL checks, unsafe ancestors and
+  inherited grants, private key/history reads, and Windows junction rejection.
+  Added platform-specific ACL and shared-store regressions; this does not enable
+  shared writable collaboration or establish production signing evidence.
+
 ## 0.4.0 — 2026-09-07
 
 - Added `fix --ai --apply --verify "COMMAND"`, with explicit executable/arguments,

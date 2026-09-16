@@ -2,6 +2,27 @@
 
 ## Checkpoint — 2026-09-16
 
+### Shared-store continuation (supersedes the earlier candidate counts below)
+
+- Starting revision: `f89c648c7d5d2a225028f19775a878383a27a803`; clean branch.
+- Implemented fail-closed single-owner store policy in
+  `src/security/permissions.rs` and native regressions in `tests/filesystem.rs`.
+  Linux descriptor ACL access/default checks, macOS extended allow/deny checks,
+  Windows owner/DACL and reparse/junction checks now protect mutable operations,
+  sensitive temporary bytes, configuration/history reads, and recovery keys.
+- Targeted Linux filesystem suite: 11 passed. CLI suite: 52 passed with real
+  host metadata/loopback permission. Strict Clippy passed before the latest
+  Windows-only fixture; the final full gate is being rerun.
+- Sandboxed CLI execution reports `/tmp` and `/home` owned by `nobody`, so it
+  cannot validate the real ownership policy. Denied/mapped runs are not successes.
+- Public CircleCI state rechecked: all four jobs passed the starting `f89c648`
+  revision (macOS 29, Linux 30, dependency 31, Windows 32). That result does not
+  validate the shared-store changes. The roadmap hosted gates are reset pending
+  native runs of the changed candidate; the cross-platform item remains open.
+- GitHub admin configuration, production signing credentials, hosted-builder
+  provenance, and release execution remain separate external gates. No release
+  tag/publication or credential setup is authorized by this continuation.
+
 - Branch: `roadmap/complete-v0.4-v0.5`
 - Starting checkpoint: `61381debe1a9d3f35c79b0bdab84db09da71b64d`
 - Candidate state: the branch changes contain the dependency-security fix,

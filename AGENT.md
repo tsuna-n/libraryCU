@@ -660,7 +660,8 @@ Do not document these as solved until implementation and regression tests prove 
 - non-cooperating writers, shared multi-user stores, and cross-session history merging,
 - transactional duplicate-ID behavior across legacy and current project stores,
 - durability beyond atomic rename,
-- platform-complete ownership and access validation for shared mutable stores,
+- hostile non-cooperating ACL/path changes after single-owner store validation
+  (see `docs/shared-store-security.md`; writable collaboration is not supported),
 - complete Thai diagnostic localization,
 - broader malformed/oversized provider cases,
 - pattern-based redaction cannot detect every secret,

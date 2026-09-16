@@ -28,7 +28,17 @@ pub fn reject_symlinks(path: &Path) -> Result<()> {
             Ok(metadata) if metadata.file_type().is_symlink() => {
                 bail!("refusing symlinked path {}", current.display());
             }
-            Ok(_) => {}
+            Ok(metadata) => {
+                #[cfg(windows)]
+                {
+                    use std::os::windows::fs::MetadataExt;
+                    if metadata.file_attributes() & 0x400 != 0 {
+                        bail!("refusing reparse-point path {}", current.display());
+                    }
+                }
+                #[cfg(not(windows))]
+                let _ = metadata;
+            }
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
             Err(error) => {
                 return Err(error)
@@ -42,6 +52,15 @@ pub fn reject_symlinks(path: &Path) -> Result<()> {
 /// Bound reads on the opened file, not only on earlier path metadata. Refuse
 /// special files before opening so a FIFO/device cannot hang an analysis.
 pub fn read_text(path: &Path, max_bytes: u64) -> Result<String> {
+    read_text_with_policy(path, max_bytes, None)
+}
+
+pub fn read_store_text(path: &Path, max_bytes: u64, private: bool) -> Result<String> {
+    super::permissions::validate_directory(path.parent().context("store file has no parent")?)?;
+    read_text_with_policy(path, max_bytes, Some(private))
+}
+
+fn read_text_with_policy(path: &Path, max_bytes: u64, private: Option<bool>) -> Result<String> {
     reject_symlinks(path)?;
     let metadata = fs::symlink_metadata(path)
         .with_context(|| format!("failed to inspect {}", path.display()))?;
@@ -61,6 +80,9 @@ pub fn read_text(path: &Path, max_bytes: u64) -> Result<String> {
     let metadata = file.metadata()?;
     if !metadata.is_file() {
         bail!("expected a regular file: {}", path.display());
+    }
+    if let Some(private) = private {
+        super::permissions::validate_file(&file, private)?;
     }
     if metadata.len() > max_bytes {
         bail!("file exceeds {max_bytes} bytes: {}", path.display());

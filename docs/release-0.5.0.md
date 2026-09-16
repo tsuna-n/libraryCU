@@ -9,6 +9,12 @@ hosted jobs before it can become the release revision.
 
 ## Candidate outcome
 
+- The shared-store continuation implements single-owner Linux/macOS/Windows
+  owner/ACL validation, unsafe ancestor rejection, private key/history reads,
+  and Windows junction rejection. Linux targeted regressions pass; native hosted
+  runs of this changed candidate remain pending. See
+  [shared-store-security.md](shared-store-security.md).
+
 - The hosted dependency failure is fixed locally by resolving `rustls` 0.23.45
   instead of vulnerable 0.23.43.
 - `ask --ai` and `chat --ai` now send the documented default model when a named

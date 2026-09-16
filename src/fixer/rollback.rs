@@ -217,6 +217,7 @@ fn recovery_key(directory: &Path) -> Result<Vec<u8>> {
     }
     match options.open(&path) {
         Ok(mut file) => {
+            security::permissions::validate_file(&file, true)?;
             file.write_all(encoded.as_bytes())?;
             file.sync_all()?;
             security::storage::sync_directory(directory)?;
@@ -231,25 +232,12 @@ fn recovery_key(directory: &Path) -> Result<Vec<u8>> {
 
 fn read_recovery_key(directory: &Path) -> Result<Vec<u8>> {
     let path = directory.join("recovery.key");
-    let encoded = security::files::read_text(&path, 256)?;
+    let encoded = security::files::read_store_text(&path, 256, true)?;
     let key = decode_hex(encoded.trim()).context("invalid recovery key")?;
     ensure!(
         key.len() == RECOVERY_KEY_BYTES,
         "invalid recovery key length"
     );
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::{MetadataExt, PermissionsExt};
-        let metadata = fs::metadata(&path)?;
-        ensure!(
-            metadata.uid() == unsafe { libc::geteuid() },
-            "recovery key has a different owner"
-        );
-        ensure!(
-            metadata.permissions().mode() & 0o077 == 0,
-            "recovery key permissions must not grant group or other access"
-        );
-    }
     Ok(key)
 }
 

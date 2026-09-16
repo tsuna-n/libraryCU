@@ -4,6 +4,11 @@ This is the historical v0.4 checkpoint. Later v0.5 hardening supersedes several
 limitations below; current classifications are in
 [the v0.4/v0.5 requirement matrix](requirement-matrix-v0.4-v0.5.md).
 
+The 2026-09-16 continuation adds a fail-closed single-owner
+[mutable-store ownership/ACL policy](shared-store-security.md) and Linux/macOS/
+Windows regressions. These are candidate hardening, not a retroactive claim that
+the historical v0.4 release had these protections or passed hosted validation.
+
 This release adds explicit fix verification, local recovery records,
 broader diagnostic parsing/rules, and a three-OS GitHub Actions workflow.
 Cargo package and lockfile versions agree on 0.4.0.

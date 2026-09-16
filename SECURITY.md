@@ -54,6 +54,11 @@ them immediately after suspected exposure.
 
 ## Scope
 
+Mutable stores follow the fail-closed single-owner
+[ownership and ACL policy](docs/shared-store-security.md). Shared writable stores
+are rejected, not made safe for collaboration. Native platform tests and exact
+candidate CI evidence are tracked separately from production signing evidence.
+
 Reports about path containment, unsafe file replacement, secret disclosure,
 unexpected network access, package integrity, recovery records, verification
 command execution, and release provenance are in scope. Dependency findings are

@@ -93,6 +93,7 @@ where
         bail!("package contains no markdown knowledge documents");
     }
 
+    crate::security::permissions::validate_directory(data_dir)?;
     fs::create_dir_all(data_dir)
         .with_context(|| format!("failed to create {}", data_dir.display()))?;
     let _lock = crate::security::storage::lock_exclusive(&data_dir.join(".packages.lock"))?;

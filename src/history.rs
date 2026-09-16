@@ -31,7 +31,7 @@ pub fn load() -> Result<Vec<String>> {
     if fs::metadata(&path)?.len() > MAX_HISTORY_BYTES {
         bail!("history file is larger than 256 KB");
     }
-    let content = crate::security::files::read_text(&path, MAX_HISTORY_BYTES)
+    let content = crate::security::files::read_store_text(&path, MAX_HISTORY_BYTES, true)
         .with_context(|| format!("failed to read history at {}", path.display()))?;
     let mut messages: Vec<String> =
         serde_json::from_str(&content).context("invalid persistent history")?;

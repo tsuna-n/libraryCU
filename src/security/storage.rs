@@ -17,9 +17,12 @@ impl Drop for StoreLock {
 pub fn lock_exclusive(path: &Path) -> Result<StoreLock> {
     super::files::reject_symlinks(path)?;
     let parent = path.parent().context("lock path has no parent")?;
+    super::permissions::validate_directory(parent)?;
     fs::create_dir_all(parent)
         .with_context(|| format!("failed to create lock directory {}", parent.display()))?;
     super::files::reject_symlinks(path)?;
+
+    super::permissions::validate_directory(parent)?;
 
     let mut options = fs::OpenOptions::new();
     options.read(true).write(true).create(true);
@@ -39,22 +42,11 @@ pub fn lock_exclusive(path: &Path) -> Result<StoreLock> {
         "store lock is not a regular file: {}",
         path.display()
     );
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::{MetadataExt, PermissionsExt};
-        ensure!(
-            metadata.uid() == unsafe { libc::geteuid() },
-            "store lock has a different owner: {}",
-            path.display()
-        );
-        ensure!(
-            metadata.permissions().mode() & 0o077 == 0,
-            "store lock permissions must not grant group or other access: {}",
-            path.display()
-        );
-    }
+    super::permissions::validate_file(&file, true)?;
     file.lock_exclusive()
         .with_context(|| format!("failed to lock mutable store at {}", path.display()))?;
+    super::permissions::validate_directory(parent)?;
+    super::permissions::validate_file(&file, true)?;
     Ok(StoreLock { file })
 }
 
@@ -91,6 +83,7 @@ where
 
     super::files::reject_symlinks(target)?;
     let parent = target.parent().context("target directory has no parent")?;
+    super::permissions::validate_directory(parent)?;
     let staging_parent = staging
         .path()
         .parent()
@@ -118,6 +111,7 @@ where
     );
 
     hook()?;
+    super::permissions::validate_directory(parent)?;
     let current_parent = open_directory_no_symlinks_unix(parent)?;
     ensure!(
         directory_identity_unix(&current_parent)? == parent_identity,
@@ -163,6 +157,7 @@ where
     F: FnOnce() -> Result<()>,
 {
     super::files::reject_symlinks(target)?;
+    super::permissions::validate_directory(target.parent().context("target has no parent")?)?;
     ensure!(
         !target.exists(),
         "refusing to replace existing directory {}",
@@ -170,6 +165,7 @@ where
     );
     hook()?;
     super::files::reject_symlinks(target)?;
+    super::permissions::validate_directory(target.parent().context("target has no parent")?)?;
     ensure!(
         !target.exists(),
         "refusing to replace existing directory {}",
@@ -291,10 +287,15 @@ where
 
     super::files::reject_symlinks(path)?;
     let parent = path.parent().context("target path has no parent")?;
+    super::permissions::validate_directory(parent)?;
     fs::create_dir_all(parent).with_context(|| format!("failed to create {}", parent.display()))?;
     super::files::reject_symlinks(path)?;
 
     let parent_file = open_directory_no_symlinks(parent)?;
+    super::permissions::validate_file(&parent_file, false)?;
+    if path.exists() {
+        super::permissions::validate_path(path, false)?;
+    }
     let parent_identity = file_identity(&parent_file)?;
     let target_name = cstring(
         path.file_name()
@@ -349,11 +350,17 @@ where
                 .context("failed to preserve target permissions");
         }
     }
+    super::permissions::validate_file(&temporary_file, private)?;
     temporary_file.write_all(bytes)?;
     temporary_file.sync_all()?;
     hook()?;
 
     let current_parent = open_directory_no_symlinks(parent)?;
+    super::permissions::validate_directory(parent)?;
+    super::permissions::validate_file(&temporary_file, private)?;
+    if path.exists() {
+        super::permissions::validate_path(path, false)?;
+    }
     if file_identity(&current_parent)? != parent_identity {
         bail!("target directory changed during atomic replacement");
     }
@@ -541,8 +548,13 @@ where
 
     super::files::reject_symlinks(path)?;
     let parent = path.parent().context("target path has no parent")?;
+    super::permissions::validate_directory(parent)?;
     fs::create_dir_all(parent).with_context(|| format!("failed to create {}", parent.display()))?;
     super::files::reject_symlinks(path)?;
+    super::permissions::validate_directory(parent)?;
+    if path.exists() {
+        super::permissions::validate_path(path, false)?;
+    }
     let original_state = state(path)?;
 
     let mut temp = tempfile::Builder::new()
@@ -551,10 +563,13 @@ where
     if !private && let Ok(metadata) = fs::metadata(path) {
         temp.as_file().set_permissions(metadata.permissions())?;
     }
+    super::permissions::validate_file(temp.as_file(), private)?;
     temp.write_all(bytes)?;
     temp.as_file().sync_all()?;
     hook()?;
     super::files::reject_symlinks(path)?;
+    super::permissions::validate_directory(parent)?;
+    super::permissions::validate_file(temp.as_file(), private)?;
     ensure!(
         state(path)? == original_state,
         "target changed during atomic replacement"
@@ -666,6 +681,31 @@ mod tests {
 
         assert!(result.is_err());
         assert_eq!(fs::read_to_string(&path)?, "new-edit");
+        assert_eq!(fs::read_dir(root.path())?.count(), 1);
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn permissions_changed_before_publication_preserve_original_and_cleanup() -> Result<()> {
+        use std::os::unix::fs::PermissionsExt;
+        let root = tempfile::tempdir()?;
+        let path = root.path().join("value");
+        fs::write(&path, "original")?;
+        let result = atomic_replace_with_hook(&path, b"replacement", true, || {
+            fs::set_permissions(root.path(), fs::Permissions::from_mode(0o777))?;
+            Ok(())
+        });
+        assert!(result.is_err());
+        assert_eq!(fs::read_to_string(&path)?, "original");
+        assert_eq!(fs::read_dir(root.path())?.count(), 1);
+        fs::set_permissions(root.path(), fs::Permissions::from_mode(0o700))?;
+        let result = atomic_replace_with_hook(&path, b"replacement", false, || {
+            fs::set_permissions(&path, fs::Permissions::from_mode(0o666))?;
+            Ok(())
+        });
+        assert!(result.is_err());
+        assert_eq!(fs::read_to_string(&path)?, "original");
         assert_eq!(fs::read_dir(root.path())?.count(), 1);
         Ok(())
     }
