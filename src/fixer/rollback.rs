@@ -46,8 +46,10 @@ pub fn prepare(target: &Target, patch: &Patch) -> Result<String> {
     let _lock = security::storage::lock_exclusive(&lbc_directory.join(".fixes.lock"))?;
     let directory = lbc_directory.join("fixes");
     security::files::reject_symlinks(&directory)?;
+    security::permissions::validate_directory(&directory)?;
     fs::create_dir_all(&directory)?;
     security::files::reject_symlinks(&directory)?;
+    security::permissions::validate_directory(&directory)?;
 
     let now = SystemTime::now();
     prune_records(&directory, now)?;
@@ -78,6 +80,7 @@ pub fn prepare(target: &Target, patch: &Patch) -> Result<String> {
         content.len() as u64 <= MAX_RECORD_BYTES,
         "recovery record is too large"
     );
+    security::permissions::validate_file(temporary.as_file(), true)?;
     temporary.write_all(&content)?;
     temporary.as_file().sync_all()?;
     temporary
@@ -100,9 +103,10 @@ pub fn restore(root: &Path, id: &str) -> Result<String> {
     let root = root.canonicalize()?;
     let lbc_directory = root.join(".lbc");
     let _lock = security::storage::lock_exclusive(&lbc_directory.join(".fixes.lock"))?;
-    let content = security::files::read_text(
+    let content = security::files::read_store_text(
         &lbc_directory.join("fixes").join(format!("{id}.json")),
         MAX_RECORD_BYTES,
+        true,
     )?;
     let record: Record = serde_json::from_str(&content).context(
         "invalid or legacy unauthenticated recovery record; inspect version 1 records manually",
@@ -254,6 +258,7 @@ fn prune_records(directory: &Path, now: SystemTime) -> Result<()> {
         if !file_type.is_file() {
             continue;
         }
+        security::permissions::validate_path(&entry.path(), false)?;
         let modified = entry.metadata()?.modified()?;
         if recovery_record_expired(now, modified) {
             fs::remove_file(entry.path())?;
@@ -459,6 +464,24 @@ mod tests {
 
         let error = restore(root.path(), &id).unwrap_err().to_string();
         assert!(error.contains("legacy unauthenticated"), "{error}");
+        assert_eq!(fs::read_to_string(&target.path).unwrap(), "new\n");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn unsafe_recovery_directory_and_public_record_are_refused_without_source_changes() {
+        use std::os::unix::fs::PermissionsExt;
+        let (root, target, patch, id) = recovery_fixture();
+        let directory = root.path().join(".lbc/fixes");
+        let record = directory.join(format!("{id}.json"));
+        fs::set_permissions(&record, fs::Permissions::from_mode(0o644)).unwrap();
+        assert!(restore(root.path(), &id).is_err());
+        assert_eq!(fs::read_to_string(&target.path).unwrap(), "new\n");
+        fs::set_permissions(&record, fs::Permissions::from_mode(0o600)).unwrap();
+        fs::set_permissions(&directory, fs::Permissions::from_mode(0o777)).unwrap();
+        assert!(prepare(&target, &patch).is_err());
+        assert!(restore(root.path(), &id).is_err());
+        assert_eq!(fs::read_dir(&directory).unwrap().count(), 1);
         assert_eq!(fs::read_to_string(&target.path).unwrap(), "new\n");
     }
 

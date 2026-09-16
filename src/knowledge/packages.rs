@@ -215,6 +215,12 @@ pub fn remove_package(name: &str, data_dir: &Path) -> Result<PathBuf> {
             data_dir.display()
         );
     }
+    // Inspect the entire tree before deletion so a foreign-owned/ACL-granted
+    // descendant cannot be silently treated as trusted mutable storage.
+    for entry in WalkDir::new(&target).follow_links(false) {
+        let entry = entry?;
+        crate::security::permissions::validate_path(entry.path(), false)?;
+    }
     fs::remove_dir_all(&target)
         .with_context(|| format!("failed to remove {}", target.display()))?;
     Ok(target)
@@ -380,6 +386,7 @@ fn collect_documents(package_root: &Path) -> Result<Vec<(String, String)>> {
 fn write_synced(path: impl AsRef<Path>, bytes: &[u8]) -> Result<()> {
     let path = path.as_ref();
     let mut file = fs::File::create(path)?;
+    crate::security::permissions::validate_file(&file, false)?;
     use std::io::Write;
     file.write_all(bytes)?;
     file.sync_all()?;

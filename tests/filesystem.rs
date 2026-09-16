@@ -192,6 +192,23 @@ fn unsafe_existing_file_is_preserved_and_private_reads_reject_public_modes() {
     assert!(librarycube::security::files::read_store_text(&path, 1024, false).is_ok());
 }
 
+#[cfg(unix)]
+#[test]
+fn package_removal_preserves_unsafe_descendants() {
+    use std::os::unix::fs::PermissionsExt;
+    let fixture = Fixture::new();
+    let package = fixture.path().join("demo-pack");
+    fs::create_dir(&package).unwrap();
+    let note = package.join("note.md");
+    fs::write(&note, "preserve me").unwrap();
+    fs::set_permissions(&note, fs::Permissions::from_mode(0o666)).unwrap();
+    assert!(librarycube::knowledge::packages::remove_package("demo-pack", fixture.path()).is_err());
+    assert_eq!(fs::read_to_string(&note).unwrap(), "preserve me");
+    fs::set_permissions(&note, fs::Permissions::from_mode(0o644)).unwrap();
+    assert!(librarycube::knowledge::packages::remove_package("demo-pack", fixture.path()).is_ok());
+    assert!(!package.exists());
+}
+
 #[cfg(target_os = "linux")]
 fn set_linux_acl(path: &Path, default: bool) {
     use std::os::{fd::AsRawFd, unix::fs::PermissionsExt};

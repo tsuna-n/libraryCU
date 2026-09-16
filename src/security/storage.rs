@@ -570,6 +570,9 @@ where
     super::files::reject_symlinks(path)?;
     super::permissions::validate_directory(parent)?;
     super::permissions::validate_file(temp.as_file(), private)?;
+    if path.exists() {
+        super::permissions::validate_path(path, false)?;
+    }
     ensure!(
         state(path)? == original_state,
         "target changed during atomic replacement"

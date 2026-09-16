@@ -11,13 +11,15 @@ Knowledge remains untrusted input even when the filesystem passes these checks.
 |---|---|---|
 | Linux | Effective UID owns store objects; no group/other write on store directories or mutable public files; no group/other access on locks, new private data, or recovery keys | Reject any extended POSIX access ACL, even with a zero mask, and any default ACL. Absent ACLs and filesystems reporting POSIX ACLs unsupported are accepted; other inspection failures fail closed |
 | macOS | Same effective-UID and mode policy | Inspect the opened descriptor's extended ACL; reject allow entries, including inherited/inherit-only grants. Deny-only ACLs are harmless and retained |
-| Windows | Store object owner must match the process token user; store ancestors may also be SYSTEM/Administrators-owned | Read the opened handle's owner and DACL. Only the current user, SYSTEM, and Administrators may have mutation/private-data rights; inherit-only CREATOR OWNER entries are allowed. Other principals may have documented read/execute rights on public mutable objects. NULL/invalid DACLs, unknown ACE types, and reparse points/junctions fail closed |
+| Windows | Store object owner must match the process token user; store ancestors may also be SYSTEM/Administrators/Windows Modules Installer (TrustedInstaller)-owned | Read the opened handle's owner and DACL. Only the current user, SYSTEM, and Administrators may have mutation/private-data rights; inherit-only CREATOR OWNER entries are allowed. TrustedInstaller is additionally trusted only on system ancestors. Other principals may have documented read/execute rights on public mutable objects. NULL/invalid DACLs, unknown ACE types, and reparse points/junctions fail closed |
 
 Unix ancestors must be owned by the effective user or root and must not grant
 group/other writes or ACL grants. Root-owned sticky temporary directories are
 allowed as ancestors, never as store roots. Windows ancestor create-only grants
 are allowed, but grants that permit replacing children or changing access control
-are refused. Inherited grants are checked before writing sensitive temporary bytes.
+are refused. Inherit-only ancestor ACEs do not grant rights on the ancestor;
+their inherited effects are checked on store objects and new temporary files.
+Inherited grants are checked before writing sensitive temporary bytes.
 Privileged administrators/root remain trusted and are not isolated by this policy.
 
 ## Where enforcement applies
@@ -25,6 +27,8 @@ Privileged administrators/root remain trusted and are not isolated by this polic
 `src/security/permissions.rs` supplies descriptor/handle checks used by store
 locks, atomic file replacement, package directory publication, knowledge creation,
 configuration reads, persistent-history reads, and recovery-key creation/reads.
+Recovery-record creation/reads, editor temporary bytes, history deletion,
+recovery pruning, and package subtree deletion also validate store access.
 Locks and atomic replacement recheck security before publication. Config files
 may remain owner-controlled `0644`; private history/key reads require private
 access. Atomic private replacement can tighten an owner-controlled public file,

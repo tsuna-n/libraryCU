@@ -217,7 +217,7 @@ mod windows {
     use windows_sys::Win32::{
         Foundation::{CloseHandle, LocalFree},
         Security::{
-            Authorization::{GetSecurityInfo, SE_FILE_OBJECT},
+            Authorization::{ConvertStringSidToSidW, GetSecurityInfo, SE_FILE_OBJECT},
             *,
         },
         System::Threading::{GetCurrentProcess, OpenProcessToken},
@@ -296,11 +296,24 @@ mod windows {
                 "cannot read token user"
             );
             let user = (*(buffer.as_ptr().cast::<TOKEN_USER>())).User.Sid;
+            // Windows system ancestors can be owned by the Windows Modules
+            // Installer service, not just SYSTEM or Administrators. Trust only
+            // this specific protected system service, never arbitrary service SIDs.
+            let installer_sid: Vec<u16> =
+                "S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464\0"
+                    .encode_utf16()
+                    .collect();
+            let mut installer = ptr::null_mut();
             ensure!(
-                EqualSid(owner, user) != 0
-                    || (!require_owner
-                        && (IsWellKnownSid(owner, WinLocalSystemSid) != 0
-                            || IsWellKnownSid(owner, WinBuiltinAdministratorsSid) != 0)),
+                ConvertStringSidToSidW(installer_sid.as_ptr(), &mut installer) != 0,
+                "cannot construct Windows system owner SID"
+            );
+            let _installer = Descriptor(installer);
+            let system_owner = IsWellKnownSid(owner, WinLocalSystemSid) != 0
+                || IsWellKnownSid(owner, WinBuiltinAdministratorsSid) != 0
+                || EqualSid(owner, installer) != 0;
+            ensure!(
+                EqualSid(owner, user) != 0 || (!require_owner && system_owner),
                 "store object has a different owner"
             );
 
@@ -323,9 +336,16 @@ mod windows {
                 let allowed = &*(ace.cast::<ACCESS_ALLOWED_ACE>());
                 let sid = ptr::addr_of!(allowed.SidStart) as PSID;
                 ensure!(IsValidSid(sid) != 0, "invalid store ACE SID");
+                // Inherit-only ACEs do not grant rights on an ancestor itself.
+                // Any grants that reach the store/new private files are checked
+                // on those objects, including when inheritance is not blocked.
+                if !require_owner && header.AceFlags as u32 & INHERIT_ONLY_ACE != 0 {
+                    continue;
+                }
                 let trusted = EqualSid(sid, user) != 0
                     || IsWellKnownSid(sid, WinLocalSystemSid) != 0
                     || IsWellKnownSid(sid, WinBuiltinAdministratorsSid) != 0
+                    || (!require_owner && EqualSid(sid, installer) != 0)
                     || (header.AceFlags as u32 & INHERIT_ONLY_ACE != 0
                         && IsWellKnownSid(sid, WinCreatorOwnerSid) != 0);
                 // Includes write/add/delete-child, attributes, DELETE, WRITE_DAC,

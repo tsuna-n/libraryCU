@@ -72,6 +72,7 @@ pub fn clear() -> Result<bool> {
     if fs::symlink_metadata(&path)?.file_type().is_symlink() {
         bail!("refusing to remove symlinked history file");
     }
+    crate::security::permissions::validate_path(&path, true)?;
     fs::remove_file(&path)
         .with_context(|| format!("failed to clear history at {}", path.display()))?;
     Ok(true)

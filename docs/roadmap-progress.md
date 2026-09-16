@@ -4,6 +4,16 @@
 
 ### Shared-store continuation (supersedes the earlier candidate counts below)
 
+- `867f82e` passed dependency 33, Linux 35, and macOS 36. Windows 34 compiled
+  and reached native tests, but rejected the system drive's TrustedInstaller
+  owner. The follow-up recognizes only the fixed Windows Modules Installer SID
+  on system ancestors (never foreign store owners), and distinguishes
+  inherit-only ancestor ACEs from effective delete/control grants.
+- Final review also validates recovery-record bytes/reads, unsafe recovery
+  directories, editor temporary bytes, history deletion, recovery pruning, and
+  every package descendant before deletion. Targeted Linux library 104 and
+  filesystem 12 tests pass. Final full suite/native CI is being repeated.
+
 - Starting revision: `f89c648c7d5d2a225028f19775a878383a27a803`; clean branch.
 - Implemented fail-closed single-owner store policy in
   `src/security/permissions.rs` and native regressions in `tests/filesystem.rs`.

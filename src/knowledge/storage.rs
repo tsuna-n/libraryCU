@@ -347,6 +347,7 @@ fn edit_with_editor(original: &str) -> Result<String> {
         .prefix("lbc-edit-")
         .suffix(".md")
         .tempfile()?;
+    crate::security::permissions::validate_file(temp.as_file(), true)?;
     temp.write_all(original.as_bytes())?;
     temp.as_file().sync_all()?;
     let status = Command::new(program)
@@ -361,6 +362,10 @@ fn edit_with_editor(original: &str) -> Result<String> {
 }
 fn atomic_write_new(path: &Path, bytes: &[u8]) -> Result<()> {
     let temp = prepared_temp(path, bytes)?;
+    crate::security::permissions::validate_directory(
+        path.parent().context("entry has no parent")?,
+    )?;
+    crate::security::permissions::validate_file(temp.as_file(), true)?;
     temp.persist_noclobber(path)
         .with_context(|| format!("refusing to overwrite {}", path.display()))?;
     crate::security::storage::sync_directory(
