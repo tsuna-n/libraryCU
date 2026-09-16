@@ -309,25 +309,8 @@ mod windows {
                 "cannot construct Windows system owner SID"
             );
             let _installer = Descriptor(installer);
-            let system_owner = IsWellKnownSid(owner, WinLocalSystemSid) != 0
-                || IsWellKnownSid(owner, WinBuiltinAdministratorsSid) != 0
-                || EqualSid(owner, installer) != 0;
-            // Elevated Windows tokens normally create Administrators-owned
-            // files. Permit that administrative owner only when it is enabled
-            // in the caller's effective token; ordinary users must not gain
-            // access to another account's administrative store by membership
-            // in a disabled/deny-only UAC group.
-            let mut enabled_administrator = 0;
-            if IsWellKnownSid(owner, WinBuiltinAdministratorsSid) != 0 {
-                ensure!(
-                    CheckTokenMembership(ptr::null_mut(), owner, &mut enabled_administrator) != 0,
-                    "cannot validate administrative store owner"
-                );
-            }
             ensure!(
-                EqualSid(owner, user) != 0
-                    || enabled_administrator != 0
-                    || (!require_owner && system_owner),
+                owner_allowed(owner, user, installer, require_owner)?,
                 "store object has a different owner"
             );
 
@@ -378,6 +361,130 @@ mod windows {
             }
         }
         Ok(())
+    }
+
+    fn owner_allowed(
+        owner: PSID,
+        user: PSID,
+        installer: PSID,
+        require_owner: bool,
+    ) -> Result<bool> {
+        // SAFETY: callers provide valid live SIDs. CheckTokenMembership uses
+        // the effective thread token and rejects disabled/deny-only UAC groups.
+        unsafe {
+            let administrator = IsWellKnownSid(owner, WinBuiltinAdministratorsSid) != 0;
+            let mut enabled = 0;
+            if administrator {
+                ensure!(
+                    CheckTokenMembership(ptr::null_mut(), owner, &mut enabled) != 0,
+                    "cannot validate administrative store owner"
+                );
+            }
+            Ok(EqualSid(owner, user) != 0
+                || enabled != 0
+                || (!require_owner
+                    && (administrator
+                        || IsWellKnownSid(owner, WinLocalSystemSid) != 0
+                        || EqualSid(owner, installer) != 0)))
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        #[test]
+        fn foreign_owner_and_disabled_administrator_cannot_supply_private_store() {
+            struct Revert;
+            impl Drop for Revert {
+                fn drop(&mut self) {
+                    unsafe { RevertToSelf() };
+                }
+            }
+            let mut administrators = [0u32; 17];
+            let mut other = [0u32; 17];
+            let mut system = [0u32; 17];
+            let mut size = 68;
+            unsafe {
+                assert_ne!(
+                    CreateWellKnownSid(
+                        WinBuiltinAdministratorsSid,
+                        ptr::null_mut(),
+                        administrators.as_mut_ptr().cast(),
+                        &mut size
+                    ),
+                    0
+                );
+                size = 68;
+                assert_ne!(
+                    CreateWellKnownSid(
+                        WinWorldSid,
+                        ptr::null_mut(),
+                        other.as_mut_ptr().cast(),
+                        &mut size
+                    ),
+                    0
+                );
+                size = 68;
+                assert_ne!(
+                    CreateWellKnownSid(
+                        WinLocalSystemSid,
+                        ptr::null_mut(),
+                        system.as_mut_ptr().cast(),
+                        &mut size
+                    ),
+                    0
+                );
+                let admin = administrators.as_mut_ptr().cast();
+                let user = other.as_mut_ptr().cast();
+                let system = system.as_mut_ptr().cast();
+                assert!(owner_allowed(user, user, system, true).unwrap());
+                assert!(!owner_allowed(system, user, system, true).unwrap());
+                assert!(owner_allowed(system, user, system, false).unwrap());
+                let mut enabled = 0;
+                assert_ne!(
+                    CheckTokenMembership(ptr::null_mut(), admin, &mut enabled),
+                    0
+                );
+                assert_eq!(
+                    owner_allowed(admin, user, system, true).unwrap(),
+                    enabled != 0
+                );
+                let mut process_token = ptr::null_mut();
+                assert_ne!(
+                    OpenProcessToken(
+                        GetCurrentProcess(),
+                        TOKEN_QUERY | TOKEN_DUPLICATE,
+                        &mut process_token
+                    ),
+                    0
+                );
+                let process_token = Token(process_token);
+                let disabled = SID_AND_ATTRIBUTES {
+                    Sid: admin,
+                    Attributes: 0,
+                };
+                let mut restricted = ptr::null_mut();
+                assert_ne!(
+                    CreateRestrictedToken(
+                        process_token.0,
+                        0,
+                        1,
+                        &disabled,
+                        0,
+                        ptr::null(),
+                        0,
+                        ptr::null(),
+                        &mut restricted
+                    ),
+                    0
+                );
+                let restricted = Token(restricted);
+                assert_ne!(ImpersonateLoggedOnUser(restricted.0), 0);
+                let _revert = Revert;
+                assert!(!owner_allowed(admin, user, system, true).unwrap());
+                assert!(owner_allowed(admin, user, system, false).unwrap());
+            }
+        }
     }
 }
 
