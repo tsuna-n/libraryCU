@@ -9,6 +9,11 @@
   owner. The follow-up recognizes only the fixed Windows Modules Installer SID
   on system ancestors (never foreign store owners), and distinguishes
   inherit-only ancestor ACEs from effective delete/control grants.
+- `de022f5` passed dependency 37, Linux 40, and macOS 39. Windows 38 reached
+  native tests but rejected newly created administrative-owned temp objects.
+  The next follow-up accepts Administrators ownership only if that SID is
+  enabled in the effective token; disabled/deny-only UAC membership cannot pass.
+  DACL checks still reject non-administrative foreign principals.
 - Final review also validates recovery-record bytes/reads, unsafe recovery
   directories, editor temporary bytes, history deletion, recovery pruning, and
   every package descendant before deletion. Targeted Linux library 104 and

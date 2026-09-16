@@ -12,8 +12,10 @@ ruleset target `~DEFAULT_BRANCH`) with:
 - Dismiss stale approvals when new commits are pushed, and require approval of
   the most recent reviewable push if the repository's workflow needs it.
 - Require conversation resolution before merging.
-- Require these exact status contexts: `ci/circleci: build_and_test` and
-  `ci/circleci: dependency_security`.
+- Require these exact status contexts: `ci/circleci: build_and_test`,
+  `ci/circleci: dependency_security`, `ci/circleci: build_macos`, and
+  `ci/circleci: build_windows`. Confirm the actual context names on a candidate
+  PR before saving the ruleset; all four must be required on the release revision.
 - Require branches to be current with the target before merging (strict checks).
 - Require signed commits on the protected branch.
 - Allow bypass only for a documented emergency maintainer role.

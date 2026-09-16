@@ -312,8 +312,22 @@ mod windows {
             let system_owner = IsWellKnownSid(owner, WinLocalSystemSid) != 0
                 || IsWellKnownSid(owner, WinBuiltinAdministratorsSid) != 0
                 || EqualSid(owner, installer) != 0;
+            // Elevated Windows tokens normally create Administrators-owned
+            // files. Permit that administrative owner only when it is enabled
+            // in the caller's effective token; ordinary users must not gain
+            // access to another account's administrative store by membership
+            // in a disabled/deny-only UAC group.
+            let mut enabled_administrator = 0;
+            if IsWellKnownSid(owner, WinBuiltinAdministratorsSid) != 0 {
+                ensure!(
+                    CheckTokenMembership(ptr::null_mut(), owner, &mut enabled_administrator) != 0,
+                    "cannot validate administrative store owner"
+                );
+            }
             ensure!(
-                EqualSid(owner, user) != 0 || (!require_owner && system_owner),
+                EqualSid(owner, user) != 0
+                    || enabled_administrator != 0
+                    || (!require_owner && system_owner),
                 "store object has a different owner"
             );
 
