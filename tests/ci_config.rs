@@ -47,7 +47,21 @@ fn release_pipeline_parses_and_requires_supply_chain_gate() {
             "publisher must require {required}"
         );
     }
-    assert_eq!(publish["context"], Value::from("lbc-release"));
+    assert_eq!(
+        publish["context"],
+        Value::Sequence(vec![
+            Value::from("lbc-release"),
+            Value::from("lbc-release-identity")
+        ])
+    );
+    for required in [
+        "release_source_gate",
+        "sign_macos_release",
+        "sign_windows_release",
+        "approve_production_release",
+    ] {
+        assert!(requirements.contains(&Value::from(required)));
+    }
     assert_eq!(
         publish["filters"]["branches"]["ignore"],
         Value::from("/.*/")
@@ -133,36 +147,23 @@ fn release_pipeline_parses_and_requires_supply_chain_gate() {
 
 #[cfg(target_os = "linux")]
 fn write_release_inputs(dist: &Path) {
-    fs::create_dir_all(dist).unwrap();
     let version = env!("CARGO_PKG_VERSION");
-    for archive in [
-        format!("lbc-{version}-x86_64-unknown-linux-gnu.tar.gz"),
-        format!("lbc-{version}-universal-apple-darwin.tar.gz"),
-        format!("lbc-{version}-x86_64-pc-windows-msvc.zip"),
-    ] {
-        fs::write(dist.join(&archive), format!("fixture bytes for {archive}")).unwrap();
-        let digest = Command::new("sha256sum")
-            .arg(dist.join(&archive))
-            .output()
-            .unwrap();
-        assert!(digest.status.success());
-        let digest = String::from_utf8(digest.stdout)
-            .unwrap()
-            .split_whitespace()
-            .next()
-            .unwrap()
-            .to_owned();
-        fs::write(
-            dist.join(format!("{archive}.sha256")),
-            format!("{digest}  {archive}\n"),
-        )
+    let output = Command::new("python3")
+        .arg(".circleci/create-release-fixture.py")
+        .arg(dist)
+        .arg(version)
+        .arg("1111111111111111111111111111111111111111")
+        .arg("fixture-workflow")
+        .env("LBC_WINDOWS_CERT_THUMBPRINT", "A".repeat(40))
+        .env("LBC_MACOS_IDENTITY_SHA1", "B".repeat(40))
+        .env("LBC_MACOS_TEAM_ID", "FIXTURE123")
+        .output()
         .unwrap();
-    }
-    fs::write(
-        dist.join(format!("lbc-{version}.cdx.json")),
-        r#"{"bomFormat":"CycloneDX","components":[{"name":"fixture","version":"1.0.0","licenses":[{"license":{"id":"MIT"}}],"hashes":[{"alg":"SHA-256","content":"00"}]}]}"#,
-    )
-    .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
 }
 
 #[cfg(target_os = "linux")]
@@ -171,8 +172,11 @@ fn provenance_command(dist: &Path) -> std::process::Output {
         .arg(".circleci/generate-provenance.sh")
         .arg(dist)
         .env("CIRCLE_SHA1", "1111111111111111111111111111111111111111")
-        .env("CIRCLE_PROJECT_USERNAME", "fixture-owner")
-        .env("CIRCLE_PROJECT_REPONAME", "fixture-repository")
+        .env("CIRCLE_PROJECT_USERNAME", "tsuna-n")
+        .env("CIRCLE_PROJECT_REPONAME", "libraryCU")
+        .env("LBC_WINDOWS_CERT_THUMBPRINT", "A".repeat(40))
+        .env("LBC_MACOS_IDENTITY_SHA1", "B".repeat(40))
+        .env("LBC_MACOS_TEAM_ID", "FIXTURE123")
         .env("CIRCLE_WORKFLOW_ID", "fixture-workflow")
         .env("CIRCLE_WORKFLOW_NAME", "ci_cd")
         .env("CIRCLE_JOB", "publish_github_release")
@@ -222,7 +226,14 @@ fn provenance_covers_the_exact_archives_checksums_and_sbom() {
     let path = dist.join(format!("lbc-{}.provenance.json", env!("CARGO_PKG_VERSION")));
     let provenance: serde_json::Value = serde_json::from_slice(&fs::read(path).unwrap()).unwrap();
     let subjects = provenance["subject"].as_array().unwrap();
-    assert_eq!(subjects.len(), 7);
+    assert_eq!(subjects.len(), 11);
+    let parameters = &provenance["predicate"]["buildDefinition"]["externalParameters"];
+    assert_eq!(parameters["version"], env!("CARGO_PKG_VERSION"));
+    assert_eq!(parameters["tag"], format!("v{}", env!("CARGO_PKG_VERSION")));
+    assert_eq!(
+        parameters["ref"],
+        format!("refs/tags/v{}", env!("CARGO_PKG_VERSION"))
+    );
     assert!(subjects.iter().any(|subject| {
         subject["name"]
             .as_str()
@@ -234,7 +245,7 @@ fn provenance_covers_the_exact_archives_checksums_and_sbom() {
     );
     assert_eq!(
         provenance["predicate"]["buildDefinition"]["resolvedDependencies"][0]["uri"],
-        "git+https://github.com/fixture-owner/fixture-repository"
+        "git+https://github.com/tsuna-n/libraryCU"
     );
     assert_eq!(
         provenance["predicate"]["runDetails"]["metadata"]["jobName"],
@@ -258,4 +269,100 @@ fn release_scripts_reject_mismatched_tags_before_publication() {
         .unwrap();
     assert!(!output.status.success());
     assert!(String::from_utf8_lossy(&output.stderr).contains("does not match"));
+}
+
+#[test]
+fn native_signing_jobs_are_tag_only_and_credential_scoped() {
+    let config: Value = serde_yaml::from_str(include_str!("../.circleci/config.yml")).unwrap();
+    let workflow = config["workflows"]["ci_cd"]["jobs"].as_sequence().unwrap();
+    let find = |name: &str| workflow.iter().find_map(|job| job.get(name)).unwrap();
+    for candidate in [
+        "dependency_security",
+        "build_and_test",
+        "build_macos",
+        "build_windows",
+    ] {
+        assert!(
+            find(candidate).get("context").is_none(),
+            "candidate must not receive release credentials"
+        );
+    }
+    for (job, context) in [
+        ("release_source_gate", "lbc-release-identity"),
+        ("sign_macos_release", "lbc-release-macos"),
+        ("sign_windows_release", "lbc-release-windows"),
+    ] {
+        assert_eq!(find(job)["context"], Value::from(context));
+        assert_eq!(
+            find(job)["filters"]["branches"]["ignore"],
+            Value::from("/.*/")
+        );
+        assert!(find(job)["filters"]["tags"]["only"].is_string());
+    }
+    for native in ["sign_macos_release", "sign_windows_release"] {
+        assert_eq!(
+            find(native)["requires"],
+            Value::Sequence(vec![Value::from("release_source_gate")])
+        );
+    }
+    for gate in [
+        "dependency_security",
+        "build_and_test",
+        "build_macos",
+        "build_windows",
+    ] {
+        assert!(
+            find("release_source_gate")["requires"]
+                .as_sequence()
+                .unwrap()
+                .contains(&Value::from(gate))
+        );
+    }
+    assert_eq!(
+        find("approve_production_release")["type"],
+        Value::from("approval")
+    );
+    assert_eq!(
+        find("approve_production_release")["filters"]["branches"]["ignore"],
+        Value::from("/.*/")
+    );
+}
+
+#[test]
+#[cfg(target_os = "linux")]
+fn production_manifest_is_exact_and_fully_signed() {
+    let output = Command::new("bash")
+        .arg("-c")
+        .arg("source .circleci/release-common.sh; set_release_assets \"$(release_version)\"; printf '%s\\n' \"${RELEASE_ASSETS[@]}\"")
+        .output().unwrap();
+    assert!(output.status.success());
+    let names = String::from_utf8(output.stdout).unwrap();
+    let names: Vec<_> = names.lines().collect();
+    assert_eq!(names.len(), 25);
+    assert_eq!(
+        names
+            .iter()
+            .copied()
+            .collect::<std::collections::BTreeSet<_>>()
+            .len(),
+        25
+    );
+    for name in names.iter().filter(|name| !name.ends_with(".asc")) {
+        assert!(
+            names.contains(&format!("{name}.asc").as_str()),
+            "every production input must be signed"
+        );
+    }
+    assert!(names.iter().any(|name| name.ends_with(".dmg")));
+    assert!(
+        names
+            .iter()
+            .any(|name| name.ends_with(".macos-signing.json"))
+    );
+    assert!(
+        names
+            .iter()
+            .any(|name| name.ends_with(".windows-signing.json"))
+    );
+    assert!(names.contains(&"lbc-release-signing-key.asc"));
 }

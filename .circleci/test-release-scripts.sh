@@ -23,25 +23,20 @@ cleanup() {
 }
 trap cleanup EXIT
 
-set_release_inputs "${version}" false
-for archive in "${RELEASE_ARCHIVES[@]}"; do
-    printf 'release fixture for %s\n' "${archive}" > "${dist_dir}/${archive}"
-    digest="$(sha256sum "${dist_dir}/${archive}" | awk '{print $1}')"
-    printf '%s  %s\n' "${digest}" "${archive}" > "${dist_dir}/${archive}.sha256"
-done
-printf '%s\n' \
-    '{"bomFormat":"CycloneDX","components":[{"name":"fixture","version":"1.0.0","licenses":[{"license":{"id":"MIT"}}],"hashes":[{"alg":"SHA-256","content":"00"}]}]}' \
-    > "${dist_dir}/lbc-${version}.cdx.json"
-
 export CIRCLE_SHA1
 CIRCLE_SHA1="$(git rev-parse HEAD)"
-export CIRCLE_PROJECT_USERNAME="fixture-owner"
-export CIRCLE_PROJECT_REPONAME="fixture-repository"
+export CIRCLE_PROJECT_USERNAME="tsuna-n"
+export CIRCLE_PROJECT_REPONAME="libraryCU"
 export CIRCLE_WORKFLOW_ID="fixture-workflow"
 export CIRCLE_WORKFLOW_NAME="ci_cd"
 export CIRCLE_JOB="publish_github_release"
 export CIRCLE_BUILD_URL="https://circleci.example.invalid/build/fixture"
 export CIRCLE_TAG="v${version}"
+export LBC_WINDOWS_CERT_THUMBPRINT="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+export LBC_MACOS_IDENTITY_SHA1="BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+export LBC_MACOS_TEAM_ID="FIXTURE123"
+printf 'SIMULATED native archive/receipt fixtures: NOT certificate or notarization evidence\n'
+python3 .circleci/create-release-fixture.py "${dist_dir}" "${version}" "${CIRCLE_SHA1}" "${CIRCLE_WORKFLOW_ID}"
 
 bash .circleci/generate-provenance.sh "${dist_dir}"
 if env -u LBC_RELEASE_SIGNING_KEY_BASE64 -u LBC_RELEASE_SIGNING_FINGERPRINT \
@@ -64,6 +59,17 @@ GNUPGHOME="${key_home}" gpg --batch --armor --export-secret-keys \
 export LBC_RELEASE_SIGNING_KEY_BASE64
 LBC_RELEASE_SIGNING_KEY_BASE64="$(base64 < "${private_key}" | tr -d '\n')"
 
+expect_signing_failure() {
+    if "$@" bash .circleci/sign-release-assets.sh "${dist_dir}" >/dev/null 2>&1; then
+        echo "Release signing accepted invalid/missing credentials" >&2
+        exit 1
+    fi
+}
+expect_signing_failure env -u LBC_RELEASE_SIGNING_KEY_BASE64
+expect_signing_failure env -u LBC_RELEASE_SIGNING_FINGERPRINT
+expect_signing_failure env LBC_RELEASE_SIGNING_KEY_BASE64=not-base64
+expect_signing_failure env LBC_RELEASE_SIGNING_KEY_BASE64=bm90IGEga2V5
+
 valid_fingerprint="${LBC_RELEASE_SIGNING_FINGERPRINT}"
 export LBC_RELEASE_SIGNING_FINGERPRINT="0123456789ABCDEF"
 if bash .circleci/sign-release-assets.sh "${dist_dir}" >/dev/null 2>&1; then
@@ -84,6 +90,48 @@ expected_assets_file="${fixture_root}/expected-assets.txt"
 printf '%s\n' "${RELEASE_ASSETS[@]}" > "${expected_assets_file}"
 valid_dist="${fixture_root}/valid-dist"
 cp -a "${dist_dir}" "${valid_dist}"
+
+# Real signed source fixture. It never tags or configures the actual repository.
+source_repo="${fixture_root}/source-repository"
+mkdir "${source_repo}"
+cp Cargo.toml "${source_repo}/Cargo.toml"
+git -C "${source_repo}" init -q
+git -C "${source_repo}" remote add origin git@github.com:tsuna-n/libraryCU.git
+git -C "${source_repo}" config user.name 'Release source fixture'
+git -C "${source_repo}" config user.email 'source@example.invalid'
+git -C "${source_repo}" config user.signingkey "${valid_fingerprint}"
+git -C "${source_repo}" config gpg.program gpg
+git -C "${source_repo}" add Cargo.toml
+GNUPGHOME="${key_home}" git -C "${source_repo}" commit -S -qm 'Signed fixture'
+GNUPGHOME="${key_home}" git -C "${source_repo}" tag -s "v${version}" -m 'Signed release fixture'
+maintainer_public="$(GNUPGHOME="${key_home}" gpg --batch --armor --export "${valid_fingerprint}" | base64 | tr -d '\n')"
+source_gate() (
+    cd "${source_repo}"
+    CIRCLE_SHA1="$(git rev-parse HEAD)" \
+    LBC_MAINTAINER_SIGNING_KEY_BASE64="${maintainer_public}" \
+    LBC_MAINTAINER_SIGNING_FINGERPRINT="${valid_fingerprint}" \
+        bash "${script_dir}/verify-release-source.sh"
+)
+source_gate
+git -C "${source_repo}" remote set-url origin git@github.com:foreign/repository.git
+if source_gate >/dev/null 2>&1; then
+    echo "Source gate accepted a foreign origin despite canonical CI metadata" >&2
+    exit 1
+fi
+git -C "${source_repo}" remote set-url origin git@github.com:tsuna-n/libraryCU.git
+git -C "${source_repo}" tag -d "v${version}" >/dev/null
+git -C "${source_repo}" tag "v${version}"
+if source_gate >/dev/null 2>&1; then
+    echo "Source gate accepted a lightweight/unsigned tag" >&2
+    exit 1
+fi
+git -C "${source_repo}" tag -d "v${version}" >/dev/null
+GNUPGHOME="${key_home}" git -C "${source_repo}" tag -s "v${version}" -m 'Signed release fixture'
+git -C "${source_repo}" -c commit.gpgsign=false commit --allow-empty -qm 'Unsigned fixture'
+if source_gate >/dev/null 2>&1; then
+    echo "Source gate accepted an unsigned commit or tag pointing elsewhere" >&2
+    exit 1
+fi
 
 expect_verification_failure() {
     local candidate="$1"
@@ -129,6 +177,11 @@ cp -a "${valid_dist}" "${case_dir}"
 printf 'stale\n' > "${case_dir}/unexpected.bin"
 expect_verification_failure "${case_dir}" "an unexpected file"
 
+case_dir="${fixture_root}/unexpected-directory"
+cp -a "${valid_dist}" "${case_dir}"
+mkdir "${case_dir}/unverified-subdirectory"
+expect_verification_failure "${case_dir}" "an unexpected directory"
+
 case_dir="${fixture_root}/symlinked-input"
 cp -a "${valid_dist}" "${case_dir}"
 rm "${case_dir}/${RELEASE_INPUTS[0]}"
@@ -159,6 +212,152 @@ jq '.predicate.buildDefinition.resolvedDependencies[0].digest.gitCommit = "00000
 mv "${provenance}.tmp" "${provenance}"
 expect_verification_failure "${case_dir}" "provenance for a different commit"
 
+for mutation in \
+    '.predicate.buildDefinition.externalParameters.repository = "foreign/repository"' \
+    '.predicate.buildDefinition.resolvedDependencies[0].uri = "git+https://github.com/foreign/repository"' \
+    '.predicate.buildDefinition.externalParameters.version = "9.9.9"' \
+    '.predicate.buildDefinition.externalParameters.tag = "v9.9.9"' \
+    '.predicate.buildDefinition.externalParameters.ref = "refs/heads/main"' \
+    '.predicate.buildDefinition.buildType = "foreign-builder"' \
+    '.predicate.runDetails.builder.id = "foreign-builder"' \
+    '.predicate.runDetails.metadata.tag = "v9.9.9"' \
+    '.predicate.runDetails.metadata.invocationId = "foreign-workflow"' \
+    '.subject |= .[1:]' \
+    '.subject += [.subject[0]]' \
+    '.subject += [{name:"unexpected.bin",digest:{sha256:("0" * 64)}}]' \
+    '.subject[0].digest.sha256 = ("0" * 64)' \
+    '.predicate.runDetails.metadata.note = "modified after signing"'; do
+    case_dir="${fixture_root}/mutated-provenance"
+    rm -rf "${case_dir}"
+    cp -a "${valid_dist}" "${case_dir}"
+    provenance="${case_dir}/lbc-${version}.provenance.json"
+    jq "${mutation}" "${provenance}" > "${provenance}.tmp"
+    mv "${provenance}.tmp" "${provenance}"
+    expect_verification_failure "${case_dir}" "mutated provenance: ${mutation}"
+done
+if CIRCLE_PROJECT_USERNAME=foreign bash .circleci/generate-provenance.sh "${dist_dir}" >/dev/null 2>&1; then
+    echo "Provenance accepted a foreign release repository" >&2
+    exit 1
+fi
+
+case_dir="${fixture_root}/duplicate-json-member"
+cp -a "${valid_dist}" "${case_dir}"
+sbom="${case_dir}/lbc-${version}.cdx.json"
+sed -E 's/"bomFormat"[[:space:]]*:[[:space:]]*"CycloneDX"/"bomFormat":"foreign","bomFormat":"CycloneDX"/' "${sbom}" > "${sbom}.tmp"
+mv "${sbom}.tmp" "${sbom}"
+expect_verification_failure "${case_dir}" "duplicate JSON members"
+
+case_dir="${fixture_root}/altered-sbom-signature"
+cp -a "${valid_dist}" "${case_dir}"
+GNUPGHOME="${key_home}" gpg --batch --yes --armor --digest-algo SHA1 \
+    --local-user "${valid_fingerprint}" --detach-sign \
+    --output "${case_dir}/lbc-${version}.cdx.json.asc" "${case_dir}/lbc-${version}.cdx.json"
+expect_verification_failure "${case_dir}" "a weak SHA-1 signature"
+
+# Real expired key/signature fixture: sign while the one-day key was valid,
+# then verify now. This is not a mocked GPG status or a production identity.
+expired_home="${fixture_root}/expired-home"
+mkdir -m 700 "${expired_home}"
+GNUPGHOME="${expired_home}" gpg --batch --faked-system-time 1577836800 --passphrase '' \
+    --quick-generate-key 'Expired fixture <expired@example.invalid>' rsa2048 sign 1d >/dev/null 2>&1
+expired_fingerprint="$(GNUPGHOME="${expired_home}" gpg --batch --with-colons --list-secret-keys | awk -F: '$1 == "fpr" {print $10; exit}')"
+expired_private="$(GNUPGHOME="${expired_home}" gpg --batch --armor --export-secret-keys "${expired_fingerprint}" | base64 | tr -d '\n')"
+expect_signing_failure env LBC_RELEASE_SIGNING_KEY_BASE64="${expired_private}" LBC_RELEASE_SIGNING_FINGERPRINT="${expired_fingerprint}"
+case_dir="${fixture_root}/expired-signature"
+cp -a "${valid_dist}" "${case_dir}"
+GNUPGHOME="${expired_home}" gpg --batch --armor --export "${expired_fingerprint}" > "${case_dir}/lbc-release-signing-key.asc"
+GNUPGHOME="${expired_home}" gpg --batch --yes --faked-system-time 1577836860 --armor \
+    --digest-algo SHA256 --local-user "${expired_fingerprint}" --detach-sign \
+    --output "${case_dir}/lbc-${version}.cdx.json.asc" "${case_dir}/lbc-${version}.cdx.json" >/dev/null 2>&1
+if LBC_RELEASE_SIGNING_FINGERPRINT="${expired_fingerprint}" bash .circleci/verify-release-assets.sh "${case_dir}" >/dev/null 2>&1; then
+    echo "Release verification accepted an expired identity" >&2
+    exit 1
+fi
+
+revoked_home="${fixture_root}/revoked-home"
+mkdir -m 700 "${revoked_home}"
+GNUPGHOME="${revoked_home}" gpg --batch --import "${private_key}" >/dev/null 2>&1
+sed 's/^://' "${key_home}/openpgp-revocs.d/${valid_fingerprint}.rev" > "${fixture_root}/revocation.asc"
+GNUPGHOME="${revoked_home}" gpg --batch --import "${fixture_root}/revocation.asc" >/dev/null 2>&1
+revoked_private="$(GNUPGHOME="${revoked_home}" gpg --batch --armor --export-secret-keys "${valid_fingerprint}" | base64 | tr -d '\n')"
+expect_signing_failure env LBC_RELEASE_SIGNING_KEY_BASE64="${revoked_private}"
+case_dir="${fixture_root}/revoked-signature"
+cp -a "${valid_dist}" "${case_dir}"
+GNUPGHOME="${revoked_home}" gpg --batch --armor --export "${valid_fingerprint}" > "${case_dir}/lbc-release-signing-key.asc"
+expect_verification_failure "${case_dir}" "a revoked identity"
+
+# Test native-record policy directly, so bad-record tests do not pass merely
+# because the old OpenPGP signature also fails after a JSON edit.
+for platform in windows macos; do
+    for mutation in \
+        '.mode = "candidate"' '.sourceSha = ("0" * 40)' '.repository = "foreign/repository"' \
+        '.version = "9.9.9"' '.tag = "v9.9.9"' '.workflowId = "foreign-workflow"' \
+        '.signer.certificateSha1 = ("0" * 40)' '.binary.sha256 = ("0" * 64)' \
+        '.archives[0].sha256 = ("0" * 64)' '.verification.signature = false' \
+        '.verification.timestamp = false' '.verification.releaseCli = false' \
+        '.verification.packagedBinary = false'; do
+        case_dir="${fixture_root}/mutated-native-record-${platform}"
+        rm -rf "${case_dir}"; cp -a "${valid_dist}" "${case_dir}"
+        receipt="${case_dir}/lbc-${version}.${platform}-signing.json"
+        jq "${mutation}" "${receipt}" > "${receipt}.tmp"; mv "${receipt}.tmp" "${receipt}"
+        if python3 .circleci/native_release.py "${case_dir}" "${version}" "${CIRCLE_SHA1}" "${CIRCLE_WORKFLOW_ID}" >/dev/null 2>&1; then
+            echo "Native validator accepted ${platform}: ${mutation}" >&2; exit 1
+        fi
+    done
+done
+for mutation in '.signer.teamId = "WRONGTEAM1"' '.verification.hardenedRuntime = false' \
+    '.verification.gatekeeper = false' '.verification.notarization.status = "Invalid"' \
+    '.verification.notarization.stapled = false' '.verification.notarization.validated = false' \
+    '.verification.notarization.id = "------------------------------------"'; do
+    case_dir="${fixture_root}/mutated-notarization"
+    rm -rf "${case_dir}"; cp -a "${valid_dist}" "${case_dir}"
+    receipt="${case_dir}/lbc-${version}.macos-signing.json"
+    jq "${mutation}" "${receipt}" > "${receipt}.tmp"; mv "${receipt}.tmp" "${receipt}"
+    if python3 .circleci/native_release.py "${case_dir}" "${version}" "${CIRCLE_SHA1}" "${CIRCLE_WORKFLOW_ID}" >/dev/null 2>&1; then
+        echo "Native validator accepted invalid notarization: ${mutation}" >&2; exit 1
+    fi
+done
+
+case_dir="${fixture_root}/private-public-key"
+cp -a "${valid_dist}" "${case_dir}"
+cp "${private_key}" "${case_dir}/lbc-release-signing-key.asc"
+expect_verification_failure "${case_dir}" "private key material in the public-key asset"
+
+# A real signing subkey must verify through the configured PRIMARY fingerprint.
+subkey_home="${fixture_root}/subkey-home"
+mkdir -m 700 "${subkey_home}"
+GNUPGHOME="${subkey_home}" gpg --batch --passphrase '' --quick-generate-key \
+    'Subkey fixture <subkey@example.invalid>' rsa2048 cert 1d >/dev/null 2>&1
+subkey_primary="$(GNUPGHOME="${subkey_home}" gpg --batch --with-colons --list-secret-keys | awk -F: '$1 == "fpr" {print $10; exit}')"
+GNUPGHOME="${subkey_home}" gpg --batch --passphrase '' --quick-add-key "${subkey_primary}" ed25519 sign 1d >/dev/null 2>&1
+subkey_private="$(GNUPGHOME="${subkey_home}" gpg --batch --armor --export-secret-keys "${subkey_primary}" | base64 | tr -d '\n')"
+case_dir="${fixture_root}/valid-signing-subkey"
+cp -a "${valid_dist}" "${case_dir}"
+LBC_RELEASE_SIGNING_KEY_BASE64="${subkey_private}" LBC_RELEASE_SIGNING_FINGERPRINT="${subkey_primary}" \
+    bash .circleci/sign-release-assets.sh "${case_dir}"
+LBC_RELEASE_SIGNING_FINGERPRINT="${subkey_primary}" bash .circleci/verify-release-assets.sh "${case_dir}"
+
+# Protected disposable key: the production script reads the masked password
+# through a private file descriptor, never a command-line argument.
+protected_home="${fixture_root}/protected-home"
+mkdir -m 700 "${protected_home}"
+GNUPGHOME="${protected_home}" gpg --batch --pinentry-mode loopback --passphrase 'fixture-only-password' \
+    --quick-generate-key 'Protected fixture <protected@example.invalid>' ed25519 sign 1d >/dev/null 2>&1
+protected_fingerprint="$(GNUPGHOME="${protected_home}" gpg --batch --with-colons --list-secret-keys | awk -F: '$1 == "fpr" {print $10; exit}')"
+protected_private="$(GNUPGHOME="${protected_home}" gpg --batch --pinentry-mode loopback --passphrase 'fixture-only-password' \
+    --armor --export-secret-keys "${protected_fingerprint}" | base64 | tr -d '\n')"
+case_dir="${fixture_root}/protected-key"
+cp -a "${valid_dist}" "${case_dir}"
+for password in '' wrong-password; do
+    if LBC_RELEASE_SIGNING_KEY_BASE64="${protected_private}" LBC_RELEASE_SIGNING_FINGERPRINT="${protected_fingerprint}" \
+        LBC_RELEASE_SIGNING_PASSPHRASE="${password}" bash .circleci/sign-release-assets.sh "${case_dir}" >/dev/null 2>&1; then
+        echo "Protected release key accepted a missing/wrong passphrase" >&2; exit 1
+    fi
+done
+LBC_RELEASE_SIGNING_KEY_BASE64="${protected_private}" LBC_RELEASE_SIGNING_FINGERPRINT="${protected_fingerprint}" \
+    LBC_RELEASE_SIGNING_PASSPHRASE='fixture-only-password' bash .circleci/sign-release-assets.sh "${case_dir}"
+LBC_RELEASE_SIGNING_FINGERPRINT="${protected_fingerprint}" bash .circleci/verify-release-assets.sh "${case_dir}"
+
 case_dir="${fixture_root}/changed-after-provenance"
 cp -a "${valid_dist}" "${case_dir}"
 printf 'changed after provenance\n' >> "${case_dir}/${RELEASE_ARCHIVES[0]}"
@@ -178,7 +377,8 @@ run_publish_fixture() {
         --port-file "${port_file}" \
         --state-file "${state_file}" \
         --version "${version}" \
-        --expected-assets-file "${expected_assets_file}" &
+        --expected-assets-file "${expected_assets_file}" \
+        --local-dist "${dist_dir}" &
     server_pid="$!"
     for _ in {1..100}; do
         [[ -s "${port_file}" ]] && break
@@ -221,6 +421,14 @@ jq -e --argjson expected "${#RELEASE_ASSETS[@]}" \
     '(.created_draft == false) and .published and (.draft == false) and (.assets | length == $expected) and (.error == null)' \
     "${state_file}" >/dev/null
 
+state_file="$(run_publish_fixture mutate-local success)"
+jq -e '.published_by_client and (.error == null)' "${state_file}" >/dev/null
+grep -q 'injected original-directory mutation' "${dist_dir}/${RELEASE_INPUTS[0]}"
+rm -rf "${dist_dir}"
+cp -a "${valid_dist}" "${dist_dir}"
+state_file="$(run_publish_fixture public-race failure)"
+jq -e '(.published_by_client == false) and (.uploads | length == 1) and (.deletes | length == 0)' "${state_file}" >/dev/null
+
 state_file="$(run_publish_fixture fail-upload failure)"
 jq -e '.created_draft and (.published == false) and .draft and (.assets | length == 3) and (.error == null)' \
     "${state_file}" >/dev/null
@@ -229,12 +437,16 @@ state_file="$(run_publish_fixture public failure)"
 jq -e '(.created_draft == false) and .published and (.assets | length == 0) and (.error == null)' \
     "${state_file}" >/dev/null
 
-for mode in api-error malformed unexpected duplicate tampered; do
+for mode in api-error malformed unexpected duplicate tampered invalid-id; do
     state_file="$(run_publish_fixture "${mode}" failure)"
     jq -e '(.published == false) and .draft' "${state_file}" >/dev/null
+    if [[ "${mode}" == invalid-id ]]; then
+        jq -e '(.uploads | length == 0) and (.deletes | length == 0)' "${state_file}" >/dev/null
+    fi
 done
 
 case_dir="${fixture_root}/tampered-input"
 cp -a "${valid_dist}" "${case_dir}"
 printf 'tampered\n' >> "${case_dir}/${RELEASE_INPUTS[0]}"
 expect_verification_failure "${case_dir}" "a tampered archive"
+printf 'Release fixtures passed: real disposable OpenPGP/source signatures, strict provenance/native records, 12 draft API scenarios\n'

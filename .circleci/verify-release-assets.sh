@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
+set +x
+umask 077
 
 dist_dir="${1:-dist}"
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -14,10 +16,7 @@ fi
 validate_release_tag "${version}"
 require_release_inputs "${dist_dir}" "${version}" true
 : "${LBC_RELEASE_SIGNING_FINGERPRINT:?Set the full release signing fingerprint in the CircleCI release context}"
-if [[ ! "${LBC_RELEASE_SIGNING_FINGERPRINT}" =~ ^[0-9A-F]{40}$ && ! "${LBC_RELEASE_SIGNING_FINGERPRINT}" =~ ^[0-9A-F]{64}$ ]]; then
-    echo "Release signing fingerprint must be a full uppercase fingerprint" >&2
-    exit 1
-fi
+validate_signing_fingerprint "${LBC_RELEASE_SIGNING_FINGERPRINT}"
 
 public_key="${dist_dir}/lbc-release-signing-key.asc"
 if [[ ! -f "${public_key}" || -L "${public_key}" || ! -s "${public_key}" ]]; then
@@ -35,7 +34,8 @@ verification_home="$(mktemp -d)"
 trap 'rm -rf "${verification_home}"' EXIT
 chmod 700 "${verification_home}"
 export GNUPGHOME="${verification_home}"
-gpg --batch --import "${public_key}" >/dev/null 2>&1
+gpg --no-options --batch --import "${public_key}" >/dev/null 2>&1
+validate_imported_identity "${LBC_RELEASE_SIGNING_FINGERPRINT}"
 primary_key_count="$(gpg --batch --with-colons --list-keys | awk -F: '$1 == "pub" {count++} END {print count + 0}')"
 if [[ "${primary_key_count}" -ne 1 ]]; then
     echo "Release public key file must contain exactly one primary key" >&2
@@ -47,13 +47,13 @@ if [[ "${actual_fingerprint}" != "${LBC_RELEASE_SIGNING_FINGERPRINT}" ]]; then
     exit 1
 fi
 for name in "${RELEASE_INPUTS[@]}"; do
-    gpg --batch --verify "${dist_dir}/${name}.asc" "${dist_dir}/${name}" >/dev/null 2>&1
+    verify_openpgp_signature "${dist_dir}/${name}.asc" "${dist_dir}/${name}" "${actual_fingerprint}"
 done
 
 # Refuse to publish accidental or stale files that are outside the manifest.
 set_release_assets "${version}"
 allowed="$(printf '%s\n' "${RELEASE_ASSETS[@]}" | sort)"
-actual="$(find "${dist_dir}" -maxdepth 1 \( -type f -o -type l \) -printf '%f\n' | sort)"
+actual="$(find "${dist_dir}" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort)"
 if [[ "${actual}" != "${allowed}" ]]; then
     echo "Release directory contains files outside the verified manifest" >&2
     if ! diff -u <(printf '%s\n' "${allowed}") <(printf '%s\n' "${actual}") >&2; then

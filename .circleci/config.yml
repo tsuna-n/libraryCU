@@ -76,7 +76,9 @@ jobs:
             mv "${sbom}" dist/
       - run:
           name: Validate provenance and signing scripts with a disposable key
-          command: bash .circleci/test-release-scripts.sh
+          command: |
+            bash .circleci/test-release-scripts.sh
+            bash .circleci/test-macos-signing.sh
       - save_cache:
           key: cargo-security-v1-{{ arch }}-{{ .Environment.CARGO_AUDIT_VERSION }}-{{ .Environment.CARGO_DENY_VERSION }}-{{ .Environment.CARGO_CYCLONEDX_VERSION }}
           paths:
@@ -275,6 +277,11 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Validate Windows native-signing policy without production credentials
+          command: |
+            & .\.circleci\test-windows-signing.ps1
+            & .\.circleci\test-windows-pfx.ps1
+      - run:
           name: Build, test, and package Windows release
           command: |
             $rustup = Join-Path $env:USERPROFILE ".cargo\bin\rustup.exe"
@@ -386,6 +393,67 @@ jobs:
           paths:
             - dist
 
+  release_source_gate:
+    executor: rust
+    steps:
+      - checkout
+      - run:
+          name: Verify pinned signed source commit and annotated release tag
+          command: bash .circleci/verify-release-source.sh
+
+  sign_macos_release:
+    macos:
+      xcode: 26.6.0
+    resource_class: m4pro.medium
+    working_directory: ~/project
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/project
+      - run:
+          name: Developer ID sign and notarize the tested universal candidate
+          command: |
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+              | sh -s -- -y --profile minimal --default-toolchain 1.97.1
+            source "${HOME}/.cargo/env"
+            bash .circleci/sign-macos-release.sh dist production-dist
+          no_output_timeout: 30m
+      - persist_to_workspace:
+          root: .
+          paths:
+            - production-dist
+
+  sign_windows_release:
+    machine:
+      image: windows-server-2022-gui:2026.05.1
+      shell: powershell.exe -NoProfile -ExecutionPolicy Bypass
+    resource_class: windows.medium
+    working_directory: ~/project
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/project
+      - run:
+          name: Authenticode sign and verify the tested Windows candidate
+          command: |
+            $rustup = Join-Path $env:USERPROFILE ".cargo\bin\rustup.exe"
+            if (-not (Test-Path -LiteralPath $rustup -PathType Leaf)) {
+                $rustupInit = Join-Path $env:TEMP "rustup-init.exe"
+                Invoke-WebRequest -Uri "https://win.rustup.rs/x86_64" -OutFile $rustupInit
+                & $rustupInit -y --profile minimal --default-toolchain 1.97.1
+                if ($LASTEXITCODE -ne 0) { throw "rustup-init failed" }
+            }
+            $env:Path = "$(Split-Path -Parent $rustup);$env:Path"
+            & $rustup toolchain install 1.97.1 --profile minimal
+            if ($LASTEXITCODE -ne 0) { throw "rustup toolchain install failed" }
+            & $rustup default 1.97.1
+            if ($LASTEXITCODE -ne 0) { throw "rustup default failed" }
+            & .\.circleci\sign-windows-release.ps1 -CandidateDir dist -OutputDir production-dist
+      - persist_to_workspace:
+          root: .
+          paths:
+            - production-dist
+
   publish_github_release:
     docker:
       - image: cimg/base:2026.08
@@ -398,11 +466,15 @@ jobs:
       - run:
           name: Generate provenance and sign release assets
           command: |
-            bash .circleci/generate-provenance.sh dist
-            bash .circleci/sign-release-assets.sh dist
+            bash .circleci/verify-release-source.sh
+            mkdir -p production-dist
+            cp -P dist/lbc-*-x86_64-unknown-linux-gnu.tar.gz \
+              dist/lbc-*-x86_64-unknown-linux-gnu.tar.gz.sha256 dist/lbc-*.cdx.json production-dist/
+            bash .circleci/generate-provenance.sh production-dist
+            bash .circleci/sign-release-assets.sh production-dist
       - run:
           name: Publish signed GitHub release assets
-          command: bash .circleci/publish-github-release.sh dist
+          command: bash .circleci/publish-github-release.sh production-dist
 
 workflows:
   ci_cd:
@@ -423,13 +495,60 @@ workflows:
           filters:
             tags:
               only: /^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/
-      - publish_github_release:
-          context: lbc-release
+      - release_source_gate:
+          context: lbc-release-identity
           requires:
             - dependency_security
             - build_and_test
             - build_macos
             - build_windows
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/
+      - sign_macos_release:
+          context: lbc-release-macos
+          requires:
+            - release_source_gate
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/
+      - sign_windows_release:
+          context: lbc-release-windows
+          requires:
+            - release_source_gate
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/
+      - publish_github_release:
+          context:
+            - lbc-release
+            - lbc-release-identity
+          requires:
+            - dependency_security
+            - build_and_test
+            - build_macos
+            - build_windows
+            - release_source_gate
+            - sign_macos_release
+            - sign_windows_release
+            - approve_production_release
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/
+      - approve_production_release:
+          type: approval
+          requires:
+            - release_source_gate
+            - sign_macos_release
+            - sign_windows_release
           filters:
             branches:
               ignore: /.*/

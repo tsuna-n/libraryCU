@@ -21,7 +21,7 @@ workflow_name="${CIRCLE_WORKFLOW_NAME:-ci_cd}"
 job_name="${CIRCLE_JOB:-local}"
 build_url="${CIRCLE_BUILD_URL:-local}"
 branch="${CIRCLE_BRANCH:-}"
-tag="${CIRCLE_TAG:-}"
+tag="${CIRCLE_TAG:-v${version}}"
 records="$(mktemp)"
 provenance_tmp="$(mktemp "${dist_dir}/.lbc-provenance.XXXXXX")"
 trap 'rm -f "${records}" "${provenance_tmp}"' EXIT
@@ -57,7 +57,10 @@ jq -s \
         predicate: {
             buildDefinition: {
                 buildType: "https://circleci.com/librarycube/release/v1",
-                externalParameters: {version: $version},
+                externalParameters: {
+                    repository: $repository, version: $version,
+                    tag: $tag, ref: ("refs/tags/" + $tag)
+                },
                 resolvedDependencies: [{uri: ("git+https://github.com/" + $repository), digest: {gitCommit: $source_sha}}]
             },
             runDetails: {

@@ -23,6 +23,9 @@ def main() -> None:
             "unexpected",
             "duplicate",
             "tampered",
+            "mutate-local",
+            "public-race",
+            "invalid-id",
         ],
         required=True,
     )
@@ -30,11 +33,14 @@ def main() -> None:
     parser.add_argument("--state-file", type=Path, required=True)
     parser.add_argument("--version", required=True)
     parser.add_argument("--expected-assets-file", type=Path, required=True)
+    parser.add_argument("--local-dist", type=Path)
     args = parser.parse_args()
     expected = args.expected_assets_file.read_text(encoding="utf-8").splitlines()
     if not expected or len(expected) != len(set(expected)):
         raise ValueError("expected asset manifest must be nonempty and unique")
     initial_assets: list[dict[str, object]] = []
+    if args.mode == "invalid-id":
+        initial_assets.append({"id": 0, "name": expected[0], "size": 1, "digest": "sha256:00", "state": "uploaded"})
     if args.mode == "resume":
         initial_assets.extend(
             {"id": index + 1, "name": name, "size": 1, "digest": "sha256:00", "state": "uploaded"}
@@ -58,6 +64,7 @@ def main() -> None:
         "uploads": [],
         "deletes": [],
         "error": None,
+        "published_by_client": False,
     }
     next_asset_id = max((int(asset["id"]) for asset in initial_assets), default=0) + 1
 
@@ -69,6 +76,8 @@ def main() -> None:
             return
 
         def send_json(self, status: int, value: object) -> None:
+            if isinstance(value, dict) and "draft" in value:
+                value = {"tag_name": f"v{args.version}", **value}
             encoded = json.dumps(value).encode("utf-8")
             self.send_response(status)
             self.send_header("Content-Type", "application/json")
@@ -88,6 +97,9 @@ def main() -> None:
             if not self.authorized():
                 return
             parsed = urlparse(self.path)
+            if parsed.path.endswith("/releases/1"):
+                self.send_json(200, {"id": 1, "draft": state["draft"]})
+                return
             if parsed.path.endswith(f"/releases/tags/v{args.version}"):
                 if args.mode == "api-error":
                     self.send_json(500, {"message": "injected API failure"})
@@ -104,7 +116,7 @@ def main() -> None:
                             "upload_url": f"http://127.0.0.1:{self.server.server_port}/uploads/1/assets{{?name,label}}",
                         },
                     )
-                elif args.mode in {"resume", "unexpected", "duplicate"}:
+                elif args.mode in {"resume", "unexpected", "duplicate", "invalid-id"}:
                     self.send_json(
                         200,
                         {
@@ -173,6 +185,13 @@ def main() -> None:
                 )
                 next_asset_id += 1
                 state["uploads"].append(name)
+                if len(state["uploads"]) == 1:
+                    if args.mode == "mutate-local" and args.local_dist:
+                        with (args.local_dist / expected[0]).open("ab") as original:
+                            original.write(b"injected original-directory mutation")
+                    if args.mode == "public-race":
+                        state["draft"] = False
+                        state["published"] = True
                 save_state()
                 self.send_json(201, state["assets"][-1])
                 return
@@ -192,6 +211,7 @@ def main() -> None:
                     return
                 state["draft"] = False
                 state["published"] = True
+                state["published_by_client"] = True
                 save_state()
                 self.send_json(200, {"id": 1, "draft": False})
                 return
