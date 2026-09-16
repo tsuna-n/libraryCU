@@ -1,5 +1,35 @@
 # Roadmap progress
 
+## Native release completion continuation — 2026-09-16
+
+- Branch `roadmap/complete-v0.4-v0.5` started at local and remote revision
+  `d2093e8b811a93e92d3e3f4fce6cff4d539239d4`. The interrupted working tree was
+  recovered intact: native archive/Windows-signing changes plus the associated
+  release documentation were preserved and reviewed rather than reset.
+- Repository-side Windows Authenticode and macOS Developer ID/notarization jobs,
+  signed-source verification, immutable final-input validation, 25-asset draft
+  publication and owner approval are implemented. Production credentials,
+  native trust, hosted control-plane attestation, GitHub controls and production
+  execution remain external; mocks are not production signing evidence.
+- ZIP paths are normalized independent of the host before exact-name and
+  duplicate checks. The validators reject slash/backslash traversal, absolute
+  paths, normalized duplicates, missing/unexpected members, symlink/hardlink,
+  Windows reparse metadata and other special-file types without extracting the
+  archive. Final binary hashes come from the one exact expected member.
+- Local continuation gate: fmt/check/strict Clippy passed; 180 debug tests and
+  52 release-binary CLI tests passed; release binary reports `lbc 0.5.0`;
+  audit scanned 224 dependencies against 1,246 advisories with no findings;
+  deny passed all policies; CycloneDX 1.3 contained 179 licensed/hashed
+  components; 19 real archive-policy cases, 22 mocked macOS cases, the complete
+  release fixture with 12 draft API scenarios, six CI/provenance tests, shell
+  syntax, Python compilation and diff checks passed.
+- PowerShell is unavailable on this Linux host. The preserved Windows suite has
+  26 explicitly mocked cases and must pass in the final hosted Windows job; it
+  is not represented as real Authenticode evidence.
+- Next action: commit/push this continuation, then use only the four CircleCI
+  candidate results belonging to that exact new SHA. Do not reuse historical
+  jobs or create `v0.5.0` until the external gates are satisfied.
+
 ## Final-source checkpoint — 2026-09-16
 
 - Branch: `roadmap/complete-v0.4-v0.5`; started clean at `f89c648`.

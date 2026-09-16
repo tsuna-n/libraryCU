@@ -4,6 +4,7 @@ set -euo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repository_root="$(cd "${script_dir}/.." && pwd)"
 cd "${repository_root}"
+python3 .circleci/test-native-archives.py
 # shellcheck source=release-common.sh
 source "${script_dir}/release-common.sh"
 

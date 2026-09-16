@@ -137,7 +137,20 @@ try {
     $rejected = $false
     try { Assert-ZipLayout $badZip $package } catch { $rejected = $true }
     if (-not $rejected) { throw "Traversal ZIP accepted" }
-    Write-Host "Windows signing fixtures: 25 passed (MOCK native/certificate calls; no production signature evidence)"
+    $duplicateZip = Join-Path $fixtureRoot "duplicate-normalized.zip"
+    Copy-Item -LiteralPath $zip -Destination $duplicateZip
+    $archive = [IO.Compression.ZipFile]::Open($duplicateZip, [IO.Compression.ZipArchiveMode]::Update)
+    try {
+        # In PS5 the existing spelling has a backslash; in PS7 it has a slash.
+        $existing = @($archive.Entries | Where-Object { $_.FullName.Replace('\', '/') -eq "$package/lbc.exe" })[0]
+        $alternate = if ($existing.FullName.Contains('\')) { "$package/lbc.exe" } else { "$package\lbc.exe" }
+        $entry = $archive.CreateEntry($alternate)
+        $writer = New-Object IO.StreamWriter($entry.Open()); $writer.Write("duplicate"); $writer.Dispose()
+    } finally { $archive.Dispose() }
+    $rejected = $false
+    try { Assert-ZipLayout $duplicateZip $package } catch { $rejected = $true }
+    if (-not $rejected) { throw "Duplicate normalized ZIP member accepted" }
+    Write-Host "Windows signing fixtures: 26 passed (MOCK native/certificate calls; no production signature evidence)"
 } finally {
     foreach ($name in $saved.Keys) { [Environment]::SetEnvironmentVariable($name, $saved[$name], "Process") }
     if (Test-Path -LiteralPath $fixtureRoot) { Remove-Item -LiteralPath $fixtureRoot -Recurse -Force }

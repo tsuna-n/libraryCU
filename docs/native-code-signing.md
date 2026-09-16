@@ -1,86 +1,150 @@
-# Native Windows and macOS signing plan
+# Native release signing and independent verification
 
-This is an implementation and operations plan, not evidence that `v0.5.0`
-binaries have native platform signatures. Detached OpenPGP signatures remain
-the implemented cross-platform release mechanism.
+Repository implementation is prepared, not proof of production execution.
+Candidate macOS binaries are ad-hoc signed; Windows candidates are unsigned.
+Actual Developer ID, Authenticode, timestamp and notarization execution remains
+`EXTERNAL CREDENTIAL REQUIRED`. No production identity was generated here.
 
-## Invariant: sign the bytes that are shipped
+## Sign the tested bytes that are shipped
 
-Native signing must happen before packaging. The required order is:
+All four credential-free candidate gates produce tested archives and an SBOM.
+The tag-only signed-source gate verifies the exact commit and signed annotated
+tag with a pinned maintainer public key. Separate credential-scoped native jobs
+unpack candidates, sign the existing binary (never rebuild it), verify it, run
+the release-binary CLI suite, and repackage the same verified bytes into
+`production-dist`. Checksums and digest-bound signing records follow successful
+native checks. The publisher uses only native outputs plus Linux/SBOM candidates;
+provenance, OpenPGP and clean-keyring verification precede draft upload.
+Owner approval is a hold, not native trust or hosted-attestation evidence.
 
-1. Build and test the release binary.
-2. Native-sign that exact binary and verify the native signature.
-3. Put the verified binary into the final archive/package.
-4. Generate the archive checksum and SBOM.
-5. Generate provenance over those final files.
-6. OpenPGP-sign and independently verify the final files.
-7. Upload only the verified manifest to a draft release.
+Packages contain exactly the binary, installer, README, CHANGELOG and LICENSE.
+The 19-case real ZIP/tar policy suite covers slash/backslash normalization,
+absolute/traversal paths, normalized duplicates, missing members, symlinks,
+hardlinks, Windows reparse metadata and other special file types. Traversal,
+duplicate, missing, unexpected, linked and oversized members fail.
+Private staging, credentials and mounts are cleaned in EXIT/finally handlers;
+no private material is persisted to workspaces, artifacts or logs. Credentialed
+jobs require trusted ephemeral release workers, not untrusted PR workers.
 
-Never native-sign one binary and package a different build or rebuild after
-signing.
+## Windows: implemented `.circleci/sign-windows-release.ps1`
 
-## Windows Authenticode
+Requires Windows SDK SignTool, an externally issued Windows-trusted code-signing
+identity and an approved HTTPS RFC 3161 timestamp service. Managed/HSM keys
+exposed through the Windows certificate provider can use CurrentUser My or a
+configured store. An optional supplied PFX is decoded in memory, imported into
+a unique CurrentUser `LbcRelease-<GUID>` store without `PersistKeySet`, kept
+alive until signing finishes, then removed/disposed. Existing managed identities
+are never deleted.
 
-External prerequisites:
+Context `lbc-release-windows`:
 
-- An organization-controlled code-signing certificate trusted by Windows,
-  preferably backed by a managed signing service or hardware-protected key.
-- A restricted CircleCI context available only to the Windows release job.
-- A SHA-256 RFC 3161 timestamp service and the expected certificate thumbprint
-  published in the private release runbook.
+| Variable | Owner-supplied value |
+|---|---|
+| `LBC_WINDOWS_CERT_THUMBPRINT` | Full uppercase 40-hex leaf thumbprint |
+| `LBC_WINDOWS_TIMESTAMP_URL` | Approved HTTPS SHA-256 RFC 3161 service |
+| `LBC_WINDOWS_CERT_STORE` | Optional CurrentUser store; default My |
+| `LBC_WINDOWS_PFX_BASE64`, `LBC_WINDOWS_PFX_PASSWORD` | Optional masked externally issued PFX/password; both required together |
+| `LBC_SIGNTOOL_PATH` | Optional SDK tool path; otherwise newest installed x64 SDK tool |
 
-Implementation steps for `build_windows`:
+Zero/multiple pinned matches, absent private keys, expired/not-yet-valid
+certificates, wrong code-signing EKU and pre-signed candidates fail.
+SignTool uses `/sha1 PIN /fd SHA256 /tr URL /td SHA256`.
+Verification `/pa /all /tw /v` must exit zero, including no warnings.
+Get-AuthenticodeSignature must report Valid, embedded Authenticode, the pinned
+signer and a timestamp certificate. Verification repeats after signed CLI tests
+and ZIP re-extraction; packaged binary hashes must match.
 
-1. Obtain the certificate through the approved managed signer. If a temporary
-   PFX is unavoidable, decode it only into the job's temporary directory, import
-   it into a temporary certificate store, mask its password, and delete both the
-   file and imported key in an always-run cleanup step.
-2. Resolve the signing certificate and compare its complete thumbprint with the
-   configured expected value. Abort on zero or multiple matches.
-3. Sign `target\release\lbc.exe` with `signtool.exe sign`, SHA-256 file digest,
-   SHA-256 RFC 3161 timestamp digest, and the approved timestamp URL.
-4. Run `signtool.exe verify /pa /all /v target\release\lbc.exe`; inspect the
-   embedded signer and timestamp and abort on mismatch.
-5. Run `lbc.exe --version` and the release-binary CLI suite against the signed
-   executable. Only then copy it into the ZIP and create its checksum.
+26 mocked cases exercise certificate policy, timestamps, embedded-vs-catalog
+signatures, traversal, failures and PFX cleanup, not actual certificate trust.
+`.circleci/test-windows-pfx.ps1` additionally runs three real lifecycle cases
+only on the ephemeral hosted Windows VM: disposable one-day self-signed TEST
+certificate import/private-key availability/cleanup, wrong pin and malformed
+PFX. The TEST certificate is never installed as a trusted root.
 
-Completion evidence is the job log showing thumbprint comparison and successful
-`signtool verify`, the signed executable's digest, a clean hosted Windows job on
-the exact release commit/tag, and independent verification after downloading
-the final ZIP. No private key or PFX may be retained as an artifact.
+## macOS: implemented `.circleci/sign-macos-release.sh`
 
-## macOS Developer ID and notarization
+Context `lbc-release-macos`:
 
-External prerequisites:
+| Variable | Owner-supplied value |
+|---|---|
+| `LBC_MACOS_CERTIFICATE_BASE64` | Masked externally issued Developer ID Application P12 |
+| `LBC_MACOS_CERTIFICATE_PASSWORD` | Masked P12 password |
+| `LBC_MACOS_IDENTITY_SHA1` | Full uppercase 40-hex leaf fingerprint |
+| `LBC_MACOS_TEAM_ID` | Expected 10-character Apple Team ID |
+| `LBC_NOTARY_KEY_BASE64` | Masked App Store Connect notarization API P8 private key |
+| `LBC_NOTARY_KEY_ID` | Expected 10-character API key ID |
+| `LBC_NOTARY_ISSUER_ID` | App Store Connect issuer UUID |
 
-- Developer ID Application and, if an installer package is used, Developer ID
-  Installer identities controlled by the maintainer organization.
-- App Store Connect notarization credentials in a restricted macOS release
-  context, preferably an issuer/key ID and scoped API private key.
-- An ephemeral keychain and a documented Team ID/signing identity allowlist.
+Imports into an ephemeral private keychain and checks the pinned identity.
+The final universal CLI is signed with hardened runtime and secure timestamp.
+Strict codesign verification requires Apple anchor, Developer ID Application
+certificate OID and pinned Team ID. Extracted leaf SHA-1 must match the trusted
+pin; display checks require Developer ID authority, timestamp and CLI runtime.
+Signed version and the full release-binary CLI suite must pass.
 
-Implementation steps for `build_macos`:
+A signed DMG contains the same CLI and installer, not a fabricated app bundle.
+notarytool submit --wait must return Accepted and a well-formed request UUID;
+info and log must match the ID and successful status/code. Stapling and ticket
+validation must succeed. Final codesign and Gatekeeper execute/open assessments
+follow notarization. The read-only mounted DMG binary signature/digest must
+match the tested signed binary. Only then is the final tar created and its
+binary digest checked again.
 
-1. Import the certificate into a randomly named temporary keychain, set the
-   keychain partition list only for `codesign`, and verify the full identity and
-   Team ID before use. Remove the keychain in an always-run cleanup step.
-2. After `lipo` creates the universal binary, sign that final binary with
-   `codesign --force --options runtime --timestamp --sign IDENTITY lbc`.
-3. Verify with `codesign --verify --strict --verbose=2`, inspect the designated
-   requirement and Team ID, run `spctl --assess --type execute`, then run the
-   release-binary CLI suite against the signed universal binary.
-4. Package the signed binary as a Developer ID-signed `.pkg` if offline stapled
-   notarization evidence is required. Submit that final package with
-   `xcrun notarytool submit --wait`; require an `Accepted` result.
-5. Run `xcrun stapler staple` and `xcrun stapler validate` on the package, then
-   `spctl --assess --type install`. A raw tar archive cannot carry a stapled
-   notarization ticket; it must remain documented as OpenPGP-authenticated only
-   or be accompanied/replaced by the notarized package.
-6. Generate checksums, provenance, and detached OpenPGP signatures only after
-   the final native-signed/notarized deliverable bytes exist.
+Raw tar cannot carry a stapled ticket. The additional
+`lbc-VERSION-universal-apple-darwin.dmg` is the offline-ticket delivery path;
+both deliverables contain the same Developer ID-signed binary. Install from a
+verified mounted DMG using its install.sh, then detach.
+22 mocked native-command cases run real archive/hash/record checks, not real
+Apple credentials, notarization or Gatekeeper trust.
 
-Completion evidence is the exact hosted macOS job and tag, verified identity and
-Team ID, accepted notarization request ID/log, successful stapler and Gatekeeper
-assessment, final digest, and independent verification of the downloaded asset.
-Certificate/API private keys must never appear in logs, workspaces, or release
-artifacts.
+## Independent downloaded-asset verification
+
+Authenticate all 25 OpenPGP assets using [circleci.md](circleci.md).
+Obtain expected source/workflow, native pins and Team ID independently.
+Digest-bound JSON records are tenant job verification records, not standalone
+native trust evidence or unforgeable hosted-builder attestations.
+
+On a clean Windows machine, safely extract the authenticated ZIP:
+
+```powershell
+signtool.exe verify /pa /all /tw /v .\lbc-0.5.0-x86_64-pc-windows-msvc\lbc.exe
+if ($LASTEXITCODE -ne 0) { throw 'Authenticode failed or warned' }
+$signature = Get-AuthenticodeSignature -LiteralPath .\lbc-0.5.0-x86_64-pc-windows-msvc\lbc.exe
+if ($signature.Status -ne 'Valid' -or $signature.SignatureType -ne 'Authenticode' -or
+    $signature.SignerCertificate.Thumbprint -cne $env:LBC_WINDOWS_CERT_THUMBPRINT -or
+    $null -eq $signature.TimeStamperCertificate) { throw 'Signer/trust/timestamp mismatch' }
+```
+
+On a clean Mac, authenticate DMG signature/checksum, validate its ticket and
+Gatekeeper assessment, then mount read-only:
+
+```bash
+dmg=lbc-0.5.0-universal-apple-darwin.dmg
+xcrun stapler validate "$dmg"
+codesign --verify --strict --verbose=2 "$dmg"
+spctl --assess --type open --context context:primary-signature --verbose=2 "$dmg"
+hdiutil attach -readonly -nobrowse "$dmg"
+```
+
+Verify both DMG and mounted/extracted CLI with this requirement, substituting
+the independently trusted Team ID and actual PATH:
+
+```bash
+codesign --verify --strict --verbose=2 \
+  -R='anchor apple generic and certificate leaf[subject.OU] = "TEAM_ID" and certificate leaf[field.1.2.840.113635.100.6.1.13] exists' PATH
+codesign --display --verbose=4 PATH
+codesign --display --extract-certificates ./release-certificate PATH
+openssl x509 -inform DER -in release-certificate0 -noout -fingerprint -sha1
+spctl --assess --type execute --verbose=2 MOUNTED_BINARY_PATH
+```
+
+Compare leaf fingerprint, Team ID, Developer ID authority and timestamp to
+trusted values; require CLI runtime. Compare mounted binary SHA-256 with the
+record and safely extracted tar binary. Detach with hdiutil detach MOUNT_PATH.
+Retain exact tag/SHA, job URLs, signer pins, accepted notarization ID/log,
+ticket, native verifier output and final/downloaded digests in the release
+record. External PKI/revocation availability and SmartScreen reputation mean a
+certificate does not guarantee absence of user prompts.
+
+References: [Microsoft SignTool](https://learn.microsoft.com/en-us/windows/win32/seccrypto/signtool),
+[Apple notarization workflow](https://developer.apple.com/documentation/security/customizing-the-notarization-workflow).

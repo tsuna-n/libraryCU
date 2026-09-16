@@ -2,6 +2,24 @@
 
 ## 0.5.0 — Unreleased (release-candidate checkpoint 2026-09-16)
 
+- Implemented tag-only, separately credential-scoped Windows Authenticode and
+  macOS Developer ID/hardened-runtime/notarization/stapling jobs. They sign and
+  re-test existing candidate binaries, verify repackaged bytes and emit
+  digest-bound native records; a signed/stapled DMG accompanies the macOS tar.
+  Production native identities/execution remain external and unverified.
+- Added a pinned signed-commit/annotated-tag source gate, post-native owner
+  approval, and deterministic 25-asset production manifest. Provenance now binds
+  exact repository origin, source, version/tag/ref, workflow and all 11 final
+  build subjects; native records are not hosted attestations.
+- Hardened OpenPGP against ambiguous JSON, private public-key material,
+  expired/known-revoked identities, weak digests and wrong signing-subkey pins;
+  protected keys read masked passphrases through a private descriptor.
+- Publication freezes/re-verifies a private upload snapshot and rechecks draft
+  state before every mutation. Added intervening-public-state and local-mutation
+  fixtures, real disposable source/OpenPGP cases, a 19-case real ZIP/tar policy
+  suite, 22 Mac and 26 Windows signing mocks, and three hosted Windows disposable
+  PFX lifecycle cases.
+
 - Added pinned `cargo audit` and `cargo deny` policy checks to a dedicated
   dependency-security CI job.
 - Fixed `ask --ai` and `chat --ai` to send the documented default model for

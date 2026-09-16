@@ -69,12 +69,20 @@ function Assert-ZipLayout {
             ForEach-Object { "$Package/$_" }
         $seen = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
         foreach ($entry in $zip.Entries) {
-            $name = $entry.FullName
+            # Windows PowerShell 5 Compress-Archive uses backslash members.
+            # Canonicalize BEFORE exact-name and duplicate checks; no traversal
+            # or second spelling of the same member may pass.
+            $name = $entry.FullName.Replace('\', '/')
             if (-not $seen.Add($name)) { throw "Duplicate ZIP member" }
-            if ($name -eq "$Package/") { continue }
             $unixType = (($entry.ExternalAttributes -shr 16) -band 0xf000)
-            if ($expected -cnotcontains $name -or $unixType -eq 0xa000 -or
-                $entry.Length -le 0 -or $entry.Length -gt 128MB) { throw "Unsafe/unexpected ZIP member" }
+            $dosAttributes = $entry.ExternalAttributes -band 0xffff
+            if (($dosAttributes -band 0x400) -ne 0) { throw "Unsafe/unexpected ZIP member: $name" }
+            if ($name -eq "$Package/") {
+                if ($entry.Length -ne 0 -or $unixType -notin @(0, 0x4000)) { throw "Unsafe ZIP directory" }
+                continue
+            }
+            if ($expected -cnotcontains $name -or $unixType -notin @(0, 0x8000) -or
+                $entry.Length -le 0 -or $entry.Length -gt 128MB) { throw "Unsafe/unexpected ZIP member: $name" }
         }
         foreach ($name in $expected) { if (-not $seen.Contains($name)) { throw "Incomplete Windows package" } }
     } finally { $zip.Dispose() }

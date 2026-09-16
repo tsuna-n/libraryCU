@@ -45,13 +45,19 @@ def packaged_binary(path: Path, package: str, windows: bool) -> str:
     if windows:
         with zipfile.ZipFile(path) as archive:
             for item in archive.infolist():
-                name = item.filename.rstrip("/")
+                normalized = item.filename.replace("\\", "/")
+                name = normalized.rstrip("/")
                 require(name not in seen, "duplicated ZIP member")
                 seen.add(name)
-                if item.is_dir():
-                    require(name == package, "unexpected ZIP directory")
+                unix_type = stat.S_IFMT(item.external_attr >> 16)
+                require(not item.external_attr & 0x400,
+                        "unsafe/unexpected ZIP member")
+                if normalized.endswith("/"):
+                    require(name == package and item.file_size == 0
+                            and unix_type in (0, stat.S_IFDIR),
+                            "unexpected ZIP directory")
                     continue
-                require(item.filename in expected and not stat.S_ISLNK(item.external_attr >> 16),
+                require(normalized in expected and unix_type in (0, stat.S_IFREG),
                         "unsafe/unexpected ZIP member")
                 require(0 < item.file_size <= 128 * 1024 * 1024, "invalid ZIP member size")
                 if name == f"{package}/{binary}":

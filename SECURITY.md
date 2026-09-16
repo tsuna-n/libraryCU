@@ -42,15 +42,31 @@ requires more time.
    harmful payload.
 2. Patch supported branches and run the complete release gate, including
    `cargo audit` and `cargo deny check`.
-3. Build release artifacts from a signed tag in CI. Generate checksums, CycloneDX
-   SBOM, build provenance, and detached signatures.
-4. Verify every signature and checksum before publishing the advisory and release.
+3. Verify the pinned signed release commit and annotated tag after all four
+   candidate gates pass. Native-sign the existing tested Windows/macOS binaries,
+   verify the exact identities/timestamps, notarize/staple the macOS DMG, re-test
+   signed binaries, and package only verified bytes. Generate final checksums,
+   CycloneDX SBOM, provenance and detached OpenPGP signatures.
+4. Obtain independently verified hosted attestation and administrator evidence
+   before the owner approval. Clean-keyring verify the complete 25-file manifest;
+   upload a private snapshot only to a draft, verify every remote name/size/digest,
+   and only then publish. Repeat native/OpenPGP/provenance verification on
+   independent downloads before announcing the advisory and release.
 5. Credit the reporter when requested and document affected/fixed versions and
    operational mitigations.
 
 Release maintainers must use signed commits and signed annotated tags. Signing
 keys and CI signing material must remain outside the repository. Rotate or revoke
 them immediately after suspected exposure.
+
+Native credential and protected-context setup is specified in
+[native-code-signing.md](docs/native-code-signing.md) and
+[circleci.md](docs/circleci.md). Local mocks/disposable keys, native signing
+records and tenant-generated SLSA v1 provenance do not prove production signing
+or SLSA Build Level 2. Offline OpenPGP checks detect only revocations present in
+the imported key data; maintainers must publish fresh trusted revocation/rotation
+information. GitHub controls remain EXTERNAL ADMIN ACTION REQUIRED until
+authenticated settings and negative-test evidence are retained.
 
 ## Scope
 

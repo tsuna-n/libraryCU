@@ -45,18 +45,19 @@ detached `.asc` signature. Download
 fingerprint with the value published by the maintainer through a separate trusted
 channel, then verify before installation:
 
-```bash
-gpg --import lbc-release-signing-key.asc
-gpg --verify lbc-0.5.0-x86_64-unknown-linux-gnu.tar.gz.asc \
-  lbc-0.5.0-x86_64-unknown-linux-gnu.tar.gz
-sha256sum -c lbc-0.5.0-x86_64-unknown-linux-gnu.tar.gz.sha256
-```
+Use the [clean-keyring full-manifest verification procedure](docs/circleci.md#reproducible-independent-verification)
+to verify all 25 files, trusted fingerprints, checksums, SBOM and exact
+source/version/workflow provenance before extracting or installing anything.
+The key shipped alongside the assets is not itself an independent trust anchor.
 
-The detached signature covers macOS and Windows archives too, but their binaries
-do not yet have Developer ID/Authenticode signatures or notarization. Gatekeeper
-or SmartScreen may therefore require approval before first use. See the
-[native platform signing plan](docs/native-code-signing.md) for the remaining
-credentialed release work and required evidence.
+The tag workflow now requires Windows Authenticode and macOS Developer ID,
+hardened runtime, notarization and a stapled DMG before production packaging.
+These executable jobs have not run with production credentials. Candidates
+remain unsigned on Windows and ad-hoc signed on macOS; no production native
+trust or public `v0.5.0` release is claimed. See the
+[native signing and independent verification runbook](docs/native-code-signing.md).
+The DMG is the offline-ticket delivery path; a raw tar cannot carry a stapled
+ticket. Certificate trust does not guarantee absence of SmartScreen prompts.
 
 From a source checkout, run the Unix/macOS installation script to build and
 install `lbc` to `~/.local/bin`:
