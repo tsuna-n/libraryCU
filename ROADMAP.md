@@ -104,9 +104,8 @@ stores are rejected, not repaired or made collaborative.
 
 # v0.5.0 — Security & Software Supply Chain
 
-**Status:** Repository hardening and four-platform/security candidate gates
-verified at the historical checkpoint; executable native signing/source gates
-are now implemented and current candidate evidence is being repeated.
+**Status:** Repository hardening, executable native signing/source gates and all
+four hosted candidate gates are verified on implementation revision `8e72159`.
 Administrator controls, production credentials, hosted attestation and production
 release execution remain open. **NOT READY**, not released.
 
@@ -241,9 +240,8 @@ EXTERNAL CREDENTIAL REQUIRED.
 - [ ] GitHub repository security controls ถูกเปิดใช้และทดสอบ
 - [x] Security documentation พร้อม
 
-Historical evidence: `e5e265a` (51/49/52/50) and `b23acdee` (55/54/53/56)
-passed all four candidate jobs. Current release-engineering changes require
-fresh hosted passes; see `docs/release-0.5.0.md` for the latest exact SHA/job IDs.
+Current implementation evidence: `8e72159` passed dependency 62, Linux 64,
+macOS 63 and Windows 61. See `docs/release-0.5.0.md` for exact SHA/job IDs.
 Candidate checkmarks never establish production artifacts, administrator settings
 or hosted SLSA Build Level 2. Approval does not replace these external gates.
 All four jobs must pass again on the actual reviewed signed release revision.

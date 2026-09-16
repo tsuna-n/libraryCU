@@ -23,12 +23,14 @@
   components; 19 real archive-policy cases, 22 mocked macOS cases, the complete
   release fixture with 12 draft API scenarios, six CI/provenance tests, shell
   syntax, Python compilation and diff checks passed.
-- PowerShell is unavailable on this Linux host. The preserved Windows suite has
-  26 explicitly mocked cases and must pass in the final hosted Windows job; it
-  is not represented as real Authenticode evidence.
-- Next action: commit/push this continuation, then use only the four CircleCI
-  candidate results belonging to that exact new SHA. Do not reuse historical
-  jobs or create `v0.5.0` until the external gates are satisfied.
+- PowerShell is unavailable on this Linux host. On implementation revision
+  `8e721592197b141c374a054d5e10ac7a5c486c16`, Windows build 61 passed 26
+  explicitly mocked cases and three self-signed disposable PFX lifecycle cases;
+  dependency 62, macOS 63 and Linux 64 also passed. These fixtures are not real
+  Authenticode or Apple production evidence.
+- Repository-side remaining work is empty after this evidence-recording update.
+  Do not create `v0.5.0` until the external administrator, credential, hosted-
+  attestation and production verification gates are satisfied.
 
 ## Final-source checkpoint — 2026-09-16
 
