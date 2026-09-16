@@ -305,6 +305,8 @@ fn macos_extended_and_inherited_acl_grants_are_rejected_but_denies_are_safe() {
             .success()
     );
     assert!(permissions::validate_path(&path, true).is_ok());
+    assert!(storage::atomic_replace(&path, b"replacement", false).is_err());
+    assert_eq!(fs::read_to_string(&path).unwrap(), "");
     assert!(
         Command::new("chmod")
             .arg("+a")

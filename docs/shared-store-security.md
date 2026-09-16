@@ -47,8 +47,10 @@ not suitable for sensitive mutable stores.
 These checks are fail-closed observations, not a sandbox or guarantee against
 every non-cooperating writer. Unix publication is directory-descriptor anchored;
 Windows portable publication still has path-based race limits. Atomic replacement
-does not preserve extended ACLs (grants are rejected); harmless macOS denies on an
-old file are not copied to its replacement. Windows temporary files inherit the
+does not preserve extended ACLs. Grants are rejected; an existing macOS file
+with even a deny-only ACL is refused by atomic replacement so privacy restrictions
+cannot be silently stripped. Deny-only ACLs remain supported for inspection,
+private reads/locks, and directories. Windows temporary files inherit the
 validated parent DACL. Network filesystem ACL models beyond the native APIs are
 not certified. Unknown platforms refuse mutable-store access.
 

@@ -17,7 +17,7 @@ fn validate_file_inner(file: &fs::File, private: bool, require_owner: bool) -> R
     {
         use std::os::unix::fs::MetadataExt;
         validate_unix_mode(metadata.uid(), metadata.mode(), private)?;
-        reject_acl(file)?;
+        reject_acl(file, false)?;
     }
     #[cfg(windows)]
     windows::validate(file, private, require_owner)?;
@@ -50,6 +50,22 @@ fn validate_unix_mode(owner: u32, mode: u32, private: bool) -> Result<()> {
 /// Check an existing mutable-store object before reading or replacing it.
 pub fn validate_path(path: &Path, private: bool) -> Result<()> {
     validate_path_inner(path, private, true)
+}
+
+/// Atomic replacement preserves Unix mode bits, not extended ACLs. Refuse an
+/// existing macOS ACL rather than stripping even a deny-only privacy restriction.
+pub fn validate_replacement_target(path: &Path) -> Result<()> {
+    validate_path(path, false)?;
+    #[cfg(target_os = "macos")]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        let file = fs::OpenOptions::new()
+            .read(true)
+            .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
+            .open(path)?;
+        reject_acl(&file, true)?;
+    }
+    Ok(())
 }
 
 fn validate_path_inner(path: &Path, private: bool, require_owner: bool) -> Result<()> {
@@ -121,13 +137,13 @@ pub fn validate_directory(path: &Path) -> Result<()> {
             "store ancestor is writable by another user: {}",
             ancestor.display()
         );
-        reject_acl(&fs::File::open(ancestor)?)?;
+        reject_acl(&fs::File::open(ancestor)?, false)?;
     }
     Ok(())
 }
 
 #[cfg(any(target_os = "linux", target_os = "android"))]
-fn reject_acl(file: &fs::File) -> Result<()> {
+fn reject_acl(file: &fs::File, _reject_denies: bool) -> Result<()> {
     use std::os::fd::AsRawFd;
     for name in [c"system.posix_acl_access", c"system.posix_acl_default"] {
         // SAFETY: descriptor and NUL-terminated name are valid; zero length queries size.
@@ -151,7 +167,7 @@ fn reject_acl(file: &fs::File) -> Result<()> {
 }
 
 #[cfg(target_os = "macos")]
-fn reject_acl(file: &fs::File) -> Result<()> {
+fn reject_acl(file: &fs::File, reject_denies: bool) -> Result<()> {
     use std::{ffi::c_void, os::fd::AsRawFd};
     unsafe extern "C" {
         fn acl_get_fd_np(fd: libc::c_int, kind: libc::c_int) -> *mut c_void;
@@ -191,8 +207,8 @@ fn reject_acl(file: &fs::File) -> Result<()> {
             ensure!(result == 0, "cannot enumerate store ACL");
             let mut tag = 0;
             ensure!(
-                unsafe { acl_get_tag_type(entry, &mut tag) } == 0 && tag == 2,
-                "extended ACL grants are not supported for mutable stores"
+                unsafe { acl_get_tag_type(entry, &mut tag) } == 0 && tag == 2 && !reject_denies,
+                "extended ACL cannot be safely used or preserved during replacement"
             );
             index = -1; // ACL_NEXT_ENTRY; harmless deny entries may remain.
         }
@@ -206,7 +222,7 @@ fn reject_acl(file: &fs::File) -> Result<()> {
     unix,
     not(any(target_os = "linux", target_os = "android", target_os = "macos"))
 ))]
-fn reject_acl(_: &fs::File) -> Result<()> {
+fn reject_acl(_: &fs::File, _: bool) -> Result<()> {
     anyhow::bail!("mutable-store ACL validation is unsupported on this platform")
 }
 

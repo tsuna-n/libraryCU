@@ -294,7 +294,7 @@ where
     let parent_file = open_directory_no_symlinks(parent)?;
     super::permissions::validate_file(&parent_file, false)?;
     if path.exists() {
-        super::permissions::validate_path(path, false)?;
+        super::permissions::validate_replacement_target(path)?;
     }
     let parent_identity = file_identity(&parent_file)?;
     let target_name = cstring(
@@ -359,7 +359,7 @@ where
     super::permissions::validate_directory(parent)?;
     super::permissions::validate_file(&temporary_file, private)?;
     if path.exists() {
-        super::permissions::validate_path(path, false)?;
+        super::permissions::validate_replacement_target(path)?;
     }
     if file_identity(&current_parent)? != parent_identity {
         bail!("target directory changed during atomic replacement");
@@ -553,7 +553,7 @@ where
     super::files::reject_symlinks(path)?;
     super::permissions::validate_directory(parent)?;
     if path.exists() {
-        super::permissions::validate_path(path, false)?;
+        super::permissions::validate_replacement_target(path)?;
     }
     let original_state = state(path)?;
 
@@ -571,7 +571,7 @@ where
     super::permissions::validate_directory(parent)?;
     super::permissions::validate_file(temp.as_file(), private)?;
     if path.exists() {
-        super::permissions::validate_path(path, false)?;
+        super::permissions::validate_replacement_target(path)?;
     }
     ensure!(
         state(path)? == original_state,
