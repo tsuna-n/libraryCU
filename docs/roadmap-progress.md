@@ -1,5 +1,66 @@
 # Roadmap progress
 
+## Final-source checkpoint — 2026-09-16
+
+- Branch: `roadmap/complete-v0.4-v0.5`; started clean at `f89c648`.
+- Source revision: `e5e265ae2c97886f768d41bd0762d5f4ed514b41`; version `0.5.0`,
+  release candidate only. No production tag or release exists.
+- Implemented [single-owner store validation](shared-store-security.md) in
+  `src/security/permissions.rs`: Linux UID/mode/access/default ACL checks,
+  macOS opened-descriptor ACL checks, and Windows opened-handle owner/DACL and
+  junction/reparse checks. Unsafe shared stores/ancestors/inherited grants fail
+  closed. Windows administrative ownership requires enabled effective-token
+  membership, not disabled/deny-only UAC membership; TrustedInstaller is trusted
+  only on system ancestors. A native restricted-token regression proves this.
+- Enforcement also covers recovery-record creation/reads/pruning, private keys,
+  history reads/deletion, editor temporary bytes, knowledge creation, atomic
+  publication, and all package descendants before deletion. macOS replacement
+  refuses even deny-only existing ACLs to avoid stripping privacy restrictions.
+- Local final source: fmt, locked check, strict all-target/all-feature Clippy,
+  **178 tests** (104 library, 4 CI/release, 52 CLI, 12 filesystem, 6 privacy),
+  release build, **52 release-binary CLI tests**, and diff/shell syntax checks
+  passed, with zero failures/ignored tests/doc-test failures.
+- Audit passed (1,246 advisories / 224 locked dependencies); deny policies passed
+  with allowed duplicates visible. CycloneDX structural validation passed for
+  179 components, all with name/version/license/hash. Disposable one-day signing
+  key and mock-GitHub release fixture passed, not production signing/publication.
+- Ownership/loopback-sensitive tests ran with real host metadata and permission;
+  sandbox-mapped/denied runs were not successes and checks were not weakened.
+- Current-source hosted dependency [51](https://circleci.com/gh/tsuna-n/libraryCU/51),
+  Linux [49](https://circleci.com/gh/tsuna-n/libraryCU/49), Windows
+  [50](https://circleci.com/gh/tsuna-n/libraryCU/50), and macOS
+  [52](https://circleci.com/gh/tsuna-n/libraryCU/52) all passed this exact revision.
+  Native macOS passed 174 debug tests and 52 release CLI tests; Windows passed
+  157 debug tests and 51 release CLI tests, including effective-token ownership,
+  foreign grants, NULL DACL, and junction regressions. Platform-conditional test
+  counts differ; no failure was converted to an ignored test.
+  The cross-platform ownership/ACL item and four hosted candidate gates are
+  now checked in ROADMAP.md and COMPLETE in the requirement matrix.
+- External GitHub admin gates: public API still shows zero rulesets and private
+  reporting disabled. Authenticated branch protection/context permissions are
+  unverified; apply/export/negative-test controls and all four CI contexts.
+- Credential/service gates: protected OpenPGP material/fingerprint and scoped
+  release context/token, signed commit/tag identity, Windows Authenticode and
+  macOS Developer ID/notarization credentials. Credentialed native signing jobs
+  remain an operational integration plan, not completed production signing.
+- Hosted provenance gate: tenant-generated SLSA-shaped metadata is implemented,
+  but control-plane attestation and independent SLSA Build Level 2 evidence are
+  still unconfigured/unverified.
+- Production execution gate: reviewed signed commit/tag, final native signing/
+  notarization before packaging, production manifest/SBOM/provenance/signatures,
+  independent downloaded-byte verification, then publication. None is claimed.
+- This checkpoint records tested source, not the hash of its own documentation
+  commit. The final documentation commit must also obtain four hosted passes;
+  inspect CircleCI against branch HEAD before using it as a release candidate.
+- Next release-owner actions: configure/export/negative-test GitHub controls and
+  protected signing/service identities; implement the credentialed native jobs
+  described in `native-code-signing.md`; obtain independently verified hosted
+  attestation if claiming Build Level 2. Then gate the reviewed signed revision
+  and execute/independently verify the production release. Do not tag/publish or
+  start v0.6 while those gates remain open.
+
+## Historical checkpoints (superseded by the final-source checkpoint above)
+
 ## Checkpoint — 2026-09-16
 
 ### Shared-store continuation (supersedes the earlier candidate counts below)

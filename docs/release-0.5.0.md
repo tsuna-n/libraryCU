@@ -11,8 +11,9 @@ hosted jobs before it can become the release revision.
 
 - The shared-store continuation implements single-owner Linux/macOS/Windows
   owner/ACL validation, unsafe ancestor rejection, private key/history reads,
-  and Windows junction rejection. Linux targeted regressions pass; native hosted
-  runs of this changed candidate remain pending. See
+  and Windows junction rejection. All 178 Linux tests and 52 release-binary
+  tests pass; all four native/platform and dependency-security candidate jobs
+  passed the exact final-source revision below. See
   [shared-store-security.md](shared-store-security.md).
 
 - The hosted dependency failure is fixed locally by resolving `rustls` 0.23.45
@@ -40,7 +41,7 @@ hosted jobs before it can become the release revision.
 
 ## Local evidence
 
-Formatting, locked check, strict all-target/all-feature Clippy, the 169-test
+Formatting, locked check, strict all-target/all-feature Clippy, the 178-test
 debug suite, release build, all 52 CLI tests against the release binary,
 `cargo audit`, `cargo deny check`, a 179-component CycloneDX validation, shell
 syntax, CI configuration regressions, and the expanded release-script fixture
@@ -51,6 +52,20 @@ The requirement-by-requirement classification is maintained in
 
 ## Hosted candidate evidence
 
+Final-source revision `e5e265ae2c97886f768d41bd0762d5f4ed514b41` passed all four:
+
+- [Linux 49](https://circleci.com/gh/tsuna-n/libraryCU/49): 178 debug tests,
+  52 release-binary CLI tests, and package/installer validation.
+- [macOS 52](https://circleci.com/gh/tsuna-n/libraryCU/52): 174 debug tests,
+  52 release-binary CLI tests, and native allow/deny/inherited ACL regressions.
+- [Windows 50](https://circleci.com/gh/tsuna-n/libraryCU/50): 157 debug tests,
+  51 release-binary CLI tests, effective-token ownership, foreign grants,
+  NULL DACL, and junction regressions.
+- [Dependency security 51](https://circleci.com/gh/tsuna-n/libraryCU/51): audit,
+  deny, SBOM, and disposable-key/mock-publication fixtures.
+
+The following earlier results are historical, not substitutes for these passes:
+
 - [Dependency-security build 28](https://circleci.com/gh/tsuna-n/libraryCU/28),
   [Linux build/test build 26](https://circleci.com/gh/tsuna-n/libraryCU/26),
   [macOS build 27](https://circleci.com/gh/tsuna-n/libraryCU/27), and
@@ -60,14 +75,23 @@ The requirement-by-requirement classification is maintained in
   [build 24](https://circleci.com/gh/tsuna-n/libraryCU/24), which found
   `RUSTSEC-2026-0285` in rustls 0.23.43 at the starting checkpoint.
 
-## Evidence that remains open
+## Manual release gates that remain open
 
 - Public evidence showed no rulesets, private vulnerability reporting disabled,
   an unsigned candidate commit, and no `v0.5.0` tag or release. Authenticated
   branch-protection state and release-context secrets were unavailable.
-- Production archives, checksums, SBOM, provenance, OpenPGP/native signatures,
-  signed tag, independent verification, and hosted-builder SLSA Build Level 2
-  evidence do not yet exist.
+- GitHub administrator: configure/export/negative-test branch/tag rules, required
+  PR/review/resolved conversations and all four CI contexts, force-push/deletion
+  blocks, signed maintainer controls, and private vulnerability reporting.
+- Credentials/services: provision or independently verify protected OpenPGP
+  identity/fingerprint, scoped release context/token, Authenticode and Developer
+  ID/notarization identities. Credentialed native jobs still require operational
+  integration; the existing design is not proof they ran. Hosted control-plane
+  attestation and independent policy verification are required for Build Level 2.
+- Production execution: gate a reviewed signed commit/tag, native-sign/notarize
+  before packaging, generate final checksums/SBOM/provenance/OpenPGP signatures,
+  independently verify downloaded bytes and identities, then publish. No
+  production asset set, signatures, notarization, or publication is claimed.
 
 The external setup and negative tests are specified in
 [repository-security.md](repository-security.md), [circleci.md](circleci.md),

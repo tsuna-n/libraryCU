@@ -65,6 +65,13 @@ permission changes during publication, failure cleanup, concurrent edits, and
 parent swaps. Platform-specific tests must execute on that platform; a Linux
 pass does not prove the macOS/Windows rows passed.
 
+Final-source `e5e265ae2c97886f768d41bd0762d5f4ed514b41` passed native
+[Linux 49](https://circleci.com/gh/tsuna-n/libraryCU/49),
+[macOS 52](https://circleci.com/gh/tsuna-n/libraryCU/52), and
+[Windows 50](https://circleci.com/gh/tsuna-n/libraryCU/50), including the
+restricted-token administrative-owner regression and macOS deny-ACL replacement
+refusal. These are security regressions, not platform-signing certification.
+
 Native API references: [Microsoft GetSecurityInfo](https://learn.microsoft.com/en-us/windows/win32/api/aclapi/nf-aclapi-getsecurityinfo),
 [Apple ACL definitions](https://github.com/apple-oss-distributions/Libc/blob/main/include/sys/acl.h),
 [Apple ACL enumeration](https://github.com/apple-oss-distributions/Libc/blob/main/posix1e/acl_entry.c),

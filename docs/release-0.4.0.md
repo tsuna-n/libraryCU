@@ -6,7 +6,8 @@ limitations below; current classifications are in
 
 The 2026-09-16 continuation adds a fail-closed single-owner
 [mutable-store ownership/ACL policy](shared-store-security.md) and Linux/macOS/
-Windows regressions. These are candidate hardening, not a retroactive claim that
+Windows regressions, verified on final-source `e5e265a` by CircleCI Linux 49,
+macOS 52, and Windows 50. These are candidate hardening, not a retroactive claim that
 the historical v0.4 release had these protections or passed hosted validation.
 
 This release adds explicit fix verification, local recovery records,

@@ -83,12 +83,7 @@
 - [x] Strict project boundary
 - [x] Transaction-safe package installation
 - [x] Multi-process file locking
-- [ ] Cross-platform multi-user/shared-store ownership and ACL validation
-
-Repository policy and native regressions now exist in
-`docs/shared-store-security.md`; this item remains open until the changed
-candidate passes Linux/macOS/Windows tests. Writable multi-user collaboration
-is not v0.4 scope: unsafe shared mutable stores must be rejected.
+- [x] Cross-platform multi-user/shared-store ownership and ACL validation
 - [x] Authenticated recovery records
 - [x] Recovery retention policy
 - [x] Complete override cycle validation
@@ -100,12 +95,18 @@ is not v0.4 scope: unsafe shared mutable stores must be rejected.
 - [ ] RBAC / SSO (v0.8 scope)
 - [ ] Organization knowledge server (v0.6 scope)
 
+The single-owner policy in `docs/shared-store-security.md` passed native
+Linux/macOS/Windows validation on `e5e265a` (CircleCI 49/52/50).
+Writable multi-user collaboration is not v0.4 scope: unsafe shared mutable
+stores are rejected, not repaired or made collaborative.
+
 ---
 
 # v0.5.0 — Security & Software Supply Chain
 
-**Status:** Release candidate; hosted repository controls and signed release CI
-must pass before publishing.
+**Status:** Repository hardening and four-platform/security candidate gates
+verified; administrator controls, signing integration/credentials, and production
+release execution remain open. Not released.
 
 ## Goal
 
@@ -210,10 +211,10 @@ run.
 `v0.5.0` ห้าม release จนกว่า:
 
 - [x] Local Linux validation ผ่านทั้งหมด
-- [ ] Hosted dependency-security CI ผ่านบน exact release revision
-- [ ] Hosted CI ผ่าน Linux บน exact release revision
-- [ ] Hosted CI ผ่าน macOS บน exact release revision
-- [ ] Hosted CI ผ่าน Windows บน exact release revision
+- [x] Hosted dependency-security CI ผ่านบน exact tested candidate revision
+- [x] Hosted CI ผ่าน Linux บน exact tested candidate revision
+- [x] Hosted CI ผ่าน macOS บน exact tested candidate revision
+- [x] Hosted CI ผ่าน Windows บน exact tested candidate revision
 - [x] Local `cargo audit` ผ่าน
 - [x] Local `cargo deny check` ผ่าน
 - [x] Local tests ผ่านทั้งหมด
@@ -224,6 +225,11 @@ run.
 - [ ] Production provenance ถูกสร้างและตรวจสอบกับ published artifacts
 - [ ] GitHub repository security controls ถูกเปิดใช้และทดสอบ
 - [x] Security documentation พร้อม
+
+Candidate evidence: `e5e265ae2c97886f768d41bd0762d5f4ed514b41`, CircleCI
+dependency-security 51, Linux 49, macOS 52, and Windows 50 all passed.
+These checkmarks do not validate a later commit/tag or production artifacts;
+all four jobs must pass again on the actual signed release revision.
 
 ---
 

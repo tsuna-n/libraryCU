@@ -52,6 +52,11 @@
   inherited grants, private key/history reads, and Windows junction rejection.
   Added platform-specific ACL and shared-store regressions; this does not enable
   shared writable collaboration or establish production signing evidence.
+- Windows administrative ownership now requires an enabled effective-token SID;
+  disabled/deny-only membership cannot authorize a private store. macOS atomic
+  replacement refuses existing deny-only ACLs rather than stripping restrictions.
+  Native Linux/macOS/Windows and dependency-security validation passed the exact
+  source candidate recorded in `docs/release-0.5.0.md`; production gates stay open.
 
 ## 0.4.0 — 2026-09-07
 
