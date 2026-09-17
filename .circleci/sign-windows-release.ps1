@@ -76,12 +76,12 @@ function Assert-ZipLayout {
             if (-not $seen.Add($name)) { throw "Duplicate ZIP member" }
             $unixType = (($entry.ExternalAttributes -shr 16) -band 0xf000)
             $dosAttributes = $entry.ExternalAttributes -band 0xffff
-            if (($dosAttributes -band 0x400) -ne 0) { throw "Unsafe/unexpected ZIP member: $name" }
+            if (($dosAttributes -band 0x408) -ne 0) { throw "Unsafe/unexpected ZIP member: $name" }
             if ($name -eq "$Package/") {
                 if ($entry.Length -ne 0 -or $unixType -notin @(0, 0x4000)) { throw "Unsafe ZIP directory" }
                 continue
             }
-            if ($expected -cnotcontains $name -or $unixType -notin @(0, 0x8000) -or
+            if ($expected -cnotcontains $name -or $unixType -notin @(0, 0x8000) -or ($dosAttributes -band 0x10) -ne 0 -or
                 $entry.Length -le 0 -or $entry.Length -gt 128MB) { throw "Unsafe/unexpected ZIP member: $name" }
         }
         foreach ($name in $expected) { if (-not $seen.Contains($name)) { throw "Incomplete Windows package" } }

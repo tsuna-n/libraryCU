@@ -418,6 +418,9 @@ jobs:
             source "${HOME}/.cargo/env"
             bash .circleci/sign-macos-release.sh dist production-dist
           no_output_timeout: 30m
+      - store_artifacts:
+          path: production-dist
+          destination: staged-native-release
       - persist_to_workspace:
           root: .
           paths:
@@ -449,6 +452,9 @@ jobs:
             & $rustup default 1.97.1
             if ($LASTEXITCODE -ne 0) { throw "rustup default failed" }
             & .\.circleci\sign-windows-release.ps1 -CandidateDir dist -OutputDir production-dist
+      - store_artifacts:
+          path: production-dist
+          destination: staged-native-release
       - persist_to_workspace:
           root: .
           paths:

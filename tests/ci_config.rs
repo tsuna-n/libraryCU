@@ -304,6 +304,16 @@ fn native_signing_jobs_are_tag_only_and_credential_scoped() {
             find(native)["requires"],
             Value::Sequence(vec![Value::from("release_source_gate")])
         );
+        let steps = config["jobs"][native]["steps"].as_sequence().unwrap();
+        let sign_index = steps
+            .iter()
+            .position(|step| step["run"]["name"].is_string())
+            .unwrap();
+        let artifact_index = steps
+            .iter()
+            .position(|step| step["store_artifacts"]["path"].as_str() == Some("production-dist"))
+            .expect("owner must be able to download staged native evidence before approval");
+        assert!(artifact_index > sign_index);
     }
     for gate in [
         "dependency_security",

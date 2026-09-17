@@ -1,6 +1,21 @@
 # Changelog
 
-## 0.5.0 — Unreleased (release-candidate checkpoint 2026-09-16)
+## 0.5.0 — Unreleased production release (release-candidate checkpoint 2026-09-17)
+
+- Confirmed the public GitHub `v0.5.0` Release is empty and contradicts its
+  DRAFT title/body; it is not a verified production release. Existing publication
+  safety remains fail closed and refuses this public release.
+- Added independently diagnostic source-gate regressions, explicit context/variable
+  errors, exact GitHub transport/origin allowlisting and replacement-object/custom
+  OpenPGP verifier rejection. Hosted gate 153 failed on missing maintainer public
+  key; all four candidate jobs passed the starting signed revision `ac16da5`.
+- Extended final archive validation to Linux and all ZIP member data/CRCs,
+  rejected weak OpenPGP primary/signing-subkey identities, and exposed verified
+  native outputs as CI artifacts for pre-approval owner inspection. The real
+  archive-policy suite now has 25 cases; native mocks remain test evidence only.
+- Final publication now sets canonical title/body and `prerelease=false` only
+  after all gates pass, avoiding stale DRAFT metadata on a resumed owner draft.
+  A resumed-draft regression proves this without touching the public release.
 
 - Implemented tag-only, separately credential-scoped Windows Authenticode and
   macOS Developer ID/hardened-runtime/notarization/stapling jobs. They sign and

@@ -18,10 +18,14 @@ provenance, OpenPGP and clean-keyring verification precede draft upload.
 Owner approval is a hold, not native trust or hosted-attestation evidence.
 
 Packages contain exactly the binary, installer, README, CHANGELOG and LICENSE.
-The 19-case real ZIP/tar policy suite covers slash/backslash normalization,
+The 25-case real ZIP/tar policy suite covers slash/backslash normalization,
 absolute/traversal paths, normalized duplicates, missing members, symlinks,
 hardlinks, Windows reparse metadata and other special file types. Traversal,
 duplicate, missing, unexpected, linked and oversized members fail.
+Final validation also covers Linux packages and reads every ZIP member to reject
+corrupt non-binary data/CRCs. Native jobs store `production-dist` as staged CI
+artifacts before the owner approval hold, so exact signed outputs and receipts
+can be downloaded and independently checked; credentials are not stored.
 Private staging, credentials and mounts are cleaned in EXIT/finally handlers;
 no private material is persisted to workspaces, artifacts or logs. Credentialed
 jobs require trusted ephemeral release workers, not untrusted PR workers.
@@ -54,8 +58,11 @@ Get-AuthenticodeSignature must report Valid, embedded Authenticode, the pinned
 signer and a timestamp certificate. Verification repeats after signed CLI tests
 and ZIP re-extraction; packaged binary hashes must match.
 
-26 mocked cases exercise certificate policy, timestamps, embedded-vs-catalog
+28 signing/policy cases exercise certificate policy, timestamps, embedded-vs-catalog
 signatures, traversal, failures and PFX cleanup, not actual certificate trust.
+Two new cases reject ZIP file entries marked as DOS directories/volumes in the
+same way as the Linux validator. These changed PowerShell cases require a fresh
+hosted Windows pass; build 150 verified the earlier 26-case suite only.
 `.circleci/test-windows-pfx.ps1` additionally runs three real lifecycle cases
 only on the ephemeral hosted Windows VM: disposable one-day self-signed TEST
 certificate import/private-key availability/cleanup, wrong pin and malformed

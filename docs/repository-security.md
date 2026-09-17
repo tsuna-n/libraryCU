@@ -5,10 +5,16 @@ be enforced by files in a clone, so capture the ruleset ID and a screenshot or
 API export in the release record after configuration.
 
 Status: EXTERNAL ADMIN ACTION REQUIRED. Read-only public API checks on
-2026-09-16 returned zero repository rulesets and private vulnerability reporting
+2026-09-17 returned zero repository rulesets and private vulnerability reporting
 `enabled: false`. No authenticated GitHub API/token was available; traditional
 branch-protection and organization/inherited settings are unverified, not
-asserted absent. No production tag or public release exists. Do not infer
+asserted absent. The main protection endpoint returned `404 Branch not protected`;
+authenticated/inherited control evidence is still required. A signed annotated
+`v0.5.0` tag and an empty public release do exist; the release's DRAFT labeling
+is inconsistent with `draft: false`. Commit `ac16da5` has GitHub verification
+`verified: false`, `reason: unknown_key`. Upload the matching PUBLIC source key
+to the maintainer's GitHub signing-key settings and re-query verification; do
+not infer cryptographic identity merely from the signature text. Do not infer
 enabled protection from documentation or candidate CI passes.
 
 Create an **active** branch ruleset targeting the default branch (`main`, or the

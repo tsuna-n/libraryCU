@@ -50,19 +50,21 @@ def packaged_binary(path: Path, package: str, windows: bool) -> str:
                 require(name not in seen, "duplicated ZIP member")
                 seen.add(name)
                 unix_type = stat.S_IFMT(item.external_attr >> 16)
-                require(not item.external_attr & 0x400,
+                require(not item.external_attr & (0x400 | 0x8),
                         "unsafe/unexpected ZIP member")
                 if normalized.endswith("/"):
                     require(name == package and item.file_size == 0
                             and unix_type in (0, stat.S_IFDIR),
                             "unexpected ZIP directory")
                     continue
-                require(normalized in expected and unix_type in (0, stat.S_IFREG),
+                require(normalized in expected and unix_type in (0, stat.S_IFREG)
+                        and not item.external_attr & 0x10,
                         "unsafe/unexpected ZIP member")
                 require(0 < item.file_size <= 128 * 1024 * 1024, "invalid ZIP member size")
+                with archive.open(item) as handle:
+                    member_digest = stream_digest(handle)  # Check CRC/data for every member.
                 if name == f"{package}/{binary}":
-                    with archive.open(item) as handle:
-                        result = stream_digest(handle)
+                    result = member_digest
     else:
         with tarfile.open(path, "r:gz") as archive:
             for item in archive:
@@ -70,19 +72,23 @@ def packaged_binary(path: Path, package: str, windows: bool) -> str:
                 require(name not in seen, "duplicated tar member")
                 seen.add(name)
                 if item.isdir():
-                    require(name == package, "unexpected tar directory")
+                    require(name == package and item.size == 0, "unexpected tar directory")
                     continue
-                require(name in expected and item.isreg(), "unsafe/unexpected tar member")
+                require(item.name == name and name in expected and item.isreg(),
+                        "unsafe/unexpected tar member")
                 require(0 < item.size <= 128 * 1024 * 1024, "invalid tar member size")
+                with archive.extractfile(item) as handle:
+                    member_digest = stream_digest(handle)
                 if name == f"{package}/{binary}":
-                    with archive.extractfile(item) as handle:
-                        result = stream_digest(handle)
+                    result = member_digest
     require(expected <= seen and bool(result), "native archive has an incomplete package")
     return result
 
 
 def validate(dist: Path, version: str, source_sha: str, workflow_id: str) -> None:
     require(bool(re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", source_sha)), "invalid native source SHA")
+    linux_package = f"lbc-{version}-x86_64-unknown-linux-gnu"
+    packaged_binary(dist / f"{linux_package}.tar.gz", linux_package, False)
     for platform in ["windows", "macos"]:
         record = load(str(dist / f"lbc-{version}.{platform}-signing.json"))
         require(isinstance(record, dict), "native record must be an object")

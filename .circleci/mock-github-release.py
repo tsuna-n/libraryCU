@@ -65,6 +65,7 @@ def main() -> None:
         "deletes": [],
         "error": None,
         "published_by_client": False,
+        "publication_payload": None,
     }
     next_asset_id = max((int(asset["id"]) for asset in initial_assets), default=0) + 1
 
@@ -78,6 +79,9 @@ def main() -> None:
         def send_json(self, status: int, value: object) -> None:
             if isinstance(value, dict) and "draft" in value:
                 value = {"tag_name": f"v{args.version}", **value}
+                if args.mode == "resume":
+                    value = {"name": f"v{args.version} — DRAFT", "body": "DRAFT — release candidate",
+                             "prerelease": True, **value}
             encoded = json.dumps(value).encode("utf-8")
             self.send_response(status)
             self.send_header("Content-Type", "application/json")
@@ -203,7 +207,13 @@ def main() -> None:
             parsed = urlparse(self.path)
             length = int(self.headers.get("Content-Length", "0"))
             payload = json.loads(self.rfile.read(length))
-            if parsed.path.endswith("/releases/1") and payload == {"draft": False}:
+            if parsed.path.endswith("/releases/1") and payload.get("draft") is False:
+                if (payload.get("prerelease") is not False or payload.get("name") != f"v{args.version}"
+                        or not isinstance(payload.get("body"), str) or "DRAFT" in payload["body"]):
+                    state["error"] = "final publication retained inconsistent candidate metadata"
+                    save_state()
+                    self.send_json(422, {"message": state["error"]})
+                    return
                 if sorted(asset["name"] for asset in state["assets"]) != sorted(expected):
                     state["error"] = "publication attempted with incomplete assets"
                     save_state()
@@ -212,8 +222,9 @@ def main() -> None:
                 state["draft"] = False
                 state["published"] = True
                 state["published_by_client"] = True
+                state["publication_payload"] = payload
                 save_state()
-                self.send_json(200, {"id": 1, "draft": False})
+                self.send_json(200, {"id": 1, **payload})
                 return
             self.send_json(404, {"message": "unexpected PATCH"})
 

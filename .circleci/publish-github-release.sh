@@ -198,7 +198,12 @@ fi
 
 bash "${script_dir}/verify-release-assets.sh" "${dist_dir}"
 require_current_draft
-jq -n '{draft: false}' > "${payload_file}"
+source_sha="${CIRCLE_SHA1:-$(git rev-parse HEAD)}"
+jq -n --arg tag "${CIRCLE_TAG}" --arg source "${source_sha}" \
+    '{draft: false, prerelease: false, name: $tag,
+      body: ("libraryCube " + $tag + "\n\nSource revision: `" + $source +
+             "`.\n\nThe protected release workflow verifies signed source, native signing, the canonical 25-asset manifest, checksums, SBOM, repository provenance, OpenPGP signatures and remote asset digests. Independently verify downloaded assets before installation using docs/circleci.md and docs/native-code-signing.md at this source revision.\n\nRepository-generated provenance alone does not establish SLSA Build Level 2. Production trust requires the independently retained owner/hosted/native verification record.\n")}' \
+    > "${payload_file}"
 status="$(github_request PATCH "${release_endpoint}/${release_id}" \
     --header 'Content-Type: application/json' \
     --data-binary "@${payload_file}")"
@@ -207,5 +212,6 @@ if [[ "${status}" != "200" ]]; then
     exit 1
 fi
 python3 "${script_dir}/release_json.py" "${response_file}"
-jq -e --arg tag "${CIRCLE_TAG}" --argjson id "${release_id}" \
-    '.id == $id and .tag_name == $tag and .draft == false' "${response_file}" >/dev/null
+jq -e --arg tag "${CIRCLE_TAG}" --argjson id "${release_id}" --slurpfile publication "${payload_file}" \
+    '.id == $id and .tag_name == $tag and .draft == false and .prerelease == false and
+     .name == $tag and .body == $publication[0].body' "${response_file}" >/dev/null

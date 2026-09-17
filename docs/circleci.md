@@ -10,10 +10,13 @@ release build and release-binary CLI tests. Rust is pinned to 1.97.1.
 Dependency security pins cargo-audit 0.22.2, cargo-deny 0.20.2 and
 cargo-cyclonedx 0.5.9, enforces deny.toml and validates dependency
 name/version/license/hash metadata. It runs real disposable OpenPGP and signed
-source fixtures, 12 local draft API scenarios, 19 real ZIP/tar policy cases and
-22 mocked Mac signing cases. Windows additionally runs 26 mocked signing cases
+source fixtures, 12 local draft API scenarios, 25 real ZIP/tar policy cases and
+22 mocked Mac signing cases. Windows additionally runs 28 signing/policy cases
 and three real disposable certificate/PFX lifecycle cases. None establishes
 production trust.
+The changed 28-case Windows suite has not run on this Linux host; hosted build
+150 passed the previous 26-case suite. Obtain a new Windows pass on the reviewed
+continuation revision. Native-command mocks and self-signed PFXs are test-only.
 Config/data/cache/temp directories are isolated; Linux caches include Rust,
 architecture and lockfile checksum.
 
@@ -55,6 +58,26 @@ do not secure contexts against malicious modified config. Retain redacted
 permissions exports and negative-test evidence. Context settings/credentials
 were not provisioned or authenticated here.
 
+For this release, pin each context to the approved tag AND reviewed revision
+using expression restrictions in addition to project/maintainer restrictions:
+
+```text
+pipeline.git.tag == "v0.5.0"
+and pipeline.git.revision == "OWNER_REVIEWED_FULL_RELEASE_SHA"
+and not job.ssh.enabled
+and not (pipeline.config_source starts-with "api")
+```
+
+Replace the SHA placeholder only after review/signing and an explicit existing-
+tag recovery decision. Validate supported pipeline values on this integration;
+unavailable values must fail closed, never be removed just to enable a job.
+Retain authorized branch/PR, wrong-ref/wrong-SHA, SSH-rerun and untrusted-config
+denial evidence. GitHub App pipelines that fetch config separately also need
+owner-validated restrictions on config repository/ref/SHA; do not authorize
+release credentials merely because checkout metadata matches. Consult
+[CircleCI context restrictions](https://circleci.com/docs/guides/security/contexts/)
+and [pipeline value definitions](https://circleci.com/docs/reference/variables/).
+
 | Context | Jobs | Owner-provisioned variables |
 |---|---|---|
 | lbc-release-identity | source gate and publisher | LBC_MAINTAINER_SIGNING_KEY_BASE64 (PUBLIC armored export), LBC_MAINTAINER_SIGNING_FINGERPRINT (full uppercase PRIMARY fingerprint) |
@@ -71,7 +94,48 @@ token to tsuna-n/libraryCU, Contents read/write. Publish PUBLIC pins/Team ID via
 a separate trusted channel. The source gate rejects secret material, multiple
 primary identities, wrong pins, unsigned commits, lightweight/unsigned tags and
 tags targeting a different SHA. Production source-signing identity/evidence
-has not been supplied.
+has not been imported by hosted gate 153: its exact failure is missing
+`LBC_MAINTAINER_SIGNING_KEY_BASE64`. The existing signed commit/tag signature
+text is not sufficient evidence of a trusted identity.
+
+## Source identity preflight
+
+Use context `lbc-release-identity`, not project-wide variables. Set:
+
+- `LBC_MAINTAINER_SIGNING_FINGERPRINT`: independently trusted full uppercase
+  PRIMARY fingerprint, exactly 40 or 64 hexadecimal characters, no spaces,
+  `0x` prefix, short ID, or signing-subkey fingerprint.
+- `LBC_MAINTAINER_SIGNING_KEY_BASE64`: base64 of `gpg --armor --export` for that
+  primary identity, including its valid signing subkeys and current revocations;
+  PUBLIC material only, exactly one primary identity. Single-line base64 is
+  recommended. This context never needs a maintainer private key.
+
+On an owner-controlled Linux machine with the independently verified PUBLIC key
+already in its keyring, produce the public context value (not a secret key):
+
+```bash
+gpg --no-options --batch --armor --export "$LBC_MAINTAINER_SIGNING_FINGERPRINT" | base64 -w0
+```
+
+The owner must review the export/pin independently, save both context variables
+and verify context restrictions before retrying any protected job. A key beside
+a Git signature is not an independent trust anchor. Set `CIRCLE_TAG=v0.5.0` and
+`CIRCLE_SHA1` to the exact expected full lowercase commit SHA in a clean reviewed
+checkout, then run `bash .circleci/verify-release-source.sh` with those two PUBLIC
+variables. The script verifies exact HEAD and annotated tag target, Cargo/tag
+agreement (including the signed tag's internal name/direct commit target),
+canonical HTTPS/Git SSH GitHub origin, both OpenPGP signatures and
+primary-key pin. Git replacement objects and alternate Git OpenPGP verifiers
+cannot substitute source verification. Every missing owner variable identifies
+its exact name, protected context and this runbook.
+
+Supported OpenPGP primary and signing keys are RSA >=2048 bits, ECDSA >=256 bits
+and EdDSA >=255 bits; signature digests must be SHA-256/384/512. Weak or unsupported
+primary keys and signing subkeys fail even with an otherwise valid signature.
+The real source fixtures independently reject missing/malformed fingerprints,
+missing/malformed/wrong/private public exports, unsigned commits, unsigned
+annotated/lightweight tags, wrong target/revision/version/origin and subkey pins,
+and accept signed primary-pinned source (including signing subkeys).
 
 ## Canonical production manifest: exactly 25 assets
 
@@ -144,6 +208,12 @@ before mutations. Draft/tag/ID is re-read before each deletion/upload and final
 publish. Remote names, sizes, uploaded states and API SHA-256 must exactly match
 the frozen set; snapshot verification repeats before publication. Failure never
 calls final publication. Observed intervening public state stops further writes.
+The final publish request replaces stale candidate title/body with canonical
+version/source/verification instructions and sets `prerelease=false`; metadata
+is not changed before all validations pass. Resumed-draft fixtures begin with
+DRAFT candidate metadata and require the canonical final payload. This does
+not bypass refusal to modify the existing public release. Final metadata itself
+is not independent trust evidence.
 GitHub offers no atomic draft-conditioned upload/delete: exclusive controlled
 draft ownership is an external prerequisite, not protection against an
 adversarial concurrent release administrator.
@@ -173,5 +243,12 @@ commit and create/verify/push the matching signed annotated tag. Tag candidate,
 source and native jobs must pass. Independently verify staged native outputs
 and hosted attestation before owner approval; the publisher then signs/verifies
 final files and remote digests before public transition. Re-download and repeat
-verification, retain the release record/advisory. No tag, production run or public
-release is claimed. crates.io and v0.6 are out of scope.
+verification, retain the release record/advisory. An existing signed `v0.5.0` tag
+and empty public Release were confirmed on 2026-09-17, but no production run or
+valid production release is verified. Public `draft: false` overrides DRAFT
+title/body wording: the publisher will refuse this release before any remote
+mutation. The owner must reconcile it explicitly and approve a tag/revision
+recovery plan after reviewing this continuation; no automatic deletion,
+recreation, force-move, or final publication is authorized. See
+[release-completion-0.5.0.md](release-completion-0.5.0.md). crates.io and v0.6
+are out of scope.

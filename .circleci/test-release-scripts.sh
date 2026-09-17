@@ -108,31 +108,68 @@ GNUPGHOME="${key_home}" git -C "${source_repo}" tag -s "v${version}" -m 'Signed 
 maintainer_public="$(GNUPGHOME="${key_home}" gpg --batch --armor --export "${valid_fingerprint}" | base64 | tr -d '\n')"
 source_gate() (
     cd "${source_repo}"
-    CIRCLE_SHA1="$(git rev-parse HEAD)" \
-    LBC_MAINTAINER_SIGNING_KEY_BASE64="${maintainer_public}" \
-    LBC_MAINTAINER_SIGNING_FINGERPRINT="${valid_fingerprint}" \
+    env CIRCLE_SHA1="$(git rev-parse HEAD)" \
+        LBC_MAINTAINER_SIGNING_KEY_BASE64="${maintainer_public}" \
+        LBC_MAINTAINER_SIGNING_FINGERPRINT="${valid_fingerprint}" "$@" \
         bash "${script_dir}/verify-release-source.sh"
 )
+expect_source_failure() {
+    local description="$1" diagnostic="$2"
+    shift 2
+    if source_gate "$@" >"${fixture_root}/source.log" 2>&1; then
+        echo "Source gate accepted ${description}" >&2; exit 1
+    fi
+    if ! grep -Fq "${diagnostic}" "${fixture_root}/source.log"; then
+        echo "Source gate failed for the wrong reason: ${description}" >&2
+        sed -n '1,80p' "${fixture_root}/source.log" >&2; exit 1
+    fi
+}
 source_gate
-git -C "${source_repo}" remote set-url origin git@github.com:foreign/repository.git
-if source_gate >/dev/null 2>&1; then
-    echo "Source gate accepted a foreign origin despite canonical CI metadata" >&2
-    exit 1
-fi
+git -C "${source_repo}" config gpg.openpgp.program /bin/false
+source_gate  # Local Git config cannot choose an alternate OpenPGP verifier.
+git -C "${source_repo}" config --unset gpg.openpgp.program
+valid_tag_object="$(git -C "${source_repo}" rev-parse "refs/tags/v${version}")"
+GNUPGHOME="${key_home}" git -C "${source_repo}" tag -s v9.9.9 -m 'Wrong internally signed version'
+git -C "${source_repo}" update-ref "refs/tags/v${version}" "refs/tags/v9.9.9"
+expect_source_failure 'signed tag with wrong internal version' 'signed tag metadata'
+git -C "${source_repo}" update-ref "refs/tags/v${version}" "${valid_tag_object}"
+expect_source_failure 'missing fingerprint' LBC_MAINTAINER_SIGNING_FINGERPRINT LBC_MAINTAINER_SIGNING_FINGERPRINT=
+for pin in not-a-fingerprint 0123456789ABCDEF "${valid_fingerprint,,}"; do
+    expect_source_failure 'malformed fingerprint' 'full uppercase primary-key fingerprint' LBC_MAINTAINER_SIGNING_FINGERPRINT="${pin}"
+done
+expect_source_failure 'missing public key' LBC_MAINTAINER_SIGNING_KEY_BASE64 LBC_MAINTAINER_SIGNING_KEY_BASE64=
+expect_source_failure 'malformed public key encoding' 'must be base64' LBC_MAINTAINER_SIGNING_KEY_BASE64=not-base64
+expect_source_failure 'non-key public export' 'cannot be imported' LBC_MAINTAINER_SIGNING_KEY_BASE64=bm90IGEga2V5
+expect_source_failure 'wrong key pin' 'matching usable primary identity' LBC_MAINTAINER_SIGNING_FINGERPRINT="0000000000000000000000000000000000000000"
+expect_source_failure 'private key material' 'must not contain private key material' LBC_MAINTAINER_SIGNING_KEY_BASE64="${LBC_RELEASE_SIGNING_KEY_BASE64}"
+expect_source_failure 'wrong exact revision' 'HEAD does not match' CIRCLE_SHA1="0000000000000000000000000000000000000000"
+expect_source_failure 'wrong Cargo/tag version' 'does not match' CIRCLE_TAG=v9.9.9
+for origin in git@github.com:foreign/repository.git tsuna-n/libraryCU https://evil.example/tsuna-n/libraryCU.git; do
+    git -C "${source_repo}" remote set-url origin "${origin}"
+    expect_source_failure 'wrong origin despite canonical CI metadata' 'canonical GitHub'
+done
+for origin in https://github.com/tsuna-n/libraryCU.git ssh://git@github.com/tsuna-n/libraryCU.git; do
+    git -C "${source_repo}" remote set-url origin "${origin}"
+    source_gate
+done
 git -C "${source_repo}" remote set-url origin git@github.com:tsuna-n/libraryCU.git
 git -C "${source_repo}" tag -d "v${version}" >/dev/null
 git -C "${source_repo}" tag "v${version}"
-if source_gate >/dev/null 2>&1; then
-    echo "Source gate accepted a lightweight/unsigned tag" >&2
-    exit 1
-fi
+expect_source_failure 'lightweight tag' 'must exist and be annotated'
+git -C "${source_repo}" tag -d "v${version}" >/dev/null
+git -C "${source_repo}" -c tag.gpgsign=false tag -a "v${version}" -m 'Unsigned annotated fixture'
+expect_source_failure 'unsigned annotated tag on a signed commit' 'release tag is unsigned'
 git -C "${source_repo}" tag -d "v${version}" >/dev/null
 GNUPGHOME="${key_home}" git -C "${source_repo}" tag -s "v${version}" -m 'Signed release fixture'
+GNUPGHOME="${key_home}" git -C "${source_repo}" commit -S --allow-empty -qm 'Different signed fixture'
+expect_source_failure 'signed tag targeting a different signed commit' 'tag target does not match'
 git -C "${source_repo}" -c commit.gpgsign=false commit --allow-empty -qm 'Unsigned fixture'
-if source_gate >/dev/null 2>&1; then
-    echo "Source gate accepted an unsigned commit or tag pointing elsewhere" >&2
-    exit 1
-fi
+git -C "${source_repo}" tag -d "v${version}" >/dev/null
+GNUPGHOME="${key_home}" git -C "${source_repo}" tag -s "v${version}" -m 'Signed tag on unsigned commit'
+expect_source_failure 'unsigned commit with correctly targeted signed tag' 'release commit is unsigned'
+git -C "${source_repo}" replace HEAD HEAD~1
+expect_source_failure 'replacement object concealing unsigned commit' 'release commit is unsigned'
+git -C "${source_repo}" replace -d HEAD >/dev/null
 
 expect_verification_failure() {
     local candidate="$1"
@@ -332,11 +369,37 @@ GNUPGHOME="${subkey_home}" gpg --batch --passphrase '' --quick-generate-key \
 subkey_primary="$(GNUPGHOME="${subkey_home}" gpg --batch --with-colons --list-secret-keys | awk -F: '$1 == "fpr" {print $10; exit}')"
 GNUPGHOME="${subkey_home}" gpg --batch --passphrase '' --quick-add-key "${subkey_primary}" ed25519 sign 1d >/dev/null 2>&1
 subkey_private="$(GNUPGHOME="${subkey_home}" gpg --batch --armor --export-secret-keys "${subkey_primary}" | base64 | tr -d '\n')"
+subkey_public="$(GNUPGHOME="${subkey_home}" gpg --batch --armor --export "${subkey_primary}" | base64 | tr -d '\n')"
+expect_source_failure 'wrong public key with trusted original pin' 'matching usable primary identity' LBC_MAINTAINER_SIGNING_KEY_BASE64="${subkey_public}"
+GNUPGHOME="${subkey_home}" git -C "${source_repo}" -c user.signingkey="${subkey_primary}" commit -S --allow-empty -qm 'Signing subkey source'
+git -C "${source_repo}" tag -d "v${version}" >/dev/null
+GNUPGHOME="${subkey_home}" git -C "${source_repo}" -c user.signingkey="${subkey_primary}" tag -s "v${version}" -m 'Signing subkey tag'
+source_gate LBC_MAINTAINER_SIGNING_KEY_BASE64="${subkey_public}" LBC_MAINTAINER_SIGNING_FINGERPRINT="${subkey_primary}"
+subkey_pin="$(GNUPGHOME="${subkey_home}" gpg --batch --with-colons --list-keys | awk -F: '$1 == "sub" {subkey=1} $1 == "fpr" && subkey {print $10; exit}')"
+expect_source_failure 'subkey pin instead of primary' 'matching usable primary identity' LBC_MAINTAINER_SIGNING_KEY_BASE64="${subkey_public}" LBC_MAINTAINER_SIGNING_FINGERPRINT="${subkey_pin}"
 case_dir="${fixture_root}/valid-signing-subkey"
 cp -a "${valid_dist}" "${case_dir}"
 LBC_RELEASE_SIGNING_KEY_BASE64="${subkey_private}" LBC_RELEASE_SIGNING_FINGERPRINT="${subkey_primary}" \
     bash .circleci/sign-release-assets.sh "${case_dir}"
 LBC_RELEASE_SIGNING_FINGERPRINT="${subkey_primary}" bash .circleci/verify-release-assets.sh "${case_dir}"
+
+weak_home="${fixture_root}/weak-home"
+mkdir -m 700 "${weak_home}"
+GNUPGHOME="${weak_home}" gpg --batch --passphrase '' --quick-generate-key \
+    'Weak TEST fixture <weak@example.invalid>' rsa1024 sign 1d >/dev/null 2>&1
+weak_pin="$(GNUPGHOME="${weak_home}" gpg --batch --with-colons --list-secret-keys | awk -F: '$1 == "fpr" {print $10; exit}')"
+weak_private="$(GNUPGHOME="${weak_home}" gpg --batch --armor --export-secret-keys "${weak_pin}" | base64 | tr -d '\n')"
+expect_signing_failure env LBC_RELEASE_SIGNING_KEY_BASE64="${weak_private}" LBC_RELEASE_SIGNING_FINGERPRINT="${weak_pin}"
+# Exercise weak signing SUBKEY rejection independently of primary-key policy.
+GNUPGHOME="${subkey_home}" gpg --batch --passphrase '' --quick-add-key "${subkey_primary}" rsa1024 sign 1d >/dev/null 2>&1
+weak_subkey="$(GNUPGHOME="${subkey_home}" gpg --batch --with-colons --list-keys | awk -F: '$1 == "sub" {weak=($3 == 1024)} $1 == "fpr" && weak {print $10; exit}')"
+GNUPGHOME="${subkey_home}" gpg --batch --armor --export "${subkey_primary}" > "${case_dir}/lbc-release-signing-key.asc"
+GNUPGHOME="${subkey_home}" gpg --batch --yes --armor --digest-algo SHA256 --local-user "${weak_subkey}!" \
+    --detach-sign --output "${case_dir}/lbc-${version}.cdx.json.asc" "${case_dir}/lbc-${version}.cdx.json"
+if LBC_RELEASE_SIGNING_FINGERPRINT="${subkey_primary}" bash .circleci/verify-release-assets.sh "${case_dir}" >"${fixture_root}/weak.log" 2>&1; then
+    echo "Verification accepted a weak RSA signing subkey" >&2; exit 1
+fi
+grep -Fq 'weak or unsupported signing key' "${fixture_root}/weak.log"
 
 # Protected disposable key: the production script reads the masked password
 # through a private file descriptor, never a command-line argument.
@@ -421,6 +484,10 @@ state_file="$(run_publish_fixture resume success)"
 jq -e --argjson expected "${#RELEASE_ASSETS[@]}" \
     '(.created_draft == false) and .published and (.draft == false) and (.assets | length == $expected) and (.error == null)' \
     "${state_file}" >/dev/null
+jq -e --arg tag "v${version}" --arg source "${CIRCLE_SHA1}" \
+    '.publication_payload.name == $tag and .publication_payload.prerelease == false and
+     (.publication_payload.body | contains($source)) and
+     (.publication_payload.body | contains("SLSA Build Level 2"))' "${state_file}" >/dev/null
 
 state_file="$(run_publish_fixture mutate-local success)"
 jq -e '.published_by_client and (.error == null)' "${state_file}" >/dev/null

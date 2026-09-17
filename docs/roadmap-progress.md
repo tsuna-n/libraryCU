@@ -1,5 +1,38 @@
 # Roadmap progress
 
+## Release/security completion — 2026-09-17 (current)
+
+- Branch `main`, clean starting SHA `ac16da5b7f8944a3331f8c5c61812bbb30e3b86a`.
+  The continuation changes release scripts/tests/config and matching docs only;
+  core functionality, version and the existing signed tag are preserved.
+- Exact starting SHA passed candidate macOS 149, Windows 150, dependency 151 and
+  Linux 152. Source gate 153 failed for missing maintainer PUBLIC verification
+  key. GitHub reports commit verification `unknown_key`, not verified trust.
+- Existing annotated/signed `v0.5.0` tag points to that SHA. GitHub Release
+  `390049263` is PUBLIC (`draft=false`, `prerelease=false`), empty, and labeled
+  DRAFT in title/body. This is an owner-action inconsistency, not production
+  completion. No tag/release changes were made; publisher refusal is preserved.
+- Repository changes: canonical GitHub transport/origin allowlist; explicit
+  source/context diagnostics; independent negative source fixtures and signed
+  primary/subkey positives; fixed verifier selection/replacement-object handling;
+  RSA/ECC primary/signing-subkey strength enforcement; Linux archive validation
+  and all-member ZIP CRC reads; staged native artifact access before approval.
+  ZIP directory/volume bits and ambiguous tar member types are rejected; Windows
+  adds two native-host-only policy cases. A resumed draft cannot retain DRAFT
+  title/body or prerelease status when the final gated publication succeeds.
+- The fresh command ledger, full matrix and exact owner actions are in
+  [release-completion-0.5.0.md](release-completion-0.5.0.md). Current edits require
+  review/signing and all four hosted jobs on their eventual final source SHA;
+  old CI passes never validate a changed continuation. The owner subsequently
+  authorized committing/pushing this work, without moving the tag or publishing.
+- External admin, context/credential, hosted-attestation and production
+  execution/download gates remain open. Next: owner reconciles the accidental
+  public Release and the existing tag/new-revision conflict, then imports the
+  independently verified PUBLIC maintainer export/pin into restricted
+  `lbc-release-identity`. Do not approve, publish, retag or start v0.6.
+
+## Historical checkpoints (all sections below are superseded)
+
 ## Native release completion continuation — 2026-09-16
 
 - Branch `roadmap/complete-v0.4-v0.5` started at local and remote revision

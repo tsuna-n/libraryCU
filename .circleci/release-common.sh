@@ -57,10 +57,15 @@ release_repository() {
     local repository
     local remote
     remote="$(git remote get-url origin 2>/dev/null)" || remote=""
-    remote="${remote%.git}"
-    remote="${remote#git@github.com:}"
-    remote="${remote#ssh://git@github.com/}"
-    remote="${remote#https://github.com/}"
+    case "${remote}" in
+        git@github.com:tsuna-n/libraryCU|git@github.com:tsuna-n/libraryCU.git|\
+        ssh://git@github.com/tsuna-n/libraryCU|ssh://git@github.com/tsuna-n/libraryCU.git|\
+        https://github.com/tsuna-n/libraryCU|https://github.com/tsuna-n/libraryCU.git)
+            remote="tsuna-n/libraryCU" ;;
+        *)
+            echo "Release origin must be the canonical GitHub HTTPS or Git SSH URL for tsuna-n/libraryCU" >&2
+            return 1 ;;
+    esac
     if [[ -n "${CIRCLE_PROJECT_USERNAME:-}" && -n "${CIRCLE_PROJECT_REPONAME:-}" ]]; then
         repository="${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}"
     else
@@ -216,6 +221,13 @@ validate_imported_identity() {
         echo "Signing key must contain exactly one matching usable primary identity" >&2
         return 1
     fi
+    if ! awk -F: '
+        $1 == "pub" {exit !(($4 ~ /^(1|2|3)$/ && $3 >= 2048) ||
+                            ($4 == 19 && $3 >= 256) || ($4 == 22 && $3 >= 255))}
+    ' <<< "${listing}"; then
+        echo "Primary signing identity uses a weak or unsupported public-key algorithm" >&2
+        return 1
+    fi
     local secrets
     secrets="$(gpg --no-options --batch --with-colons --list-secret-keys | awk -F: '$1 == "sec" {count++} END {print count+0}')"
     if [[ "${secret_allowed}" == false && "${secrets}" != 0 ]]; then
@@ -241,6 +253,22 @@ validate_gpg_status() {
         END {exit !(signatures == 1 && good == 1 && valid == 1 && bad == 0)}
     ' "${status_file}"; then
         echo "Signature identity/status is invalid, expired, revoked, weak, or ambiguous" >&2
+        return 1
+    fi
+    local signer listing
+    signer="$(awk '$1 == "[GNUPG:]" && $2 == "VALIDSIG" {print $3}' "${status_file}")"
+    listing="$(gpg --no-options --batch --with-colons --list-keys)"
+    if ! awk -F: -v signer="${signer}" '
+        $1 == "pub" || $1 == "sub" {bits=$3; algorithm=$4; key=1}
+        $1 == "fpr" && key {
+            if ($10 == signer) accepted = ((algorithm ~ /^(1|2|3)$/ && bits >= 2048) ||
+                                         (algorithm == 19 && bits >= 256) ||
+                                         (algorithm == 22 && bits >= 255))
+            key=0
+        }
+        END {exit !accepted}
+    ' <<< "${listing}"; then
+        echo "Signature uses a weak or unsupported signing key" >&2
         return 1
     fi
 }

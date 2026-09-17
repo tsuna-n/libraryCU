@@ -150,7 +150,19 @@ try {
     $rejected = $false
     try { Assert-ZipLayout $duplicateZip $package } catch { $rejected = $true }
     if (-not $rejected) { throw "Duplicate normalized ZIP member accepted" }
-    Write-Host "Windows signing fixtures: 26 passed (MOCK native/certificate calls; no production signature evidence)"
+    foreach ($attributes in @(0x10, 0x8)) {
+        $typedZip = Join-Path $fixtureRoot "file-type-$attributes.zip"
+        Copy-Item -LiteralPath $zip -Destination $typedZip
+        $archive = [IO.Compression.ZipFile]::Open($typedZip, [IO.Compression.ZipArchiveMode]::Update)
+        try {
+            $entry = @($archive.Entries | Where-Object { $_.FullName.Replace('\', '/') -eq "$package/lbc.exe" })[0]
+            $entry.ExternalAttributes = $attributes
+        } finally { $archive.Dispose() }
+        $rejected = $false
+        try { Assert-ZipLayout $typedZip $package } catch { $rejected = $true }
+        if (-not $rejected) { throw "ZIP file with directory/volume metadata accepted" }
+    }
+    Write-Host "Windows signing fixtures: 28 cases (MOCK native/certificate calls; no production signature evidence)"
 } finally {
     foreach ($name in $saved.Keys) { [Environment]::SetEnvironmentVariable($name, $saved[$name], "Process") }
     if (Test-Path -LiteralPath $fixtureRoot) { Remove-Item -LiteralPath $fixtureRoot -Recurse -Force }

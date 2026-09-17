@@ -4,6 +4,9 @@ libraryCube (`lbc`) is a terminal knowledge library. You can save ordinary Markd
 
 Version `0.5.0` is currently a release candidate. No production `v0.5.0`
 release or signed artifact set has been verified yet.
+As checked on 2026-09-17, GitHub does expose an empty public `v0.5.0`
+Release despite its DRAFT title/body. This is a release-state inconsistency,
+not a production release; there are no verified production assets to install.
 
 The Rust package and crate are named `librarycube`; the executable is `lbc`.
 
@@ -54,7 +57,7 @@ The tag workflow now requires Windows Authenticode and macOS Developer ID,
 hardened runtime, notarization and a stapled DMG before production packaging.
 These executable jobs have not run with production credentials. Candidates
 remain unsigned on Windows and ad-hoc signed on macOS; no production native
-trust or public `v0.5.0` release is claimed. See the
+trust or valid production `v0.5.0` release is claimed. See the
 [native signing and independent verification runbook](docs/native-code-signing.md).
 The DMG is the offline-ticket delivery path; a raw tar cannot carry a stapled
 ticket. Certificate trust does not guarantee absence of SmartScreen prompts.

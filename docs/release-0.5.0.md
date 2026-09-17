@@ -1,4 +1,34 @@
-# 0.5.0 release-candidate audit — 2026-09-16
+# 0.5.0 release-candidate audit — 2026-09-17
+
+## Current authoritative checkpoint
+
+Production status: **NOT READY**. Clean starting HEAD and existing signed tag
+target: `ac16da5b7f8944a3331f8c5c61812bbb30e3b86a`; remote annotated tag object
+`d4d47c86915515f473fff8b237a28e2bc365560f`. Candidate jobs
+[macOS 149](https://circleci.com/gh/tsuna-n/libraryCU/149),
+[Windows 150](https://circleci.com/gh/tsuna-n/libraryCU/150),
+[dependency 151](https://circleci.com/gh/tsuna-n/libraryCU/151), and
+[Linux 152](https://circleci.com/gh/tsuna-n/libraryCU/152) passed this exact SHA.
+[Source gate 153](https://circleci.com/gh/tsuna-n/libraryCU/153) failed explicitly
+because `LBC_MAINTAINER_SIGNING_KEY_BASE64` is absent. Neither candidate passes
+nor signature text establishes production trust. GitHub commit verification is
+`verified: false`, `reason: unknown_key`.
+
+The [existing GitHub Release](https://github.com/tsuna-n/libraryCU/releases/tag/v0.5.0)
+(ID `390049263`, published `2026-09-16T15:29:44Z`) has `draft: false`,
+`prerelease: false`, zero assets, and DRAFT title/body. It is public and
+inconsistent, not a private draft or verified production release. The publisher
+must continue refusing it. No external release mutation or tag change was made.
+
+The current continuation hardens exact origins/source diagnostics and fixtures,
+Git verifier/replacement-object behavior, weak OpenPGP key rejection and Linux/
+all-member ZIP validation, and exposes staged native outputs before approval.
+Full fresh validation, exact changed files, requirement classification and owner
+steps are recorded in [release-completion-0.5.0.md](release-completion-0.5.0.md).
+The changed tree must obtain new hosted passes after the owner reviews/signs
+the final revision; earlier hosted results do not validate these changes.
+
+## Historical implementation audit — 2026-09-16
 
 This audit covers branch `roadmap/complete-v0.4-v0.5` through implementation
 revision `8e721592197b141c374a054d5e10ac7a5c486c16`. It is repository-side,
@@ -80,7 +110,7 @@ The following earlier results are historical, not substitutes for these passes:
   [build 24](https://circleci.com/gh/tsuna-n/libraryCU/24), which found
   `RUSTSEC-2026-0285` in rustls 0.23.43 at the starting checkpoint.
 
-## Manual release gates that remain open
+## Historical manual-gate observation (superseded above)
 
 - Public API evidence rechecked on 2026-09-16 showed zero rulesets, private
   vulnerability reporting disabled, `8e72159` unsigned, and no `v0.5.0` tag or release. Authenticated
@@ -100,5 +130,7 @@ The following earlier results are historical, not substitutes for these passes:
 
 The external setup and negative tests are specified in
 [repository-security.md](repository-security.md), [circleci.md](circleci.md),
-and [native-code-signing.md](native-code-signing.md). Do not create or push the
-`v0.5.0` tag until every open gate in [ROADMAP.md](../ROADMAP.md) is satisfied.
+and [native-code-signing.md](native-code-signing.md). The tag already exists;
+do not automatically recreate/move it or publish the release. Obtain owner
+direction for the existing-tag/revision conflict and satisfy every open gate in
+[ROADMAP.md](../ROADMAP.md) before production execution.
