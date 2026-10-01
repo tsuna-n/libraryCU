@@ -246,6 +246,117 @@ fn fixture() -> tempfile::TempDir {
     home
 }
 
+fn saved_proposal(home: &Path) -> String {
+    let server = mock(home, r#"{"before":"\"3\"","after":"3"}"#, "en", None);
+    let output = isolated_lbc(home)
+        .args(["fix", "error.log", "--ai", "--save-proposal", "--json"])
+        .output()
+        .unwrap();
+    server.join().unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["status"], "proposed");
+    assert_eq!(
+        std::fs::read_to_string(home.join("main.rs")).unwrap(),
+        SOURCE
+    );
+    report["proposal_id"].as_str().unwrap().into()
+}
+
+#[test]
+fn saved_proposal_applies_exact_preview_without_provider_and_preserves_later_edits() {
+    let home = fixture();
+    let id = saved_proposal(home.path());
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    listener.set_nonblocking(true).unwrap();
+    ai_config(home.path(), listener.local_addr().unwrap(), "en");
+    let output = isolated_lbc(home.path())
+        .args(["apply-proposal", &id, "--json"])
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["status"], "applied");
+    assert_eq!(report["patch"]["after"], "3");
+    assert_eq!(report["verification_status"], "unverified");
+    assert_eq!(
+        listener.accept().unwrap_err().kind(),
+        std::io::ErrorKind::WouldBlock
+    );
+    let replay = isolated_lbc(home.path())
+        .args(["apply-proposal", &id, "--json"])
+        .output()
+        .unwrap();
+    assert!(!replay.status.success());
+    assert_eq!(
+        serde_json::from_slice::<serde_json::Value>(&replay.stdout).unwrap()["status"],
+        "failed"
+    );
+    std::fs::write(home.path().join("main.rs"), "later edit\n").unwrap();
+    let output = isolated_lbc(home.path())
+        .args([
+            "rollback",
+            report["recovery_id"].as_str().unwrap(),
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+    assert_eq!(
+        std::fs::read_to_string(home.path().join("main.rs")).unwrap(),
+        "later edit\n"
+    );
+}
+
+#[test]
+fn saved_proposal_reuses_verification_and_recovery_even_with_invalid_ai_config() {
+    for mode in ["pass", "fail", "timeout", "edit"] {
+        let home = fixture();
+        let id = saved_proposal(home.path());
+        std::fs::write(home.path().join("config/lbc/config.toml"), "invalid config").unwrap();
+        let output = isolated_lbc(home.path())
+            .args([
+                "apply-proposal",
+                &id,
+                "--json",
+                "--verify",
+                &verifier_command(),
+                "--verify-timeout",
+                "1",
+            ])
+            .env("LBC_VERIFY_FIXTURE", mode)
+            .output()
+            .unwrap();
+        let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(output.status.success(), mode == "pass", "{report}");
+        assert_eq!(
+            report["status"],
+            match mode {
+                "pass" => "verified",
+                "edit" => "failed",
+                _ => "rolled_back",
+            }
+        );
+        assert_eq!(
+            std::fs::read_to_string(home.path().join("main.rs")).unwrap(),
+            match mode {
+                "pass" => SOURCE.replace("\"3\"", "3"),
+                "edit" => "user edit\n".into(),
+                _ => SOURCE.into(),
+            }
+        );
+        assert!(!String::from_utf8_lossy(&output.stdout).contains("private-verifier-marker"));
+    }
+}
+
 fn ai_config(home: &Path, address: std::net::SocketAddr, language: &str) {
     std::fs::write(home.join("config/lbc/config.toml"), format!(
         "[ai]\nprovider = \"openai-compat\"\nmodel = \"fixture\"\nbase_url = \"http://{address}/v1\"\n[output]\nlanguage = \"{language}\"\n"

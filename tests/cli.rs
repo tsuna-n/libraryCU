@@ -5,6 +5,8 @@ use std::sync::{LazyLock, mpsc};
 use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+#[path = "cli/doctor.rs"]
+mod doctor;
 #[path = "cli/fix.rs"]
 mod fix;
 

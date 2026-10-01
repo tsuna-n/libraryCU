@@ -13,6 +13,7 @@ use crate::{
     ai, answer::AnswerReport, config::settings::AiConfig, diagnostics::Diagnostic, security,
 };
 
+pub mod proposal;
 pub mod rollback;
 pub mod verification;
 
@@ -44,6 +45,7 @@ pub struct Target {
     excerpt_start: usize,
     line_start: usize,
     line_end: usize,
+    diagnostic_line: u32,
 }
 
 impl Target {
@@ -153,6 +155,7 @@ impl Target {
             excerpt_start,
             line_start,
             line_end,
+            diagnostic_line: line as u32,
         })
     }
 

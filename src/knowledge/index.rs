@@ -132,6 +132,7 @@ impl KnowledgeIndex {
         let mut matched_terms = vec![vec![false; terms.len()]; self.documents.len()];
         let mut reasons = vec!["keyword match"; self.documents.len()];
         let mut best_signal = vec![0u32; self.documents.len()];
+        let mut phrase_lengths = vec![0usize; self.documents.len()];
 
         // `signal` orders which match is reported: the strongest signal seen wins.
         let mut credit = |position: usize, score: u32, signal: u32, reason: &'static str| {
@@ -144,15 +145,15 @@ impl KnowledgeIndex {
 
         for (position, document) in self.documents.iter().enumerate() {
             if let Some(code) = &document.metadata.error_code
-                && (code.to_lowercase() == normalized || terms.contains(&code.to_lowercase()))
+                && contains_term(&normalized, &code.to_lowercase())
             {
                 credit(position, CODE_WEIGHT, CODE_WEIGHT, "exact error code");
             }
-            if self.titles[position].contains(&normalized) {
+            if contains_term(&self.titles[position], &normalized) {
                 credit(position, TITLE_WEIGHT, TITLE_WEIGHT, "title match");
             }
             for (term_index, term) in terms.iter().enumerate() {
-                if self.titles[position].contains(term.as_str()) {
+                if contains_term(&self.titles[position], term) {
                     matched_terms[position][term_index] = true;
                     credit(
                         position,
@@ -161,9 +162,9 @@ impl KnowledgeIndex {
                         "keyword match",
                     );
                 }
-                if self.bodies[position].contains(term.as_str()) {
+                if contains_term(&self.bodies[position], term) {
                     matched_terms[position][term_index] = true;
-                    let hits = self.bodies[position].matches(term.as_str()).count() as u32;
+                    let hits = term_hits(&self.bodies[position], term) as u32;
                     credit(
                         position,
                         TERM_BODY_WEIGHT * hits.min(MAX_BODY_HITS),
@@ -190,6 +191,28 @@ impl KnowledgeIndex {
             }
         }
 
+        // Multiword metadata is evidence only when the whole phrase is present.
+        // Individual generic words must not masquerade as a phrase match.
+        for (position, document) in self.documents.iter().enumerate() {
+            for phrase in document
+                .metadata
+                .keywords
+                .iter()
+                .chain(&document.metadata.tags)
+            {
+                let phrase = phrase.to_lowercase();
+                if phrase.contains(' ') && contains_term(&normalized, &phrase) {
+                    phrase_lengths[position] = phrase_lengths[position].max(phrase.chars().count());
+                    credit(position, METADATA_WEIGHT, METADATA_WEIGHT, "metadata match");
+                    for (index, term) in terms.iter().enumerate() {
+                        if contains_term(&phrase, term) {
+                            matched_terms[position][index] = true;
+                        }
+                    }
+                }
+            }
+        }
+
         for (position, hits) in matched_terms.iter().enumerate() {
             scores[position] += hits.iter().filter(|hit| **hit).count() as u32 * 25;
         }
@@ -204,6 +227,23 @@ impl KnowledgeIndex {
                 {
                     scores[position] = scores[position].max(1);
                     reasons[position] = PYTHON_ERROR_FALLBACK_REASON;
+                }
+            }
+        }
+
+        // An explicit language is useful context for weak lexical matches.
+        // Exact error codes still take priority, and unclassified user notes remain eligible.
+        if let Some(language) = query_language(query) {
+            for (position, document) in self.documents.iter().enumerate() {
+                if best_signal[position] < CODE_WEIGHT
+                    && let Some(other) = document
+                        .metadata
+                        .language
+                        .as_deref()
+                        .and_then(language_family)
+                    && language != other
+                {
+                    scores[position] = 0;
                 }
             }
         }
@@ -232,10 +272,24 @@ impl KnowledgeIndex {
                 }
             })
             .collect();
+        let phrase_by_source: HashMap<_, _> = self
+            .documents
+            .iter()
+            .zip(phrase_lengths)
+            .map(|(document, length)| (document.source_id.as_str(), length))
+            .collect();
         results.sort_by(|left, right| {
-            right
-                .score
-                .cmp(&left.score)
+            (right.match_reason == "exact error code")
+                .cmp(&(left.match_reason == "exact error code"))
+                .then_with(|| {
+                    (right.match_reason == "title match").cmp(&(left.match_reason == "title match"))
+                })
+                .then_with(|| {
+                    phrase_by_source
+                        .get(right.source_id.as_str())
+                        .cmp(&phrase_by_source.get(left.source_id.as_str()))
+                })
+                .then_with(|| right.score.cmp(&left.score))
                 .then_with(|| left.document.title.cmp(&right.document.title))
                 .then_with(|| left.source_id.cmp(&right.source_id))
         });
@@ -298,10 +352,60 @@ fn query_terms(normalized: &str) -> Vec<String> {
                 }
             }
         } else {
-            terms.push(term.to_owned());
+            if !terms.iter().any(|existing| existing == term) {
+                terms.push(term.to_owned());
+            }
         }
     }
     terms
+}
+
+pub(crate) fn contains_term(text: &str, term: &str) -> bool {
+    term_hits(text, term) > 0
+}
+
+fn language_family(value: &str) -> Option<&'static str> {
+    match value {
+        "rust" => Some("rust"),
+        "python" | "ไพทอน" => Some("python"),
+        "typescript" | "javascript" | "node" | "nodejs" => Some("javascript"),
+        "go" => Some("go"),
+        _ => None,
+    }
+}
+
+fn query_language(query: &str) -> Option<&'static str> {
+    let mut language = None;
+    for word in query.split(|c: char| !c.is_alphanumeric()) {
+        // Lowercase 'go' is also an ordinary English verb.
+        if word == "go" {
+            continue;
+        }
+        if let Some(found) = language_family(&word.to_lowercase()) {
+            if language.is_some_and(|previous| previous != found) {
+                return None;
+            }
+            language = Some(found);
+        }
+    }
+    language
+}
+
+fn term_hits(text: &str, term: &str) -> usize {
+    if term.is_empty() {
+        return 0;
+    }
+    if term.chars().any(is_thai) {
+        return text.matches(term).count();
+    }
+    text.match_indices(term)
+        .filter(|(start, _)| {
+            let end = start + term.len();
+            let word = |c: char| c.is_alphanumeric() || c == '_';
+            !text[..*start].chars().next_back().is_some_and(word)
+                && !text[end..].chars().next().is_some_and(word)
+        })
+        .count()
 }
 
 fn trim_thai_question_words(mut term: &str) -> &str {
@@ -457,6 +561,131 @@ fn truncate_chars(input: &str, limit: usize) -> String {
 mod tests {
     use super::*;
     use crate::knowledge::KnowledgeMetadata;
+
+    #[test]
+    fn repeated_terms_cannot_outvote_exact_codes_or_inflate_coverage() {
+        let index = KnowledgeIndex::build(vec![
+            document(
+                "exact",
+                "Moved value",
+                "Use a borrow.",
+                KnowledgeMetadata {
+                    error_code: Some("E0382".into()),
+                    ..Default::default()
+                },
+            ),
+            document(
+                "port",
+                "Port port port",
+                "port port port",
+                KnowledgeMetadata {
+                    keywords: vec!["port".into()],
+                    ..Default::default()
+                },
+            ),
+        ]);
+        let results = index.search(&format!("E0382 {}", "port ".repeat(90)));
+        assert_eq!(results[0].document.metadata.id, "exact");
+        assert_eq!(results[0].query_terms, 2);
+        assert_eq!(results[1].query_terms, 2);
+        assert_eq!(results[1].matched_terms, 1);
+    }
+
+    #[test]
+    fn latin_terms_and_underscore_codes_require_word_boundaries() {
+        assert!(!contains_term("whitespace ", ""));
+        assert!(!contains_term("exports important pipeline", "port"));
+        assert!(!contains_term(
+            "MY_ERR_MODULE_NOT_FOUND_EXTRA",
+            "ERR_MODULE_NOT_FOUND"
+        ));
+        assert!(contains_term(
+            "Error [ERR_MODULE_NOT_FOUND]: missing",
+            "ERR_MODULE_NOT_FOUND"
+        ));
+        assert!(contains_term("ไทย E0382: moved", "E0382"));
+        assert!(!contains_term("E03820", "E0382"));
+        let unrelated = KnowledgeIndex::build(vec![document(
+            "import",
+            "Import and exports",
+            "Use a dependency.",
+            KnowledgeMetadata::default(),
+        )]);
+        assert!(unrelated.search("port").is_empty());
+        let index = KnowledgeIndex::build(vec![document(
+            "module",
+            "Node modules",
+            "Resolve ESM imports.",
+            KnowledgeMetadata {
+                error_code: Some("ERR_MODULE_NOT_FOUND".into()),
+                ..Default::default()
+            },
+        )]);
+        assert_eq!(
+            index.search("ERR_MODULE_NOT_FOUND cannot find package")[0].match_reason,
+            "exact error code"
+        );
+    }
+
+    #[test]
+    fn complete_metadata_phrases_match_and_partial_phrases_do_not() {
+        let index = KnowledgeIndex::build(vec![document(
+            "module",
+            "Import guide",
+            "Check ESM imports.",
+            KnowledgeMetadata {
+                keywords: vec!["module resolution".into()],
+                ..Default::default()
+            },
+        )]);
+        assert_eq!(
+            index.search("module resolution")[0].match_reason,
+            "metadata match"
+        );
+        assert_eq!(index.search("module resolution")[0].matched_terms, 2);
+        assert!(index.search("module").is_empty());
+    }
+
+    #[test]
+    fn explicit_language_filters_weak_cross_language_hits_without_hiding_exact_codes() {
+        let index = KnowledgeIndex::build(vec![
+            document(
+                "python",
+                "Missing file",
+                "missing file",
+                KnowledgeMetadata {
+                    language: Some("python".into()),
+                    error_code: Some("ENOENT".into()),
+                    ..Default::default()
+                },
+            ),
+            document(
+                "node",
+                "Node missing file",
+                "missing file",
+                KnowledgeMetadata {
+                    language: Some("javascript".into()),
+                    ..Default::default()
+                },
+            ),
+            document(
+                "user",
+                "Missing file",
+                "missing file",
+                KnowledgeMetadata::default(),
+            ),
+        ]);
+        let results = index.search("Node missing file");
+        assert!(results.iter().all(|r| r.document.metadata.id != "python"));
+        assert!(results.iter().any(|r| r.document.metadata.id == "user"));
+        assert_eq!(
+            index.search("Node ENOENT")[0].document.metadata.id,
+            "python"
+        );
+        assert_eq!(query_language("how to go to a directory"), None);
+        assert_eq!(query_language("Go undefined identifier"), Some("go"));
+        assert_eq!(query_language("Rust Python bridge"), None);
+    }
 
     fn document(
         id: &str,

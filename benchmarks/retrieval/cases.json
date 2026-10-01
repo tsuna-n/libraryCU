@@ -1,0 +1,515 @@
+{
+  "schema": 1,
+  "description": "Fixed before ranking changes. Builtin + shipped Python package + seven explicit fixture references; retrieval evaluation only, not incident resolution accuracy.",
+  "cases": [
+    {
+      "id": "R01",
+      "language": "rust",
+      "kind": "exact",
+      "query": "E0382 use of moved value",
+      "expected_sources": [
+        "builtin:rust-e0382"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "Exact rustc code identifies the embedded note."
+    },
+    {
+      "id": "R02",
+      "language": "rust",
+      "kind": "exact",
+      "query": "E0308 mismatched types",
+      "expected_sources": [
+        "builtin:rust-e0308"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "Exact rustc code identifies the embedded note."
+    },
+    {
+      "id": "R03",
+      "language": "rust",
+      "kind": "exact",
+      "query": "E0499 cannot borrow as mutable more than once",
+      "expected_sources": [
+        "builtin:rust-e0499"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "Exact rustc code identifies the embedded note."
+    },
+    {
+      "id": "R04",
+      "language": "rust",
+      "kind": "exact",
+      "query": "E0432 unresolved import",
+      "expected_sources": [
+        "builtin:rust-e0432"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "Exact rustc code identifies the embedded note."
+    },
+    {
+      "id": "R05",
+      "language": "rust",
+      "kind": "exact",
+      "query": "E0433 failed to resolve",
+      "expected_sources": [
+        "builtin:rust-e0433"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "Exact rustc code identifies the embedded note."
+    },
+    {
+      "id": "R06",
+      "language": "rust",
+      "kind": "paraphrase",
+      "query": "value used after ownership moved",
+      "expected_sources": [
+        "builtin:rust-e0382"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "Moved ownership is the specific incident."
+    },
+    {
+      "id": "R07",
+      "language": "rust",
+      "kind": "thai",
+      "query": "แก้ E0382 ใช้ค่าหลังย้าย ownership อย่างไร",
+      "expected_sources": [
+        "builtin:rust-e0382"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "Thai wording retains the unambiguous rustc code."
+    },
+    {
+      "id": "R08",
+      "language": "rust",
+      "kind": "ambiguous",
+      "query": "ownership borrow",
+      "expected_sources": [
+        "builtin:rust-ownership-basics",
+        "builtin:rust-e0382",
+        "builtin:rust-e0499"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "Any ownership investigation source is acceptable without a concrete error."
+    },
+    {
+      "id": "R09",
+      "language": "rust",
+      "kind": "distractor",
+      "query": "E0382 port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port ",
+      "expected_sources": [
+        "builtin:rust-e0382"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "Exact code must precede repeated irrelevant port terms."
+    },
+    {
+      "id": "R10",
+      "language": "python",
+      "kind": "exact",
+      "query": "ModuleNotFoundError: No module named requests",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-module-not-found"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The optional shipped Python package covers this specific error."
+    },
+    {
+      "id": "R11",
+      "language": "python",
+      "kind": "exact",
+      "query": "IndentationError: unexpected indent",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-indentation-error"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The optional shipped Python package covers this specific error."
+    },
+    {
+      "id": "R12",
+      "language": "python",
+      "kind": "exact",
+      "query": "JSONDecodeError",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-json-decode-error"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The optional shipped Python package covers this specific error."
+    },
+    {
+      "id": "R13",
+      "language": "python",
+      "kind": "exact",
+      "query": "coroutine was never awaited",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-coroutine-not-awaited"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The optional shipped Python package covers this specific error."
+    },
+    {
+      "id": "R14",
+      "language": "python",
+      "kind": "exact",
+      "query": "cannot import name from partially initialized module",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-circular-import"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The optional shipped Python package covers this specific error."
+    },
+    {
+      "id": "R15",
+      "language": "python",
+      "kind": "paraphrase",
+      "query": "Python หา module ไม่เจอ",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-module-not-found"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "Thai wording appears in the import note."
+    },
+    {
+      "id": "R16",
+      "language": "python",
+      "kind": "paraphrase",
+      "query": "pip externally managed environment",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-pip-externally-managed"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "Distribution-managed pip environments need their dedicated note."
+    },
+    {
+      "id": "R17",
+      "language": "python",
+      "kind": "ambiguous",
+      "query": "Python import",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-module-not-found",
+        "package:python-fastapi-basics:python-circular-import",
+        "package:python-fastapi-basics:python-environment-and-pip"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "Broad import queries permit multiple investigation sources."
+    },
+    {
+      "id": "R18",
+      "language": "python",
+      "kind": "insufficient",
+      "query": "Python CustomWidgetError failed in worker.py",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-traceback-playbook"
+      ],
+      "acceptable_statuses": [
+        "general_guidance"
+      ],
+      "rationale": "An unknown Python error allows only explicitly general guidance."
+    },
+    {
+      "id": "R19",
+      "language": "typescript",
+      "kind": "exact",
+      "query": "TS2322 incompatible assignment",
+      "expected_sources": [
+        "package:retrieval-benchmark:ts2322"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The explicit fixture reference covers this diagnostic; not embedded product coverage."
+    },
+    {
+      "id": "R20",
+      "language": "typescript",
+      "kind": "exact",
+      "query": "TS2307 cannot find module",
+      "expected_sources": [
+        "package:retrieval-benchmark:ts2307"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The explicit fixture reference covers this diagnostic; not embedded product coverage."
+    },
+    {
+      "id": "R21",
+      "language": "node",
+      "kind": "exact",
+      "query": "ENOENT no such file",
+      "expected_sources": [
+        "package:retrieval-benchmark:node-enoent"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The explicit fixture reference covers this diagnostic; not embedded product coverage."
+    },
+    {
+      "id": "R22",
+      "language": "node",
+      "kind": "exact",
+      "query": "EADDRINUSE address already in use",
+      "expected_sources": [
+        "package:retrieval-benchmark:node-port"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The explicit fixture reference covers this diagnostic; not embedded product coverage."
+    },
+    {
+      "id": "R23",
+      "language": "node",
+      "kind": "exact",
+      "query": "ERR_MODULE_NOT_FOUND cannot find package",
+      "expected_sources": [
+        "package:retrieval-benchmark:node-module"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The explicit fixture reference covers this diagnostic; not embedded product coverage."
+    },
+    {
+      "id": "R24",
+      "language": "go",
+      "kind": "exact",
+      "query": "Go undefined identifier",
+      "expected_sources": [
+        "package:retrieval-benchmark:go-undefined"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The explicit fixture reference covers this diagnostic; not embedded product coverage."
+    },
+    {
+      "id": "R25",
+      "language": "go",
+      "kind": "exact",
+      "query": "Go imported and not used",
+      "expected_sources": [
+        "package:retrieval-benchmark:go-unused"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The explicit fixture reference covers this diagnostic; not embedded product coverage."
+    },
+    {
+      "id": "R26",
+      "language": "typescript",
+      "kind": "thai",
+      "query": "TypeScript กำหนดชนิดข้อมูลไม่ตรงกัน",
+      "expected_sources": [
+        "package:retrieval-benchmark:ts2322"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "Bilingual reference explicitly describes this incident."
+    },
+    {
+      "id": "R27",
+      "language": "node",
+      "kind": "thai",
+      "query": "Node หาไฟล์ไม่เจอ",
+      "expected_sources": [
+        "package:retrieval-benchmark:node-enoent"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "Bilingual reference explicitly describes this incident."
+    },
+    {
+      "id": "R28",
+      "language": "go",
+      "kind": "thai",
+      "query": "Go ตัวแปรไม่ได้ประกาศ",
+      "expected_sources": [
+        "package:retrieval-benchmark:go-undefined"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "Bilingual reference explicitly describes this incident."
+    },
+    {
+      "id": "R29",
+      "language": "go",
+      "kind": "thai",
+      "query": "Go import ไม่ได้ใช้",
+      "expected_sources": [
+        "package:retrieval-benchmark:go-unused"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "Bilingual reference explicitly describes this incident."
+    },
+    {
+      "id": "R30",
+      "language": "node",
+      "kind": "paraphrase",
+      "query": "Node port occupied",
+      "expected_sources": [
+        "package:retrieval-benchmark:node-port"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The listener port is occupied."
+    },
+    {
+      "id": "R31",
+      "language": "typescript",
+      "kind": "ambiguous",
+      "query": "module resolution",
+      "expected_sources": [
+        "package:retrieval-benchmark:ts2307",
+        "package:retrieval-benchmark:node-module"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "Either module-resolution reference is acceptable when the language is unspecified."
+    },
+    {
+      "id": "R32",
+      "language": "go",
+      "kind": "paraphrase",
+      "query": "unused import Go",
+      "expected_sources": [
+        "package:retrieval-benchmark:go-unused"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "Unused imports identify the compiler diagnostic."
+    },
+    {
+      "id": "R33",
+      "language": "rust",
+      "kind": "insufficient",
+      "query": "E9999 quantumflux",
+      "expected_sources": [],
+      "acceptable_statuses": [
+        "no_adequate_match"
+      ],
+      "rationale": "Corpus has no evidence for this incident; abstain."
+    },
+    {
+      "id": "R34",
+      "language": "typescript",
+      "kind": "insufficient",
+      "query": "TS9999 unknown compiler incident",
+      "expected_sources": [],
+      "acceptable_statuses": [
+        "no_adequate_match"
+      ],
+      "rationale": "Corpus has no evidence for this incident; abstain."
+    },
+    {
+      "id": "R35",
+      "language": "node",
+      "kind": "insufficient",
+      "query": "ERR_QUANTUM_FLUX",
+      "expected_sources": [],
+      "acceptable_statuses": [
+        "no_adequate_match"
+      ],
+      "rationale": "Corpus has no evidence for this incident; abstain."
+    },
+    {
+      "id": "R36",
+      "language": "go",
+      "kind": "insufficient",
+      "query": "Go hyperwarp quantumflux",
+      "expected_sources": [],
+      "acceptable_statuses": [
+        "no_adequate_match"
+      ],
+      "rationale": "Corpus has no evidence for this incident; abstain."
+    },
+    {
+      "id": "R37",
+      "language": "english",
+      "kind": "unrelated",
+      "query": "best sourdough hydration recipe",
+      "expected_sources": [],
+      "acceptable_statuses": [
+        "no_adequate_match"
+      ],
+      "rationale": "Corpus has no evidence for this incident; abstain."
+    },
+    {
+      "id": "R38",
+      "language": "thai",
+      "kind": "unrelated",
+      "query": "สูตรอาหารขนมปังอร่อย",
+      "expected_sources": [],
+      "acceptable_statuses": [
+        "no_adequate_match"
+      ],
+      "rationale": "Corpus has no evidence for this incident; abstain."
+    },
+    {
+      "id": "R39",
+      "language": "english",
+      "kind": "unrelated",
+      "query": "pipeline astrophysics quaternion",
+      "expected_sources": [],
+      "acceptable_statuses": [
+        "no_adequate_match"
+      ],
+      "rationale": "Corpus has no evidence for this incident; abstain."
+    },
+    {
+      "id": "R40",
+      "language": "english",
+      "kind": "unrelated",
+      "query": "database quorum split brain incident",
+      "expected_sources": [],
+      "acceptable_statuses": [
+        "no_adequate_match"
+      ],
+      "rationale": "Corpus has no evidence for this incident; abstain."
+    }
+  ]
+}

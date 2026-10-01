@@ -202,7 +202,7 @@ fn verify_authentication(record: &Record, key: &[u8]) -> Result<()> {
         .map_err(|_| anyhow::anyhow!("recovery record authentication failed"))
 }
 
-fn recovery_key(directory: &Path) -> Result<Vec<u8>> {
+pub(super) fn recovery_key(directory: &Path) -> Result<Vec<u8>> {
     let path = directory.join("recovery.key");
     if path.exists() {
         return read_recovery_key(directory);
@@ -234,7 +234,7 @@ fn recovery_key(directory: &Path) -> Result<Vec<u8>> {
     }
 }
 
-fn read_recovery_key(directory: &Path) -> Result<Vec<u8>> {
+pub(super) fn read_recovery_key(directory: &Path) -> Result<Vec<u8>> {
     let path = directory.join("recovery.key");
     let encoded = security::files::read_store_text(&path, 256, true)?;
     let key = decode_hex(encoded.trim()).context("invalid recovery key")?;
@@ -282,7 +282,7 @@ fn recovery_record_expired(now: SystemTime, modified: SystemTime) -> bool {
         .is_ok_and(|age| age > MAX_RECOVERY_AGE)
 }
 
-fn encode_hex(bytes: &[u8]) -> String {
+pub(super) fn encode_hex(bytes: &[u8]) -> String {
     const DIGITS: &[u8; 16] = b"0123456789abcdef";
     let mut encoded = String::with_capacity(bytes.len() * 2);
     for byte in bytes {
@@ -292,11 +292,13 @@ fn encode_hex(bytes: &[u8]) -> String {
     encoded
 }
 
-fn decode_hex(value: &str) -> Result<Vec<u8>> {
+pub(super) fn decode_hex(value: &str) -> Result<Vec<u8>> {
     ensure!(value.len().is_multiple_of(2), "hex value has odd length");
     value
         .as_bytes()
-        .chunks_exact(2)
+        .as_chunks::<2>()
+        .0
+        .iter()
         .map(|pair| {
             let high = (pair[0] as char)
                 .to_digit(16)

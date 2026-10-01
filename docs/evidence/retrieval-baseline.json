@@ -1,0 +1,926 @@
+{
+  "source_sha": "08bcba665087c788a80649045fe83a887ed270a3",
+  "checked_at": "2026-10-01T03:09:23.755591+00:00",
+  "binary_sha256": "c3effb268a594af6f1e6c384212194eb95557b1a3cd2dfa3b7f5fa2159fd0f9e",
+  "dataset_sha256": "6ba824757fca6994397873de76a7f71d3f57a8a0b2f0a56f0f00bf42e4b7a794",
+  "corpus_sha256": {
+    "knowledge/docker/daemon-not-running.md": "d46184d38fff0c8740760ef0470f4046d8d0b3ea89fe0f9db9cb52b8a1be1042",
+    "knowledge/docker/port-in-use.md": "d2d7b5f965b12551a6e3475aa961bcd552c528c1d89504e6c4a01fe814c7925c",
+    "knowledge/git/detached-head.md": "577423c7dc08772c2f3d9796af9823f9d37f79f1f6a6ee10d6412dbbbbbc7d47",
+    "knowledge/git/merge-conflict.md": "53ccdb8344d2501dc916278ce8f8634409406538e455679e485fb3ce7876a65b",
+    "knowledge/linux/command-not-found.md": "1808c05c8695e3177e67630400456edccfb04deb40911971411b6be97254e675",
+    "knowledge/linux/permission-denied.md": "b45eee9f49fd831ca6b88ff4d153c8145dabe67e4cf5b6a00c24ac36bd3b4bda",
+    "knowledge/rust/E0308.md": "91167413e641690c0fcf3252d2861011abe6464f8b5a80367c7a5f49a793d80a",
+    "knowledge/rust/E0382.md": "1a2a37f8914397597de2132080701e7e9aa34c730c15f1db43418b2aef9f9ce2",
+    "knowledge/rust/E0432.md": "b303c351e0e1cd06f5568a79b5e53c03c56f28eca900c452d4e18ca928c1b63d",
+    "knowledge/rust/E0433.md": "d194ae798b7677a7ff0e3407acb4d73e5e51c46c345fd8eddee7366c437ee62e",
+    "knowledge/rust/E0499.md": "3ebedaa386e83a5ded6d448002332de4d86db0437af4a171845ceffcfdee9051",
+    "knowledge/rust/ownership.md": "3300ab9125aaed1da4db183ca9b40c973b06811bb671e2d647b0dac9d548911e",
+    "packages/python-fastapi-basics/fastapi/blocking-async.md": "582f3583694704de64a573512dff37c1bf6d7690912987c93f23f80c182e57ce",
+    "packages/python-fastapi-basics/fastapi/body-vs-query.md": "0d72f57e22941cb5364b8aa7842e4a39fb30d422a8fbf152e3bd019abb0cab71",
+    "packages/python-fastapi-basics/fastapi/cors.md": "d71c58ec1a9b2b6204b278a40eede161701a2938a614f7b04f22d3594ed471ff",
+    "packages/python-fastapi-basics/fastapi/file-upload.md": "a8826e09279e687a0e2c8bc0e4ce36c42b42a766f413ef6dcb9f3f25106d676b",
+    "packages/python-fastapi-basics/fastapi/lifespan.md": "a285e6efd5e9337bedd71d6c6f5e8410396b434c140aea39f051bad011e66d5d",
+    "packages/python-fastapi-basics/fastapi/minimal-app.md": "6fa34ca9173d906838f75850c0d02c7c64e72647a2110a81d60caf968d807b7b",
+    "packages/python-fastapi-basics/fastapi/port-in-use.md": "f768ddc26c121fdadaef30bb3c99478569f58c7918b6745874f058e59baf67d9",
+    "packages/python-fastapi-basics/fastapi/request-validation-422.md": "ef82d8a5ed2373929be5eac5e6bc9552eaf215e8d4a257231c162723729d07dc",
+    "packages/python-fastapi-basics/fastapi/response-validation-error.md": "b6f6480e07e0e5cdc9a52853699bc55451a510d5e9fb855a61ca5633778e5350",
+    "packages/python-fastapi-basics/fastapi/uvicorn-import-error.md": "9e1b9dc4bca8406bcfbb9b12ba1e3ae7648382dd78e8d12a8159eedfa7667d23",
+    "packages/python-fastapi-basics/package.toml": "7f74ea088febea1041652af8de3e992537d9dff0cacfbaf2e8c0d321a7a7dbd3",
+    "packages/python-fastapi-basics/python/arithmetic-errors.md": "bcc825149cc986bc9a81fd91bfd699cba3ecba6a29f1beb50f68e19befbd8191",
+    "packages/python-fastapi-basics/python/assertion-error.md": "de579168bbbd2cf4b6cdebd08a8d99e96fd01ccecb71976d62d7bca3a33f102c",
+    "packages/python-fastapi-basics/python/async-event-loop-errors.md": "1c89c7f453de64ab3c2ba174fb5a0f44234645172ba9892cc87e8b6393208b45",
+    "packages/python-fastapi-basics/python/attribute-error.md": "6d111e0ac65bc506d1128aee0a1f6f93fe2be56e88dd6269a89a7b246e3749d2",
+    "packages/python-fastapi-basics/python/circular-import.md": "90dc937d772944099ca2ea1d895c3ab20e560cd83d37c405bdb5d71319359cd0",
+    "packages/python-fastapi-basics/python/collection-access-errors.md": "53c747449ad041593c7cfe1a7fdee8517310c165453bd1a7d45eb2692020ed0e",
+    "packages/python-fastapi-basics/python/coroutine-not-awaited.md": "ae0fdc0f26e70a26f810e31706cfac9c41d146b7295383df008100e46e11022e",
+    "packages/python-fastapi-basics/python/dataclass-errors.md": "99e216efe4905fc2d17ca43eb6b5bc4cbe46d2d04b4260097b9b9d76403573cf",
+    "packages/python-fastapi-basics/python/environment-and-pip.md": "a1f1d8a341d93919d807f5c0e18f39828313abb6dab4d94590bb9e2eec202bd1",
+    "packages/python-fastapi-basics/python/file-and-os-errors.md": "103cc2a1f3d27ab36d24096f2e58921aab9822371b544d8fc402f58ba68d1d57",
+    "packages/python-fastapi-basics/python/indentation-error.md": "be0491d59b2473d326895fcdc20d55d65e85255e787f5b28dd0b494603a33f6a",
+    "packages/python-fastapi-basics/python/iteration-errors.md": "67d0e50322cec89431c19ffed3f4d455e96a04ac123595e377f01b9cbb073a15",
+    "packages/python-fastapi-basics/python/json-decode-error.md": "c4546899ea95525db93a227bb5968c837a8fb8f553dae727ec124f9ac1a2dcc8",
+    "packages/python-fastapi-basics/python/module-not-found.md": "ebc8dc0defa3a75176d3161656587f7fa817c6a337550a375864195c28e00ae2",
+    "packages/python-fastapi-basics/python/multiprocessing-errors.md": "27fdeb509d7e98f73fe2bd9563ce622e373c3ead31e6613b9f427b49c4874394",
+    "packages/python-fastapi-basics/python/name-errors.md": "7a2e723192e691b4e6a18cdd6fb447384200726b2fabec5d67534e95efdff7eb",
+    "packages/python-fastapi-basics/python/network-errors.md": "346c797c924feb10215260548416d5c770fe2616c790f71a256388336390fb7b",
+    "packages/python-fastapi-basics/python/none-type-error.md": "9898fbf31540e890a8bb693dcbd8a9a732c632a269fa403a1c977c5f047da1d9",
+    "packages/python-fastapi-basics/python/pip-externally-managed.md": "0e3231d9bc4a17f28a69aae24ae8575ccc2eb562fb5ab13cb0be9b662cdebb5c",
+    "packages/python-fastapi-basics/python/pip-resolution-impossible.md": "347384cfa3c01ac437674b581b93885345070ef3892d3e185d021af14cd98b12",
+    "packages/python-fastapi-basics/python/pip-ssl-certificate-error.md": "9f256f524c0eae60a4c0cb3b50a21cb58fc16890fabc59834fcd6e716f3fabba",
+    "packages/python-fastapi-basics/python/pip-wheel-build-error.md": "41d857d05cf2ac75d8780d8bafbe414fd36e67a5dc3b90cb9374656fe9c8554b",
+    "packages/python-fastapi-basics/python/pytest-fixture-and-import-errors.md": "f2110b353bedfe3eb260bdecb88640008592fcb145f3e31366eaffe863483139",
+    "packages/python-fastapi-basics/python/recursion-and-memory-errors.md": "a9a5adfea412d2862da60ea1322097bceece4657c08b43a1b50560c1271bcdf1",
+    "packages/python-fastapi-basics/python/sqlite-database-locked.md": "bd8e93d0bdfbb732a54b9ba509a416f2f3a440913577a630b92b4078357dff0e",
+    "packages/python-fastapi-basics/python/syntax-error.md": "2159d07a2c0cfa86bcd83da173cfeeffc1c5bafa77e4c319f9887a635cb57333",
+    "packages/python-fastapi-basics/python/task-exception-not-retrieved.md": "7e2337bb85871fd19055b6ecb11862e2f21411f7c3edcacdff4f13d8e2c6c8f0",
+    "packages/python-fastapi-basics/python/traceback-playbook.md": "1e11136dffcc5e59ea06b6299897aa913dcb752b39724653fb323d3f9c65460d",
+    "packages/python-fastapi-basics/python/type-and-value-errors.md": "6bb909aba62f9f1b2476d8aaca5b676b005e3f12a9fe4be1fe0264a3e183f1ad",
+    "packages/python-fastapi-basics/python/unicode-errors.md": "17439b272b57ce3c349109ba4b49e8129e53edcf63850a89491ccfa81c5e5d72",
+    "benchmarks/retrieval/corpus/go-undefined.md": "267cdbdbff2a27a3d002d1d9ba3705fe44fa11b859c2547e7a613d3edff2b407",
+    "benchmarks/retrieval/corpus/go-unused.md": "3e9508f344908c7e67edd66777fcc7414efa37374d7c6990fd368fb1bb6a1399",
+    "benchmarks/retrieval/corpus/node-enoent.md": "3ade6d74e7c22e72af4d52e03339f78e041bf99fbe043a14d4e3af1fcd3d11da",
+    "benchmarks/retrieval/corpus/node-module.md": "629948bc8771571177d1a53036d3581e5b1d9e169d3aa85dba4b98f94a5a9f81",
+    "benchmarks/retrieval/corpus/node-port.md": "b1f90b8984bce2d660efb363664324a4871d398397ffcb4b6630d30ad521dfc6",
+    "benchmarks/retrieval/corpus/package.toml": "24fba93ecfd03a0d2eb4a54a5cbb5f76b85a5caf5848ee7d0f45b4408d185afe",
+    "benchmarks/retrieval/corpus/ts2307.md": "d9b7a58063e38ba87b1735b7fc745f6f4a37ef5e3e1adde3e88a9954f56382c8",
+    "benchmarks/retrieval/corpus/ts2322.md": "01138eeb88e31062e98e25eb7e1d014ad6fcda3f57baabfa8f242b33b7070304"
+  },
+  "metrics": {
+    "top1_relevant": {
+      "passed": 28,
+      "total": 31,
+      "percent": 90.32
+    },
+    "top3_relevant": {
+      "passed": 30,
+      "total": 31,
+      "percent": 96.77
+    },
+    "status_correct": {
+      "passed": 40,
+      "total": 40,
+      "percent": 100.0
+    },
+    "citation_identity_correct": {
+      "passed": 40,
+      "total": 40,
+      "percent": 100.0
+    },
+    "citation_relevance_correct": {
+      "passed": 24,
+      "total": 40,
+      "percent": 60.0
+    }
+  },
+  "insufficient_behavior": {
+    "passed": 9,
+    "total": 9
+  },
+  "latency": {
+    "unit": "milliseconds",
+    "scope": "three repetitions, median of separate search + ask subprocesses; includes startup/store reads",
+    "median": 14.87579050012755,
+    "p95": 18.494321000162017
+  },
+  "cases": [
+    {
+      "id": "R01",
+      "query": "E0382 use of moved value",
+      "expected_sources": [
+        "builtin:rust-e0382"
+      ],
+      "top3": [
+        "builtin:rust-e0382"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "builtin:rust-e0382"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "median_search_ask_ms": 18.494321000162017
+    },
+    {
+      "id": "R02",
+      "query": "E0308 mismatched types",
+      "expected_sources": [
+        "builtin:rust-e0308"
+      ],
+      "top3": [
+        "builtin:rust-e0308"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "builtin:rust-e0308"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "median_search_ask_ms": 12.869129000137036
+    },
+    {
+      "id": "R03",
+      "query": "E0499 cannot borrow as mutable more than once",
+      "expected_sources": [
+        "builtin:rust-e0499"
+      ],
+      "top3": [
+        "builtin:rust-e0499"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "builtin:rust-e0499"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "median_search_ask_ms": 15.459129999726429
+    },
+    {
+      "id": "R04",
+      "query": "E0432 unresolved import",
+      "expected_sources": [
+        "builtin:rust-e0432"
+      ],
+      "top3": [
+        "builtin:rust-e0432"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "builtin:rust-e0432"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "median_search_ask_ms": 14.501872999971965
+    },
+    {
+      "id": "R05",
+      "query": "E0433 failed to resolve",
+      "expected_sources": [
+        "builtin:rust-e0433"
+      ],
+      "top3": [
+        "builtin:rust-e0433",
+        "package:python-fastapi-basics:python-network-errors"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "builtin:rust-e0433",
+        "package:python-fastapi-basics:python-network-errors"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": false,
+      "median_search_ask_ms": 13.17866400040657
+    },
+    {
+      "id": "R06",
+      "query": "value used after ownership moved",
+      "expected_sources": [
+        "builtin:rust-e0382"
+      ],
+      "top3": [
+        "builtin:rust-e0382"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "builtin:rust-e0382"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "median_search_ask_ms": 14.004896000187728
+    },
+    {
+      "id": "R07",
+      "query": "แก้ E0382 ใช้ค่าหลังย้าย ownership อย่างไร",
+      "expected_sources": [
+        "builtin:rust-e0382"
+      ],
+      "top3": [
+        "builtin:rust-e0382"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "builtin:rust-e0382"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "median_search_ask_ms": 16.632715000014286
+    },
+    {
+      "id": "R08",
+      "query": "ownership borrow",
+      "expected_sources": [
+        "builtin:rust-ownership-basics",
+        "builtin:rust-e0382",
+        "builtin:rust-e0499"
+      ],
+      "top3": [
+        "builtin:rust-e0382",
+        "builtin:rust-ownership-basics"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "builtin:rust-e0382",
+        "builtin:rust-ownership-basics"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "median_search_ask_ms": 15.535112000179652
+    },
+    {
+      "id": "R09",
+      "query": "E0382 port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port ",
+      "expected_sources": [
+        "builtin:rust-e0382"
+      ],
+      "top3": [
+        "builtin:docker-port-in-use",
+        "package:python-fastapi-basics:fastapi-port-in-use",
+        "package:python-fastapi-basics:fastapi-uvicorn-import-error"
+      ],
+      "top1_relevant": false,
+      "top3_relevant": false,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "builtin:docker-port-in-use",
+        "package:python-fastapi-basics:fastapi-port-in-use",
+        "package:python-fastapi-basics:fastapi-uvicorn-import-error",
+        "package:retrieval-benchmark:go-unused"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": false,
+      "median_search_ask_ms": 18.904059999840683
+    },
+    {
+      "id": "R10",
+      "query": "ModuleNotFoundError: No module named requests",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-module-not-found"
+      ],
+      "top3": [
+        "package:python-fastapi-basics:python-module-not-found"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "package:python-fastapi-basics:python-module-not-found"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "median_search_ask_ms": 13.695297000140272
+    },
+    {
+      "id": "R11",
+      "query": "IndentationError: unexpected indent",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-indentation-error"
+      ],
+      "top3": [
+        "package:python-fastapi-basics:python-indentation-error"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "package:python-fastapi-basics:python-indentation-error"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "median_search_ask_ms": 17.393263000030856
+    },
+    {
+      "id": "R12",
+      "query": "JSONDecodeError",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-json-decode-error"
+      ],
+      "top3": [
+        "package:python-fastapi-basics:python-json-decode-error"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "package:python-fastapi-basics:python-json-decode-error"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "median_search_ask_ms": 14.33694800016383
+    },
+    {
+      "id": "R13",
+      "query": "coroutine was never awaited",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-coroutine-not-awaited"
+      ],
+      "top3": [
+        "package:python-fastapi-basics:python-coroutine-not-awaited",
+        "package:python-fastapi-basics:python-task-exception-not-retrieved"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "package:python-fastapi-basics:python-coroutine-not-awaited",
+        "package:python-fastapi-basics:python-task-exception-not-retrieved"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": false,
+      "median_search_ask_ms": 14.640542000051937
+    },
+    {
+      "id": "R14",
+      "query": "cannot import name from partially initialized module",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-circular-import"
+      ],
+      "top3": [
+        "package:python-fastapi-basics:python-circular-import",
+        "package:python-fastapi-basics:python-multiprocessing-errors"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "package:python-fastapi-basics:python-circular-import",
+        "package:python-fastapi-basics:python-multiprocessing-errors"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": false,
+      "median_search_ask_ms": 20.387264999953914
+    },
+    {
+      "id": "R15",
+      "query": "Python หา module ไม่เจอ",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-module-not-found"
+      ],
+      "top3": [
+        "package:python-fastapi-basics:python-module-not-found",
+        "package:python-fastapi-basics:python-pytest-fixture-and-import-errors",
+        "package:python-fastapi-basics:fastapi-uvicorn-import-error"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "package:python-fastapi-basics:python-module-not-found",
+        "package:python-fastapi-basics:python-pytest-fixture-and-import-errors",
+        "package:python-fastapi-basics:fastapi-uvicorn-import-error",
+        "package:python-fastapi-basics:python-attribute-error"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": false,
+      "median_search_ask_ms": 14.400807000129134
+    },
+    {
+      "id": "R16",
+      "query": "pip externally managed environment",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-pip-externally-managed"
+      ],
+      "top3": [
+        "package:python-fastapi-basics:python-pip-externally-managed"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "package:python-fastapi-basics:python-pip-externally-managed"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "median_search_ask_ms": 14.60478500030149
+    },
+    {
+      "id": "R17",
+      "query": "Python import",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-module-not-found",
+        "package:python-fastapi-basics:python-circular-import",
+        "package:python-fastapi-basics:python-environment-and-pip"
+      ],
+      "top3": [
+        "package:python-fastapi-basics:python-module-not-found",
+        "package:python-fastapi-basics:python-circular-import",
+        "package:python-fastapi-basics:python-pytest-fixture-and-import-errors"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "package:python-fastapi-basics:python-module-not-found",
+        "package:python-fastapi-basics:python-circular-import",
+        "package:python-fastapi-basics:python-pytest-fixture-and-import-errors",
+        "package:python-fastapi-basics:python-environment-and-pip"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": false,
+      "median_search_ask_ms": 14.842555000086577
+    },
+    {
+      "id": "R18",
+      "query": "Python CustomWidgetError failed in worker.py",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-traceback-playbook"
+      ],
+      "top3": [],
+      "top1_relevant": null,
+      "top3_relevant": null,
+      "answer_status": "general_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "package:python-fastapi-basics:python-traceback-playbook"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "median_search_ask_ms": 14.15986400024849
+    },
+    {
+      "id": "R19",
+      "query": "TS2322 incompatible assignment",
+      "expected_sources": [
+        "package:retrieval-benchmark:ts2322"
+      ],
+      "top3": [
+        "package:retrieval-benchmark:ts2322"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "package:retrieval-benchmark:ts2322"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "median_search_ask_ms": 12.8733189999366
+    },
+    {
+      "id": "R20",
+      "query": "TS2307 cannot find module",
+      "expected_sources": [
+        "package:retrieval-benchmark:ts2307"
+      ],
+      "top3": [
+        "package:retrieval-benchmark:ts2307",
+        "package:retrieval-benchmark:node-module",
+        "builtin:rust-e0432"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "package:retrieval-benchmark:ts2307",
+        "package:retrieval-benchmark:node-module",
+        "builtin:rust-e0432"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": false,
+      "median_search_ask_ms": 14.481792999958998
+    },
+    {
+      "id": "R21",
+      "query": "ENOENT no such file",
+      "expected_sources": [
+        "package:retrieval-benchmark:node-enoent"
+      ],
+      "top3": [
+        "package:retrieval-benchmark:node-enoent",
+        "package:python-fastapi-basics:python-module-not-found",
+        "package:python-fastapi-basics:fastapi-uvicorn-import-error"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "package:retrieval-benchmark:node-enoent",
+        "package:python-fastapi-basics:python-module-not-found",
+        "package:python-fastapi-basics:fastapi-uvicorn-import-error"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": false,
+      "median_search_ask_ms": 12.579672999891045
+    },
+    {
+      "id": "R22",
+      "query": "EADDRINUSE address already in use",
+      "expected_sources": [
+        "package:retrieval-benchmark:node-port"
+      ],
+      "top3": [
+        "package:retrieval-benchmark:node-port",
+        "package:python-fastapi-basics:fastapi-port-in-use",
+        "builtin:docker-port-in-use"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "package:retrieval-benchmark:node-port",
+        "package:python-fastapi-basics:fastapi-port-in-use",
+        "builtin:docker-port-in-use"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": false,
+      "median_search_ask_ms": 13.541532999624906
+    },
+    {
+      "id": "R23",
+      "query": "ERR_MODULE_NOT_FOUND cannot find package",
+      "expected_sources": [
+        "package:retrieval-benchmark:node-module"
+      ],
+      "top3": [
+        "package:retrieval-benchmark:node-module",
+        "package:python-fastapi-basics:python-module-not-found",
+        "package:python-fastapi-basics:python-pytest-fixture-and-import-errors"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "package:retrieval-benchmark:node-module",
+        "package:python-fastapi-basics:python-module-not-found",
+        "package:python-fastapi-basics:python-pytest-fixture-and-import-errors",
+        "builtin:linux-command-not-found"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": false,
+      "median_search_ask_ms": 16.091830000277696
+    },
+    {
+      "id": "R24",
+      "query": "Go undefined identifier",
+      "expected_sources": [
+        "package:retrieval-benchmark:go-undefined"
+      ],
+      "top3": [
+        "package:retrieval-benchmark:go-undefined"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "package:retrieval-benchmark:go-undefined"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "median_search_ask_ms": 15.758970000206318
+    },
+    {
+      "id": "R25",
+      "query": "Go imported and not used",
+      "expected_sources": [
+        "package:retrieval-benchmark:go-unused"
+      ],
+      "top3": [
+        "package:retrieval-benchmark:go-unused"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "package:retrieval-benchmark:go-unused"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "median_search_ask_ms": 13.949310000043624
+    },
+    {
+      "id": "R26",
+      "query": "TypeScript กำหนดชนิดข้อมูลไม่ตรงกัน",
+      "expected_sources": [
+        "package:retrieval-benchmark:ts2322"
+      ],
+      "top3": [
+        "package:retrieval-benchmark:ts2322"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "package:retrieval-benchmark:ts2322"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "median_search_ask_ms": 16.83231600009094
+    },
+    {
+      "id": "R27",
+      "query": "Node หาไฟล์ไม่เจอ",
+      "expected_sources": [
+        "package:retrieval-benchmark:node-enoent"
+      ],
+      "top3": [
+        "package:retrieval-benchmark:node-enoent",
+        "package:python-fastapi-basics:python-pytest-fixture-and-import-errors",
+        "package:python-fastapi-basics:fastapi-uvicorn-import-error"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "package:retrieval-benchmark:node-enoent",
+        "package:python-fastapi-basics:python-pytest-fixture-and-import-errors",
+        "package:python-fastapi-basics:fastapi-uvicorn-import-error",
+        "package:python-fastapi-basics:python-attribute-error"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": false,
+      "median_search_ask_ms": 16.22893799958547
+    },
+    {
+      "id": "R28",
+      "query": "Go ตัวแปรไม่ได้ประกาศ",
+      "expected_sources": [
+        "package:retrieval-benchmark:go-undefined"
+      ],
+      "top3": [
+        "package:retrieval-benchmark:go-undefined",
+        "package:python-fastapi-basics:python-name-errors"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "package:retrieval-benchmark:go-undefined",
+        "package:python-fastapi-basics:python-name-errors"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": false,
+      "median_search_ask_ms": 17.273590000058903
+    },
+    {
+      "id": "R29",
+      "query": "Go import ไม่ได้ใช้",
+      "expected_sources": [
+        "package:retrieval-benchmark:go-unused"
+      ],
+      "top3": [
+        "package:retrieval-benchmark:go-unused",
+        "package:python-fastapi-basics:python-pytest-fixture-and-import-errors",
+        "package:python-fastapi-basics:python-module-not-found"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "package:retrieval-benchmark:go-unused",
+        "package:python-fastapi-basics:python-pytest-fixture-and-import-errors",
+        "package:python-fastapi-basics:python-module-not-found",
+        "package:python-fastapi-basics:fastapi-uvicorn-import-error"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": false,
+      "median_search_ask_ms": 16.186540000035166
+    },
+    {
+      "id": "R30",
+      "query": "Node port occupied",
+      "expected_sources": [
+        "package:retrieval-benchmark:node-port"
+      ],
+      "top3": [
+        "package:retrieval-benchmark:node-module",
+        "package:retrieval-benchmark:node-port",
+        "package:python-fastapi-basics:python-pytest-fixture-and-import-errors"
+      ],
+      "top1_relevant": false,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "package:retrieval-benchmark:node-module",
+        "package:retrieval-benchmark:node-port",
+        "package:python-fastapi-basics:python-pytest-fixture-and-import-errors"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": false,
+      "median_search_ask_ms": 16.435489999821584
+    },
+    {
+      "id": "R31",
+      "query": "module resolution",
+      "expected_sources": [
+        "package:retrieval-benchmark:ts2307",
+        "package:retrieval-benchmark:node-module"
+      ],
+      "top3": [
+        "builtin:rust-e0433",
+        "package:retrieval-benchmark:ts2307"
+      ],
+      "top1_relevant": false,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "builtin:rust-e0433",
+        "package:retrieval-benchmark:ts2307"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": false,
+      "median_search_ask_ms": 14.982747999965795
+    },
+    {
+      "id": "R32",
+      "query": "unused import Go",
+      "expected_sources": [
+        "package:retrieval-benchmark:go-unused"
+      ],
+      "top3": [
+        "package:retrieval-benchmark:go-unused",
+        "builtin:rust-e0432",
+        "package:python-fastapi-basics:fastapi-body-vs-query"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "cited_sources": [
+        "package:retrieval-benchmark:go-unused",
+        "builtin:rust-e0432",
+        "package:python-fastapi-basics:fastapi-body-vs-query",
+        "package:python-fastapi-basics:fastapi-cors"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": false,
+      "median_search_ask_ms": 15.276618999905622
+    },
+    {
+      "id": "R33",
+      "query": "E9999 quantumflux",
+      "expected_sources": [],
+      "top3": [],
+      "top1_relevant": null,
+      "top3_relevant": null,
+      "answer_status": "no_adequate_match",
+      "status_correct": true,
+      "cited_sources": [],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "median_search_ask_ms": 14.361517999986972
+    },
+    {
+      "id": "R34",
+      "query": "TS9999 unknown compiler incident",
+      "expected_sources": [],
+      "top3": [],
+      "top1_relevant": null,
+      "top3_relevant": null,
+      "answer_status": "no_adequate_match",
+      "status_correct": true,
+      "cited_sources": [],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "median_search_ask_ms": 13.775982999959524
+    },
+    {
+      "id": "R35",
+      "query": "ERR_QUANTUM_FLUX",
+      "expected_sources": [],
+      "top3": [],
+      "top1_relevant": null,
+      "top3_relevant": null,
+      "answer_status": "no_adequate_match",
+      "status_correct": true,
+      "cited_sources": [],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "median_search_ask_ms": 15.31406899994181
+    },
+    {
+      "id": "R36",
+      "query": "Go hyperwarp quantumflux",
+      "expected_sources": [],
+      "top3": [],
+      "top1_relevant": null,
+      "top3_relevant": null,
+      "answer_status": "no_adequate_match",
+      "status_correct": true,
+      "cited_sources": [],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "median_search_ask_ms": 14.909026000168524
+    },
+    {
+      "id": "R37",
+      "query": "best sourdough hydration recipe",
+      "expected_sources": [],
+      "top3": [],
+      "top1_relevant": null,
+      "top3_relevant": null,
+      "answer_status": "no_adequate_match",
+      "status_correct": true,
+      "cited_sources": [],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "median_search_ask_ms": 13.106566999795177
+    },
+    {
+      "id": "R38",
+      "query": "สูตรอาหารขนมปังอร่อย",
+      "expected_sources": [],
+      "top3": [],
+      "top1_relevant": null,
+      "top3_relevant": null,
+      "answer_status": "no_adequate_match",
+      "status_correct": true,
+      "cited_sources": [],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "median_search_ask_ms": 16.316121000272688
+    },
+    {
+      "id": "R39",
+      "query": "pipeline astrophysics quaternion",
+      "expected_sources": [],
+      "top3": [],
+      "top1_relevant": null,
+      "top3_relevant": null,
+      "answer_status": "no_adequate_match",
+      "status_correct": true,
+      "cited_sources": [],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "median_search_ask_ms": 15.440802000284748
+    },
+    {
+      "id": "R40",
+      "query": "database quorum split brain incident",
+      "expected_sources": [],
+      "top3": [],
+      "top1_relevant": null,
+      "top3_relevant": null,
+      "answer_status": "no_adequate_match",
+      "status_correct": true,
+      "cited_sources": [],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "median_search_ask_ms": 14.303785000265634
+    }
+  ]
+}

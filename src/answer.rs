@@ -62,10 +62,24 @@ pub fn answer(
         })
         .unwrap_or_default();
     warnings.extend(evidence_warnings);
+    let exact_codes: Vec<_> = retrieved
+        .results
+        .iter()
+        .filter(|result| result.match_reason == "exact error code")
+        .filter_map(|result| result.document.metadata.error_code.as_ref())
+        .map(|code| code.to_lowercase())
+        .collect();
     let mut selected: Vec<_> = retrieved
         .results
         .iter()
         .filter(|result| is_adequate(result))
+        .filter(|result| {
+            exact_codes.is_empty()
+                || result.match_reason == "exact error code"
+                || exact_codes.iter().any(|code| {
+                    knowledge::index::contains_term(&result.document.title.to_lowercase(), code)
+                })
+        })
         .take(MAX_PASSAGES)
         .cloned()
         .collect();

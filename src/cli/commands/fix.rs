@@ -3,21 +3,41 @@ use serde::Serialize;
 
 use crate::{
     answer,
-    cli::args::{ExplainArgs, FixArgs, RollbackArgs},
+    cli::args::{ApplyProposalArgs, ExplainArgs, FixArgs, RollbackArgs},
     config, diagnostics, fixer, security,
 };
 
 #[derive(Serialize)]
-struct FixReport {
+struct Application {
     status: &'static str,
     applied: bool,
     verification_status: &'static str,
-    guidance: answer::AnswerReport,
-    patch: Option<fixer::Patch>,
-    error: Option<String>,
     recovery_id: Option<String>,
     verification: Option<fixer::verification::Verification>,
     rollback_status: Option<&'static str>,
+}
+
+impl Default for Application {
+    fn default() -> Self {
+        Self {
+            status: "offline_guidance",
+            applied: false,
+            verification_status: "unverified",
+            recovery_id: None,
+            verification: None,
+            rollback_status: None,
+        }
+    }
+}
+
+#[derive(Serialize)]
+struct FixReport {
+    #[serde(flatten)]
+    application: Application,
+    guidance: answer::AnswerReport,
+    patch: Option<fixer::Patch>,
+    error: Option<String>,
+    proposal_id: Option<String>,
 }
 
 pub fn run(args: FixArgs) -> Result<()> {
@@ -49,77 +69,39 @@ pub fn run(args: FixArgs) -> Result<()> {
     output.language = answer::choose_language(&output.language, &input);
     let guidance = answer::answer(query.trim(), &root, &output, &loaded.config.scanner)?;
     let mut report = FixReport {
-        status: "offline_guidance",
-        applied: false,
-        verification_status: "unverified",
+        application: Application::default(),
         guidance,
         patch: None,
         error: None,
-        recovery_id: None,
-        verification: None,
-        rollback_status: None,
+        proposal_id: None,
     };
     if args.ai {
         let generated = (|| -> Result<()> {
             let target = fixer::Target::read(&root, &diagnostic)?;
-            let patch = target.generate(&report.guidance, &loaded.config.ai)?;
-            if args.apply {
-                report.recovery_id = Some(fixer::rollback::prepare(&target, &patch)?);
-                target.apply(&patch)?;
+            let mut patch = target.generate(&report.guidance, &loaded.config.ai)?;
+            if args.save_proposal {
+                report.proposal_id = Some(fixer::proposal::save(&target, &patch)?);
             }
-            report.applied = args.apply;
-            report.status = if args.apply { "applied" } else { "proposed" };
+            report.application.status = "proposed";
+            let applied = if args.apply {
+                apply_and_verify(
+                    &root,
+                    &target,
+                    &mut patch,
+                    verify.as_ref(),
+                    args.verify_timeout,
+                    &mut report.application,
+                )
+            } else {
+                Ok(())
+            };
             report.patch = Some(patch);
-            if let Some(command) = &verify {
-                let mut verification =
-                    fixer::verification::run(&root, command, args.verify_timeout);
-                if verification.status == "passed"
-                    && let Err(error) =
-                        target.check_applied(report.patch.as_ref().expect("generated patch"))
-                {
-                    verification.status = "error";
-                    verification.error = Some(security::redact_sensitive(&format!("{error:#}")));
-                }
-                report.verification_status = verification.status;
-                report.verification = Some(verification);
-                if report.verification_status == "passed" {
-                    report.status = "verified";
-                    if let Some(patch) = &mut report.patch {
-                        patch.verification_status = "passed";
-                    }
-                } else {
-                    if !report
-                        .verification
-                        .as_ref()
-                        .is_some_and(|v| v.process_stopped)
-                    {
-                        report.rollback_status = Some("failed");
-                        bail!(
-                            "verification process termination could not be confirmed; stop it before using the recovery record"
-                        );
-                    }
-                    match fixer::rollback::restore(
-                        &root,
-                        report.recovery_id.as_deref().expect("recorded application"),
-                    ) {
-                        Ok(_) => {
-                            report.applied = false;
-                            report.status = "rolled_back";
-                            report.rollback_status = Some("succeeded");
-                        }
-                        Err(error) => {
-                            report.rollback_status = Some("failed");
-                            bail!("verification did not pass; rollback failed: {error:#}");
-                        }
-                    }
-                    bail!("verification did not pass; original source restored");
-                }
-            }
+            applied?;
             Ok(())
         })();
         if let Err(error) = generated {
-            if report.status != "rolled_back" {
-                report.status = "failed";
+            if report.application.status != "rolled_back" {
+                report.application.status = "failed";
             }
             report.error = Some(security::redact_sensitive(&format!("{error:#}")));
         }
@@ -141,7 +123,7 @@ pub fn run(args: FixArgs) -> Result<()> {
                 if thai { "เป็น" } else { "To" },
                 patch.after
             );
-            if let Some(verification) = &report.verification {
+            if let Some(verification) = &report.application.verification {
                 println!(
                     "{}: {}",
                     if thai {
@@ -161,16 +143,19 @@ pub fn run(args: FixArgs) -> Result<()> {
                     eprintln!("{}", verification.stderr);
                 }
             }
-            if let Some(id) = &report.recovery_id {
+            if let Some(id) = &report.proposal_id {
+                println!("Proposal ID: {id}");
+            }
+            if let Some(id) = &report.application.recovery_id {
                 println!("Recovery ID: {id}");
             }
-            if let Some(status) = report.rollback_status {
+            if let Some(status) = report.application.rollback_status {
                 println!("Rollback: {status}");
             }
-            if report.verification.is_none() {
+            if report.application.verification.is_none() {
                 println!(
                     "{}",
-                    match (report.applied, thai) {
+                    match (report.application.applied, thai) {
                         (true, true) => "เขียนไฟล์แล้ว; ยังไม่ได้รันการตรวจสอบ",
                         (false, true) => "ข้อเสนอเท่านั้น; ยังไม่ได้เขียนไฟล์หรือรันการตรวจสอบ",
                         (true, false) => "Applied; no verification commands were run.",
@@ -194,6 +179,143 @@ pub fn run(args: FixArgs) -> Result<()> {
         }
     }
     if let Some(error) = report.error {
+        bail!("{error}");
+    }
+    Ok(())
+}
+
+fn apply_and_verify(
+    root: &std::path::Path,
+    target: &fixer::Target,
+    patch: &mut fixer::Patch,
+    verify: Option<&Vec<String>>,
+    timeout: u64,
+    report: &mut Application,
+) -> Result<()> {
+    report.recovery_id = Some(fixer::rollback::prepare(target, patch)?);
+    target.apply(patch)?;
+    report.applied = true;
+    report.status = "applied";
+    if let Some(command) = verify {
+        let mut verification = fixer::verification::run(root, command, timeout);
+        if verification.status == "passed"
+            && let Err(error) = target.check_applied(patch)
+        {
+            verification.status = "error";
+            verification.error = Some(security::redact_sensitive(&format!("{error:#}")));
+        }
+        report.verification_status = verification.status;
+        report.verification = Some(verification);
+        if report.verification_status == "passed" {
+            report.status = "verified";
+            patch.verification_status = "passed";
+        } else {
+            if !report
+                .verification
+                .as_ref()
+                .is_some_and(|v| v.process_stopped)
+            {
+                report.rollback_status = Some("failed");
+                bail!(
+                    "verification process termination could not be confirmed; stop it before using the recovery record"
+                );
+            }
+            match fixer::rollback::restore(
+                root,
+                report.recovery_id.as_deref().expect("recorded application"),
+            ) {
+                Ok(_) => {
+                    report.applied = false;
+                    report.status = "rolled_back";
+                    report.rollback_status = Some("succeeded");
+                }
+                Err(error) => {
+                    report.rollback_status = Some("failed");
+                    bail!("verification did not pass; rollback failed: {error:#}");
+                }
+            }
+            bail!("verification did not pass; original source restored");
+        }
+    }
+    Ok(())
+}
+
+pub fn apply_proposal(args: ApplyProposalArgs) -> Result<()> {
+    let verify = args
+        .verify
+        .as_deref()
+        .map(fixer::verification::parse)
+        .transpose()?;
+    let mut application = Application::default();
+    let mut patch = None;
+    let result = (|| -> Result<()> {
+        let (target, mut saved) = fixer::proposal::load(&args.project, &args.id)?;
+        let root = args.project.canonicalize()?;
+        let result = apply_and_verify(
+            &root,
+            &target,
+            &mut saved,
+            verify.as_ref(),
+            args.verify_timeout,
+            &mut application,
+        );
+        patch = Some(saved);
+        result
+    })();
+    let error = result
+        .as_ref()
+        .err()
+        .map(|e| security::redact_sensitive(&format!("{e:#}")));
+    if error.is_some() && application.status != "rolled_back" {
+        application.status = "failed";
+    }
+    if args.json {
+        #[derive(Serialize)]
+        struct SavedReport<'a> {
+            #[serde(flatten)]
+            application: &'a Application,
+            proposal_id: String,
+            patch: &'a Option<fixer::Patch>,
+            error: &'a Option<String>,
+        }
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&SavedReport {
+                application: &application,
+                proposal_id: security::redact_sensitive(&args.id),
+                patch: &patch,
+                error: &error,
+            })?
+        );
+    } else {
+        println!(
+            "Proposal: {}\nStatus: {}\nVerification: {}",
+            security::redact_sensitive(&args.id),
+            application.status,
+            application.verification_status
+        );
+        if let Some(patch) = &patch {
+            println!(
+                "Change: {}\nFrom:\n{}\nTo:\n{}",
+                patch.path, patch.before, patch.after
+            );
+        }
+        if let Some(id) = &application.recovery_id {
+            println!("Recovery ID: {id}");
+        }
+        if let Some(v) = &application.verification {
+            if !v.stdout.is_empty() {
+                println!("{}", v.stdout);
+            }
+            if !v.stderr.is_empty() {
+                eprintln!("{}", v.stderr);
+            }
+        }
+        if let Some(status) = application.rollback_status {
+            println!("Rollback: {status}");
+        }
+    }
+    if let Some(error) = error {
         bail!("{error}");
     }
     Ok(())

@@ -126,6 +126,15 @@ jobs:
             cargo test --locked --test cli
           no_output_timeout: 10m
       - run:
+          name: Measure fixed retrieval corpus and reject per-case regressions
+          command: |
+            python3 benchmarks/retrieval/run.py --binary target/release/lbc \
+              --source-sha "${CIRCLE_SHA1}" --baseline docs/evidence/retrieval-baseline.json \
+              --output target/retrieval-benchmark/results.json
+      - store_artifacts:
+          path: target/retrieval-benchmark
+          destination: retrieval-benchmark
+      - run:
           name: Verify version and clean generated diff
           command: |
             package_version="$(sed -n '/^\[package\]/,/^\[/{s/^version = "\([^"]*\)"/\1/p;}' Cargo.toml)"

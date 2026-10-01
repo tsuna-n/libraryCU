@@ -8,108 +8,36 @@ use crate::config::AiConfig;
 use crate::{config, knowledge, scanner};
 
 fn ai_check(ai: &AiConfig) -> DoctorCheck {
-    match ai.provider.as_str() {
-        "off" => DoctorCheck {
-            name: "AI provider".to_owned(),
-            ok: true,
-            detail: "off (deterministic mode); set ai.provider to enable AI explanations"
-                .to_owned(),
-        },
-        "openrouter" => {
-            let key_set =
-                std::env::var("OPENROUTER_API_KEY").is_ok_and(|key| !key.trim().is_empty());
-            DoctorCheck {
-                name: "AI provider".to_owned(),
-                ok: key_set,
-                detail: if key_set {
-                    format!(
-                        "openrouter with model {} (API key detected)",
-                        ai.effective_model()
-                    )
+    let result = crate::ai::credential(ai, |name| std::env::var(name).ok());
+    DoctorCheck {
+        name: "AI provider".into(),
+        ok: result.is_ok(),
+        detail: match result {
+            Err(error) => format!("{error}"),
+            Ok(_) if ai.provider == "off" => "off (deterministic mode)".into(),
+            Ok(key) => format!(
+                "{} with model {} at {} ({}); connectivity untested",
+                if matches!(ai.provider.as_str(), "zai" | "glm") {
+                    "zai (glm)"
                 } else {
-                    format!(
-                        "openrouter with model {} but OPENROUTER_API_KEY is not set",
-                        ai.effective_model()
-                    )
+                    &ai.provider
                 },
-            }
-        }
-        "openai" => {
-            let key_set = std::env::var("OPENAI_API_KEY").is_ok_and(|key| !key.trim().is_empty());
-            DoctorCheck {
-                name: "AI provider".to_owned(),
-                ok: key_set,
-                detail: if key_set {
-                    format!(
-                        "openai with model {} at {} (API key detected)",
-                        ai.effective_model(),
-                        ai.effective_base_url()
-                    )
-                } else {
-                    format!(
-                        "openai with model {} at {} but OPENAI_API_KEY is not set",
-                        ai.effective_model(),
-                        ai.effective_base_url()
-                    )
-                },
-            }
-        }
-        "zai" | "glm" => {
-            let key_set = ["ZAI_API_KEY", "GLM_API_KEY"]
-                .iter()
-                .any(|key| std::env::var(key).is_ok_and(|val| !val.trim().is_empty()));
-            DoctorCheck {
-                name: "AI provider".to_owned(),
-                ok: key_set,
-                detail: if key_set {
-                    format!(
-                        "zai (glm) with model {} at {} (API key detected)",
-                        ai.effective_model(),
-                        ai.effective_base_url()
-                    )
-                } else {
-                    format!(
-                        "zai (glm) with model {} at {} but ZAI_API_KEY or GLM_API_KEY is not set",
-                        ai.effective_model(),
-                        ai.effective_base_url()
-                    )
-                },
-            }
-        }
-        "ollama" => DoctorCheck {
-            name: "AI provider".to_owned(),
-            ok: true,
-            detail: format!(
-                "ollama with model {} at {} (local server, no API key required)",
                 ai.effective_model(),
-                ai.effective_base_url()
+                ai.effective_base_url(),
+                if key.is_some() {
+                    "API key detected; validity untested"
+                } else {
+                    "no API key required"
+                }
             ),
         },
-        "openai-compat" => {
-            let key_status = if ["GLM_API_KEY", "ZAI_API_KEY", "OPENAI_API_KEY"]
-                .iter()
-                .any(|key| std::env::var_os(key).is_some())
-            {
-                "API key detected"
-            } else {
-                "no API key (fine for local servers such as Ollama)"
-            };
-            DoctorCheck {
-                name: "AI provider".to_owned(),
-                ok: true,
-                detail: format!(
-                    "openai-compat with model {} at {} ({key_status})",
-                    ai.effective_model(),
-                    ai.effective_base_url()
-                ),
-            }
-        }
-        other => DoctorCheck {
-            name: "AI provider".to_owned(),
-            ok: false,
-            detail: format!("unsupported provider {other:?}"),
-        },
     }
+}
+
+#[derive(Debug, Serialize)]
+struct Connectivity {
+    status: &'static str,
+    detail: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -123,11 +51,14 @@ struct DoctorCheck {
 struct DoctorReport {
     healthy: bool,
     checks: Vec<DoctorCheck>,
+    health_scope: &'static str,
+    provider_connectivity: Connectivity,
 }
 
 pub fn run(args: DoctorArgs) -> Result<()> {
     let mut checks = Vec::new();
-    checks.push(match config::load() {
+    let loaded = config::load();
+    checks.push(match &loaded {
         Ok(loaded) => DoctorCheck {
             name: "Configuration".to_owned(),
             ok: true,
@@ -197,13 +128,35 @@ pub fn run(args: DoctorArgs) -> Result<()> {
         },
     });
 
-    let ai_config = config::load()
-        .map(|loaded| loaded.config.ai)
+    let ai_config = loaded
+        .as_ref()
+        .map(|loaded| loaded.config.ai.clone())
         .unwrap_or_default();
     checks.push(ai_check(&ai_config));
-
-    let memory = config::load()
-        .map(|loaded| loaded.config.memory)
+    let connectivity = if loaded.is_err()
+        || ai_config.provider == "off"
+        || !checks.last().is_some_and(|c| c.ok)
+    {
+        Connectivity {
+            status: "unavailable",
+            detail:
+                "configuration invalid, credentials missing, or AI off; no connection attempted"
+                    .into(),
+        }
+    } else if !args.connectivity {
+        Connectivity {
+            status: "untested",
+            detail: "no connection attempted; opt in with --connectivity".into(),
+        }
+    } else {
+        match crate::ai::connectivity::check(&ai_config, args.connectivity_timeout) {
+            Ok(()) => Connectivity { status: "available", detail: "models endpoint responded; generation and configured model availability untested".into() },
+            Err(error) => Connectivity { status: "error", detail: crate::security::redact_sensitive(&format!("{error:#}")) },
+        }
+    };
+    let memory = loaded
+        .as_ref()
+        .map(|loaded| loaded.config.memory.clone())
         .unwrap_or_default();
     checks.push(DoctorCheck {
         name: "Session memory".to_owned(),
@@ -225,7 +178,14 @@ pub fn run(args: DoctorArgs) -> Result<()> {
         check.detail = crate::security::redact_sensitive(&check.detail);
     }
     let report = DoctorReport {
-        healthy: checks.iter().all(|check| check.ok),
+        healthy: checks.iter().all(|check| check.ok)
+            && (!args.connectivity || connectivity.status == "available"),
+        health_scope: if args.connectivity {
+            "local checks and provider models endpoint"
+        } else {
+            "local checks only; provider connectivity untested"
+        },
+        provider_connectivity: connectivity,
         checks,
     };
     if args.json {
@@ -240,6 +200,11 @@ pub fn run(args: DoctorArgs) -> Result<()> {
                 check.detail
             );
         }
+        println!(
+            "Provider connectivity: {}\n  {}\n",
+            report.provider_connectivity.status, report.provider_connectivity.detail
+        );
+        println!("Health scope: {}", report.health_scope);
         println!(
             "Status\n  {}",
             if report.healthy {

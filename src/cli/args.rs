@@ -41,6 +41,8 @@ pub enum Command {
     Explain(ExplainArgs),
     /// Generate a minimal AI patch grounded in local knowledge
     Fix(FixArgs),
+    /// Apply a previously saved proposal without contacting AI
+    ApplyProposal(ApplyProposalArgs),
     /// Restore a recorded fix, only if its target still matches the applied content
     Rollback(RollbackArgs),
     /// Search local technical knowledge
@@ -203,6 +205,9 @@ pub struct FixArgs {
     /// Apply the validated patch after generating it
     #[arg(long, requires = "ai")]
     pub apply: bool,
+    /// Save the validated preview privately for later apply-proposal
+    #[arg(long, requires = "ai", conflicts_with = "apply")]
+    pub save_proposal: bool,
     /// Run an explicit command after application; failure attempts single-file rollback
     #[arg(long, value_name = "COMMAND", requires = "apply")]
     pub verify: Option<String>,
@@ -223,6 +228,19 @@ pub struct RollbackArgs {
     pub id: String,
     #[arg(long, default_value = ".")]
     pub project: PathBuf,
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct ApplyProposalArgs {
+    pub id: String,
+    #[arg(long, default_value = ".")]
+    pub project: PathBuf,
+    #[arg(long, value_name = "COMMAND")]
+    pub verify: Option<String>,
+    #[arg(long, default_value_t = 120, value_parser = clap::value_parser!(u64).range(1..=3600), requires = "verify")]
+    pub verify_timeout: u64,
     #[arg(long)]
     pub json: bool,
 }
@@ -258,6 +276,12 @@ pub enum ConfigCommand {
 
 #[derive(Debug, Args)]
 pub struct DoctorArgs {
+    /// Explicitly contact the configured provider's models endpoint (no generation)
+    #[arg(long)]
+    pub connectivity: bool,
+    /// Connectivity deadline in seconds
+    #[arg(long, default_value_t = 5, value_parser = clap::value_parser!(u64).range(1..=45), requires = "connectivity")]
+    pub connectivity_timeout: u64,
     /// Output machine-readable JSON
     #[arg(long)]
     pub json: bool,

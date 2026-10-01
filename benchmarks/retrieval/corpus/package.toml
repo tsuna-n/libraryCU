@@ -1,0 +1,3 @@
+name = "retrieval-benchmark"
+version = "1.0.0"
+description = "Synthetic reference notes for retrieval evaluation; not embedded product knowledge"

@@ -1,3 +1,4 @@
+pub mod connectivity;
 pub mod context;
 pub mod enhance;
 pub mod openai_compat;
@@ -38,58 +39,41 @@ fn resolve_client_with_env(
     ai: &AiConfig,
     env_value: impl Fn(&str) -> Option<String>,
 ) -> anyhow::Result<AiClient> {
+    let key = credential(ai, env_value)?;
     match ai.provider.as_str() {
-        "openrouter" => {
-            let api_key = env_value("OPENROUTER_API_KEY")
-                .filter(|key| !key.trim().is_empty())
-                .ok_or_else(|| anyhow::anyhow!("OPENROUTER_API_KEY is not set or is empty"))?;
-            Ok(AiClient::OpenRouter(OpenRouterProvider::new(api_key)))
-        }
-        "openai" => {
-            let api_key = env_value("OPENAI_API_KEY")
-                .filter(|key| !key.trim().is_empty())
-                .ok_or_else(|| anyhow::anyhow!("OPENAI_API_KEY is not set or is empty"))?;
-            Ok(AiClient::OpenAiCompat(OpenAiCompatProvider::new(
-                ai.effective_base_url().to_owned(),
-                Some(api_key),
-            )))
-        }
-        "zai" | "glm" => {
-            let api_key = ["ZAI_API_KEY", "GLM_API_KEY"]
-                .iter()
-                .filter_map(|name| env_value(name))
-                .find(|key| !key.trim().is_empty())
-                .ok_or_else(|| {
-                    anyhow::anyhow!("ZAI_API_KEY (or GLM_API_KEY) is not set or is empty")
-                })?;
-            Ok(AiClient::OpenAiCompat(OpenAiCompatProvider::new(
-                ai.effective_base_url().to_owned(),
-                Some(api_key),
-            )))
-        }
-        "ollama" => {
-            let api_key = env_value("OLLAMA_API_KEY").filter(|key| !key.trim().is_empty());
-            Ok(AiClient::OpenAiCompat(OpenAiCompatProvider::new(
-                ai.effective_base_url().to_owned(),
-                api_key,
-            )))
-        }
-        "openai-compat" => {
-            // Key is optional: local servers need none. Vendor env vars are
-            // accepted for convenience (GLM_API_KEY, ZAI_API_KEY, then OPENAI_API_KEY).
-            let api_key = ["GLM_API_KEY", "ZAI_API_KEY", "OPENAI_API_KEY"]
-                .iter()
-                .filter_map(|name| env_value(name))
-                .find(|key| !key.trim().is_empty());
-            Ok(AiClient::OpenAiCompat(OpenAiCompatProvider::new(
-                ai.effective_base_url().to_owned(),
-                api_key,
-            )))
-        }
-        other => anyhow::bail!(
-            "unsupported AI provider {other:?}; supported providers: openai, zai (glm), ollama, openrouter, openai-compat"
-        ),
+        "openrouter" => Ok(AiClient::OpenRouter(OpenRouterProvider::new(
+            key.expect("required OpenRouter credential"),
+        ))),
+        "openai" | "zai" | "glm" | "ollama" | "openai-compat" => Ok(AiClient::OpenAiCompat(
+            OpenAiCompatProvider::new(ai.effective_base_url().to_owned(), key),
+        )),
+        other => anyhow::bail!("unsupported AI provider {other:?}"),
     }
+}
+
+pub(crate) fn credential(
+    ai: &AiConfig,
+    env_value: impl Fn(&str) -> Option<String>,
+) -> anyhow::Result<Option<String>> {
+    let (names, required): (&[&str], bool) = match ai.provider.as_str() {
+        "off" => return Ok(None),
+        "openrouter" => (&["OPENROUTER_API_KEY"], true),
+        "openai" => (&["OPENAI_API_KEY"], true),
+        "zai" | "glm" => (&["ZAI_API_KEY", "GLM_API_KEY"], true),
+        "ollama" => (&["OLLAMA_API_KEY"], false),
+        "openai-compat" => (&["GLM_API_KEY", "ZAI_API_KEY", "OPENAI_API_KEY"], false),
+        other => anyhow::bail!("unsupported AI provider {other:?}"),
+    };
+    let key = names
+        .iter()
+        .filter_map(|name| env_value(name))
+        .find(|key| !key.trim().is_empty());
+    anyhow::ensure!(
+        !required || key.is_some(),
+        "{} is not set or is empty",
+        names.join(" or ")
+    );
+    Ok(key)
 }
 
 #[cfg(test)]
