@@ -120,7 +120,7 @@
     "bash -n .circleci/*.sh": "PASS",
     "python3 -m py_compile .circleci/*.py benchmarks/retrieval/run.py": "PASS",
     "isolated install/uninstall + byte identity/help/doctor + existing temp config preservation": "PASS exact 12277921b67f947a2ffbffdc525b45d11d225f91 release binary; provider off correctly reports unavailable; actual help/config keys checked",
-    "production signing/attestation/download/publication": "NOT RUN: external prerequisites and authorization absent",
+    "production signing/attestation/download/publication": "NOT RUN: external source/context/native/trust/attestation/assets prerequisites and explicit publication authority absent",
     "local PowerShell/native Windows/macOS production trust": "NOT RUN: local native OS/PowerShell/production identities absent",
     "cargo test --locked --release --test cli --quiet": "PASS: 59 CLI tests; CARGO_BIN_EXE_lbc selects the just-built target/release/lbc"
   },
@@ -153,5 +153,6 @@
       ".circleci/verify-release-source.sh"
     ],
     "scope": "Dependency audit/deny/SBOM and release/native/syntax fixtures passed earlier on this date. Their inputs remain byte-identical; checks were not unnecessarily repeated. Current fmt/check/clippy/full tests/release build/release CLI/retrieval/install were rerun after source changes."
-  }
+  },
+  "hosted_controls": "PREPARED only: three ruleset JSON bodies and reporting command; local JSON/field/context checks passed, server acceptance/enforcement NOT RUN. Read-only API account admin=true; token write scope and explicit host-setting authority unverified."
 }

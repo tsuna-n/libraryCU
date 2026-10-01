@@ -30,15 +30,26 @@
   permission; sandbox-mapped failures were not counted as passes.
 - `nvim.log` was present before this task and is preserved untracked. No main
   merge, tag change, release publication, external credentials or admin changes.
+- Authenticated GitHub account permissions include admin=true; rulesets/active main
+  rules remain empty and private reporting disabled. Exact observations and
+  reviewable main/tag JSON are retained in docs/evidence/external-state.json and
+  docs/repository-controls/. Host-setting changes need explicit authority under
+  AGENT.md; no administrator credential absence is asserted.
 - External gates: repository protections/private reporting, independently trusted
   source identity, restricted contexts/production signing credentials, Windows/
   Apple native trust, hosted-builder attestation, production assets/downloads,
   and reconciliation of the empty public release/tag-to-old-source conflict.
   Exact actions and verification commands are in the acceptance ledger and the
   existing release runbooks. Do not start v0.6 or publish/move tags automatically.
-- Next action: finish/check the current candidate's four hosted jobs against its
-  exact final SHA, then owner executes the documented external configuration and
-  independent production verification gates. Candidate CI is not production trust.
+- Hosted C1 `4a213ecd828e1ae52400d219e871dd03f22e24a6` passed dependency 173, Linux 171,
+  macOS 170 and Windows 172; each actual job revision was checked. The candidate
+  receipt is in docs/evidence/candidate-ci.json. Repository ledger: 28/28; full
+  production ledger: 29/43, with 14 external gates still open. Documentation-only
+  evidence continuation keeps identical implementation; its own exact final HEAD
+  candidate is verified at handoff.
+- Next action: owner authorizes/reviews hosted controls and executes the documented
+  external configuration and independent production verification gates. Candidate
+  CI and signing fixtures do not establish production trust.
 
 ## Historical checkpoints (superseded)
 

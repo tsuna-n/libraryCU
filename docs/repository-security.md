@@ -1,5 +1,11 @@
 # Repository security setup for v0.5.x
 
+Current October candidate C1 `4a213ecd828e1ae52400d219e871dd03f22e24a6` passed Linux 171,
+macOS 170, Windows 172 and dependency 173; exact job revisions are retained in
+[the candidate receipt](evidence/candidate-ci.json). This proves candidate
+execution, not production signing/attestation or a released milestone.
+
+
 Current 2026-10-01 evidence is in [v0.5-completion-checklist.md](v0.5-completion-checklist.md).
 Starting `08bcba665087c788a80649045fe83a887ed270a3` passed dependency
 [158](https://circleci.com/gh/tsuna-n/libraryCU/158), Linux
@@ -8,6 +14,12 @@ Starting `08bcba665087c788a80649045fe83a887ed270a3` passed dependency
 [161](https://circleci.com/gh/tsuna-n/libraryCU/161), rechecked 2026-10-01.
 This supersedes old statements that the September continuation awaits CI.
 New October core changes need their own exact-source hosted evidence.
+Current authenticated observations report repository account `admin: true`,
+rulesets/active main rules `[]` and reporting disabled. See the
+[exact observation receipt](evidence/external-state.json) and
+[prepared ruleset payloads/commands](repository-controls/README.md). Those files
+are not applied; account admin permission does not prove token write scope or
+external-setting authorization.
 The earlier checkpoint below is historical; its validation counts and status
 observations do not validate the October changes.
 

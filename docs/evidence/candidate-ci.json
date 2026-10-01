@@ -1,0 +1,442 @@
+{
+  "checked_at": "2026-10-01T04:06:46.895175+00:00",
+  "source_sha": "4a213ecd828e1ae52400d219e871dd03f22e24a6",
+  "all_four_passed": true,
+  "missing_contexts": [],
+  "jobs": [
+    {
+      "context": "ci/circleci: dependency_security",
+      "github_state": "success",
+      "job": 173,
+      "url": "https://circleci.com/gh/tsuna-n/libraryCU/173",
+      "vcs_revision": "4a213ecd828e1ae52400d219e871dd03f22e24a6",
+      "status": "success",
+      "lifecycle": "finished",
+      "workflow_job": "dependency_security",
+      "start_time": "2026-10-01T03:57:25.924Z",
+      "stop_time": "2026-10-01T03:59:16.074Z",
+      "steps": [
+        {
+          "name": "Spin up environment",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": null
+            }
+          ]
+        },
+        {
+          "name": "Preparing environment variables",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": null
+            }
+          ]
+        },
+        {
+          "name": "Checkout code",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": null
+            }
+          ]
+        },
+        {
+          "name": "Restoring cache",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": null
+            }
+          ]
+        },
+        {
+          "name": "Install pinned supply-chain tools",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": 0
+            }
+          ]
+        },
+        {
+          "name": "Audit vulnerabilities, licenses, bans, and sources",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": 0
+            }
+          ]
+        },
+        {
+          "name": "Generate and validate CycloneDX SBOM",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": 0
+            }
+          ]
+        },
+        {
+          "name": "Validate provenance and signing scripts with a disposable key",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": 0
+            }
+          ]
+        },
+        {
+          "name": "Saving cache",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": null
+            }
+          ]
+        },
+        {
+          "name": "Uploading artifacts",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": null
+            }
+          ]
+        },
+        {
+          "name": "Persisting to workspace",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "context": "ci/circleci: build_and_test",
+      "github_state": "success",
+      "job": 171,
+      "url": "https://circleci.com/gh/tsuna-n/libraryCU/171",
+      "vcs_revision": "4a213ecd828e1ae52400d219e871dd03f22e24a6",
+      "status": "success",
+      "lifecycle": "finished",
+      "workflow_job": "build_and_test",
+      "start_time": "2026-10-01T03:57:25.927Z",
+      "stop_time": "2026-10-01T04:00:33.785Z",
+      "steps": [
+        {
+          "name": "Spin up environment",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": null
+            }
+          ]
+        },
+        {
+          "name": "Preparing environment variables",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": null
+            }
+          ]
+        },
+        {
+          "name": "Checkout code",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": null
+            }
+          ]
+        },
+        {
+          "name": "Isolate libraryCube configuration and data",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": 0
+            }
+          ]
+        },
+        {
+          "name": "Restoring cache",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": null
+            }
+          ]
+        },
+        {
+          "name": "Verify formatting",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": 0
+            }
+          ]
+        },
+        {
+          "name": "Check locked dependencies",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": 0
+            }
+          ]
+        },
+        {
+          "name": "Run Clippy with warnings denied",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": 0
+            }
+          ]
+        },
+        {
+          "name": "Run test suite",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": 0
+            }
+          ]
+        },
+        {
+          "name": "Build release binary",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": 0
+            }
+          ]
+        },
+        {
+          "name": "Test the release binary",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": 0
+            }
+          ]
+        },
+        {
+          "name": "Measure fixed retrieval corpus and reject per-case regressions",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": 0
+            }
+          ]
+        },
+        {
+          "name": "Uploading artifacts",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": null
+            }
+          ]
+        },
+        {
+          "name": "Verify version and clean generated diff",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": 0
+            }
+          ]
+        },
+        {
+          "name": "Package Linux release",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": 0
+            }
+          ]
+        },
+        {
+          "name": "Saving cache",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": null
+            }
+          ]
+        },
+        {
+          "name": "Uploading artifacts",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": null
+            }
+          ]
+        },
+        {
+          "name": "Persisting to workspace",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "context": "ci/circleci: build_macos",
+      "github_state": "success",
+      "job": 170,
+      "url": "https://circleci.com/gh/tsuna-n/libraryCU/170",
+      "vcs_revision": "4a213ecd828e1ae52400d219e871dd03f22e24a6",
+      "status": "success",
+      "lifecycle": "finished",
+      "workflow_job": "build_macos",
+      "start_time": "2026-10-01T03:58:23.18Z",
+      "stop_time": "2026-10-01T04:01:10.543Z",
+      "steps": [
+        {
+          "name": "Spin up environment",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": null
+            }
+          ]
+        },
+        {
+          "name": "Preparing environment variables",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": null
+            }
+          ]
+        },
+        {
+          "name": "Checkout code",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": null
+            }
+          ]
+        },
+        {
+          "name": "Build, test, and package universal macOS release",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": 0
+            }
+          ]
+        },
+        {
+          "name": "Uploading artifacts",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": null
+            }
+          ]
+        },
+        {
+          "name": "Persisting to workspace",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "context": "ci/circleci: build_windows",
+      "github_state": "success",
+      "job": 172,
+      "url": "https://circleci.com/gh/tsuna-n/libraryCU/172",
+      "vcs_revision": "4a213ecd828e1ae52400d219e871dd03f22e24a6",
+      "status": "success",
+      "lifecycle": "finished",
+      "workflow_job": "build_windows",
+      "start_time": "2026-10-01T03:58:19.289Z",
+      "stop_time": "2026-10-01T04:05:30.425Z",
+      "steps": [
+        {
+          "name": "Spin up environment",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": null
+            }
+          ]
+        },
+        {
+          "name": "Preparing environment variables",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": null
+            }
+          ]
+        },
+        {
+          "name": "Checkout code",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": null
+            }
+          ]
+        },
+        {
+          "name": "Validate Windows native-signing policy without production credentials",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": 0
+            }
+          ]
+        },
+        {
+          "name": "Build, test, and package Windows release",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": 0
+            }
+          ]
+        },
+        {
+          "name": "Uploading artifacts",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": null
+            }
+          ]
+        },
+        {
+          "name": "Persisting to workspace",
+          "actions": [
+            {
+              "status": "success",
+              "exit_code": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

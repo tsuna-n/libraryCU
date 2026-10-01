@@ -1,5 +1,11 @@
 # Native release signing and independent verification
 
+Current October candidate C1 `4a213ecd828e1ae52400d219e871dd03f22e24a6` passed Linux 171,
+macOS 170, Windows 172 and dependency 173; exact job revisions are retained in
+[the candidate receipt](evidence/candidate-ci.json). This proves candidate
+execution, not production signing/attestation or a released milestone.
+
+
 Repository implementation is prepared, not proof of production execution.
 Candidate macOS binaries are ad-hoc signed; Windows candidates are unsigned.
 Actual Developer ID, Authenticode, timestamp and notarization execution remains

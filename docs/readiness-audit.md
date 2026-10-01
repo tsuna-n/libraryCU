@@ -1,5 +1,11 @@
 # Readiness audit — 2026-09-05
 
+Current October candidate C1 `4a213ecd828e1ae52400d219e871dd03f22e24a6` passed Linux 171,
+macOS 170, Windows 172 and dependency 173; exact job revisions are retained in
+[the candidate receipt](evidence/candidate-ci.json). This proves candidate
+execution, not production signing/attestation or a released milestone.
+
+
 This is a hardening checkpoint, not certification of the entire implementation
 contract or every operating system. The existing completion checklist must not
 be read as evidence that all production edge cases were tested.

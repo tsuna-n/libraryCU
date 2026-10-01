@@ -1,5 +1,11 @@
 # 0.5.0 release-candidate audit — 2026-09-17
 
+Current October candidate C1 `4a213ecd828e1ae52400d219e871dd03f22e24a6` passed Linux 171,
+macOS 170, Windows 172 and dependency 173; exact job revisions are retained in
+[the candidate receipt](evidence/candidate-ci.json). This proves candidate
+execution, not production signing/attestation or a released milestone.
+
+
 Current 2026-10-01 evidence is in [v0.5-completion-checklist.md](v0.5-completion-checklist.md).
 Starting `08bcba665087c788a80649045fe83a887ed270a3` passed dependency
 [158](https://circleci.com/gh/tsuna-n/libraryCU/158), Linux

@@ -1,0 +1,50 @@
+{
+  "checked_at": "2026-10-01T04:03:45.022334+00:00",
+  "repository": {
+    "full_name": "tsuna-n/libraryCU",
+    "default_branch": "main",
+    "permissions": {
+      "admin": true,
+      "maintain": true,
+      "push": true,
+      "triage": true,
+      "pull": true
+    }
+  },
+  "rulesets": {
+    "command": "gh api repos/tsuna-n/libraryCU/rulesets?includes_parents=true",
+    "exit_code": 0,
+    "response": []
+  },
+  "active_main_rules": {
+    "command": "gh api repos/tsuna-n/libraryCU/rules/branches/main",
+    "exit_code": 0,
+    "response": []
+  },
+  "traditional_main_protection": {
+    "command": "gh api repos/tsuna-n/libraryCU/branches/main/protection",
+    "exit_code": 1,
+    "response": {
+      "message": "Branch not protected",
+      "documentation_url": "https://docs.github.com/rest/branches/branch-protection#get-branch-protection",
+      "status": "404"
+    }
+  },
+  "private_vulnerability_reporting": {
+    "command": "gh api repos/tsuna-n/libraryCU/private-vulnerability-reporting",
+    "exit_code": 0,
+    "response": {
+      "enabled": false
+    }
+  },
+  "release": {
+    "id": 390049263,
+    "tag_name": "v0.5.0",
+    "target_commitish": "main",
+    "draft": false,
+    "prerelease": false,
+    "name": "v0.5.0 \u2014 Security & Supply Chain \u2014 DRAFT",
+    "assets": []
+  },
+  "scope": "Read-only authenticated observations. admin=true is repository account permission, not evidence of token Administration write scope or authorization to change hosted rules. No rules/reporting/release/tag mutation performed."
+}
