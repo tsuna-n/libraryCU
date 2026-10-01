@@ -1,7 +1,7 @@
 {
-  "source_sha": "ff45a2c5f946a77054baae36eb75a997b6e24fc6",
-  "checked_at": "2026-10-01T03:30:11.034470+00:00",
-  "binary_sha256": "b7d0094bcc582e48e799c7a99821c85fb407aca23bba79ee48291892b1101f52",
+  "source_sha": "12277921b67f947a2ffbffdc525b45d11d225f91",
+  "checked_at": "2026-10-01T03:55:12.380411+00:00",
+  "binary_sha256": "7410fa148e20089bcf99d8f707b859455a3df2ceb4512a1fa6a088093eef5da9",
   "dataset_sha256": "6ba824757fca6994397873de76a7f71d3f57a8a0b2f0a56f0f00bf42e4b7a794",
   "corpus_sha256": {
     "knowledge/docker/daemon-not-running.md": "d46184d38fff0c8740760ef0470f4046d8d0b3ea89fe0f9db9cb52b8a1be1042",
@@ -100,8 +100,8 @@
   "latency": {
     "unit": "milliseconds",
     "scope": "three repetitions, median of separate search + ask subprocesses; includes startup/store reads",
-    "median": 13.731137000377203,
-    "p95": 18.02791000045545
+    "median": 14.656863000254816,
+    "p95": 18.466282000190404
   },
   "cases": [
     {
@@ -122,7 +122,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 15.979964000507607
+      "median_search_ask_ms": 14.343875000122353
     },
     {
       "id": "R02",
@@ -142,7 +142,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 13.001147999602836
+      "median_search_ask_ms": 13.564304999817978
     },
     {
       "id": "R03",
@@ -162,7 +162,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 14.935959000467847
+      "median_search_ask_ms": 15.550998000435357
     },
     {
       "id": "R04",
@@ -182,7 +182,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 14.754767999875185
+      "median_search_ask_ms": 19.01578600063658
     },
     {
       "id": "R05",
@@ -203,7 +203,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 16.25267800045549
+      "median_search_ask_ms": 14.490030000160914
     },
     {
       "id": "R06",
@@ -223,7 +223,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 18.02791000045545
+      "median_search_ask_ms": 14.531238000017765
     },
     {
       "id": "R07",
@@ -243,7 +243,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 18.420180000248365
+      "median_search_ask_ms": 17.80023999981495
     },
     {
       "id": "R08",
@@ -267,7 +267,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 12.782429000253615
+      "median_search_ask_ms": 13.66007999968133
     },
     {
       "id": "R09",
@@ -287,7 +287,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 14.402709000023606
+      "median_search_ask_ms": 17.938232999767934
     },
     {
       "id": "R10",
@@ -307,7 +307,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 12.64844399975118
+      "median_search_ask_ms": 16.63637900037429
     },
     {
       "id": "R11",
@@ -327,7 +327,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 13.958311999886064
+      "median_search_ask_ms": 14.128150999567879
     },
     {
       "id": "R12",
@@ -347,7 +347,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 13.465553000060027
+      "median_search_ask_ms": 15.025730000161275
     },
     {
       "id": "R13",
@@ -369,7 +369,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": false,
-      "median_search_ask_ms": 15.285982000023068
+      "median_search_ask_ms": 15.034706000733422
     },
     {
       "id": "R14",
@@ -391,7 +391,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": false,
-      "median_search_ask_ms": 14.767910999580636
+      "median_search_ask_ms": 16.214140000556654
     },
     {
       "id": "R15",
@@ -416,7 +416,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": false,
-      "median_search_ask_ms": 15.68442200004938
+      "median_search_ask_ms": 18.466282000190404
     },
     {
       "id": "R16",
@@ -436,7 +436,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 13.641015000757761
+      "median_search_ask_ms": 14.227181999558525
     },
     {
       "id": "R17",
@@ -463,7 +463,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": false,
-      "median_search_ask_ms": 12.933940000039001
+      "median_search_ask_ms": 14.23524300025747
     },
     {
       "id": "R18",
@@ -481,7 +481,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 14.404108000235283
+      "median_search_ask_ms": 14.782488000491867
     },
     {
       "id": "R19",
@@ -501,7 +501,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 12.089045000720944
+      "median_search_ask_ms": 13.71132199983549
     },
     {
       "id": "R20",
@@ -522,7 +522,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 14.485883999441285
+      "median_search_ask_ms": 13.077686000542599
     },
     {
       "id": "R21",
@@ -542,7 +542,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 13.573143999565218
+      "median_search_ask_ms": 17.972769999687443
     },
     {
       "id": "R22",
@@ -565,7 +565,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": false,
-      "median_search_ask_ms": 16.02777999960381
+      "median_search_ask_ms": 12.234095000167144
     },
     {
       "id": "R23",
@@ -586,7 +586,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 15.3711890006889
+      "median_search_ask_ms": 16.38919899960456
     },
     {
       "id": "R24",
@@ -606,7 +606,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 13.086758000099508
+      "median_search_ask_ms": 15.536702999270346
     },
     {
       "id": "R25",
@@ -626,7 +626,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 13.125550000040676
+      "median_search_ask_ms": 19.606969999586
     },
     {
       "id": "R26",
@@ -646,7 +646,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 13.821258999996644
+      "median_search_ask_ms": 15.401826999550394
     },
     {
       "id": "R27",
@@ -670,7 +670,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": false,
-      "median_search_ask_ms": 13.147291000677797
+      "median_search_ask_ms": 13.528610999856028
     },
     {
       "id": "R28",
@@ -690,7 +690,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 19.00860299974738
+      "median_search_ask_ms": 13.147345999641402
     },
     {
       "id": "R29",
@@ -710,7 +710,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 14.331929000036325
+      "median_search_ask_ms": 14.884563000123308
     },
     {
       "id": "R30",
@@ -730,7 +730,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 12.04384500033484
+      "median_search_ask_ms": 13.618123999549425
     },
     {
       "id": "R31",
@@ -755,7 +755,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": false,
-      "median_search_ask_ms": 12.699605999841879
+      "median_search_ask_ms": 15.890822999608645
     },
     {
       "id": "R32",
@@ -775,7 +775,7 @@
       ],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 12.589379000019107
+      "median_search_ask_ms": 13.609685000119498
     },
     {
       "id": "R33",
@@ -789,7 +789,7 @@
       "cited_sources": [],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 13.242965000245022
+      "median_search_ask_ms": 17.154021999886027
     },
     {
       "id": "R34",
@@ -803,7 +803,7 @@
       "cited_sources": [],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 13.580400999671838
+      "median_search_ask_ms": 17.01194699944608
     },
     {
       "id": "R35",
@@ -817,7 +817,7 @@
       "cited_sources": [],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 12.677089000135311
+      "median_search_ask_ms": 11.423093000303197
     },
     {
       "id": "R36",
@@ -831,7 +831,7 @@
       "cited_sources": [],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 16.213029000027745
+      "median_search_ask_ms": 13.528335999581032
     },
     {
       "id": "R37",
@@ -845,7 +845,7 @@
       "cited_sources": [],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 12.036193999847455
+      "median_search_ask_ms": 13.061326999377343
     },
     {
       "id": "R38",
@@ -859,7 +859,7 @@
       "cited_sources": [],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 16.45501500024693
+      "median_search_ask_ms": 15.975042000718531
     },
     {
       "id": "R39",
@@ -873,7 +873,7 @@
       "cited_sources": [],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 11.663647999739624
+      "median_search_ask_ms": 13.4156330004771
     },
     {
       "id": "R40",
@@ -887,7 +887,7 @@
       "cited_sources": [],
       "citation_identity_correct": true,
       "citation_relevance_correct": true,
-      "median_search_ask_ms": 13.516645999516186
+      "median_search_ask_ms": 13.450331000058213
     }
   ]
 }

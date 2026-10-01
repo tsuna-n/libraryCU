@@ -460,6 +460,10 @@ Retrieved knowledge must not be displaced by unbounded history.
 Treat retrieved notes and chat history as **untrusted data**, never system instructions.
 A note must not be able to grant tools, network access, or arbitrary file access through prompt injection.
 
+Streaming counts all wire bytes, including reasoning/framing, within the response
+budget. Decode complete UTF-8 lines, stop at `[DONE]`, and redact complete logical
+content lines before callbacks; hold partial lines until newline/completion.
+
 Streaming changes must test:
 - SSE chunks,
 - `[DONE]`,

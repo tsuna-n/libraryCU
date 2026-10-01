@@ -7,11 +7,15 @@
   Rechecked four green candidate jobs: dependency 158, Linux 160, macOS 159,
   Windows 161. The earlier pending-hosted-continuation language is obsolete.
 - Work is on `fix/v0.5-completion`. Exact implementation source:
-  `ff45a2c5f946a77054baae36eb75a997b6e24fc6`; local signed-commit verification succeeded but independent trust
+  `12277921b67f947a2ffbffdc525b45d11d225f91`; local signed-commit verification succeeded but independent trust
   and protected production contexts remain separate gates.
 - Implemented doctor local/key/connectivity separation and bounded opt-in GET;
   private HMAC/source-bound saved proposals plus offline application using the
-  existing verify/recovery/rollback workflow; deterministic retrieval fixes.
+  existing verify/recovery/rollback workflow; deterministic retrieval fixes; bounded
+  SSE reasoning/framing and pre-display redaction/UTF-8/DONE regression fixes.
+  Windows 167 exposed a mock nonblocking socket inheritance race; accepted
+  doctor/streaming sockets now explicitly use blocking reads without weakening
+  product timeouts or assertions. Failed 167 is not counted as a pass.
 - Added 40 fixed labeled cases and seven explicit multilingual reference notes.
   Baseline/after dataset and corpus hashes match. Top-1 28/31 → 31/31;
   Top-3 30/31 → 31/31; citation identity 40/40; strict citation relevance 24/40 →
@@ -19,9 +23,9 @@
 - Full evidence, commands, acceptance criteria, dates, source IDs and separate
   denominators are in [v0.5-completion-checklist.md](v0.5-completion-checklist.md),
   which is an acceptance ledger. ROADMAP.md remains the canonical milestone checklist.
-- Local exact-source gate: fmt, locked check, strict Clippy, 194 tests
-  (112 library / 6 CI / 58 CLI / 12 filesystem / 6 privacy), release build and
-  58 release CLI tests; fresh audit/deny, SBOM, release/native fixtures and isolated
+- Local exact-source gate: fmt, locked check, strict Clippy, 199 tests
+  (116 library / 6 CI / 59 CLI / 12 filesystem / 6 privacy), release build and
+  59 release CLI tests; fresh audit/deny, SBOM, release/native fixtures and isolated
   installation all passed. Local validation uses real owner/ACL and loopback
   permission; sandbox-mapped failures were not counted as passes.
 - `nvim.log` was present before this task and is preserved untracked. No main

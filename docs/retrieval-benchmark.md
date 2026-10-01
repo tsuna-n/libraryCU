@@ -15,7 +15,7 @@ Both reports retain every input and corpus file hash, observed top-3/citations/
 status, source revision, binary SHA-256, check date and three-run latency.
 
 Baseline source: `08bcba665087c788a80649045fe83a887ed270a3`, built from an isolated `git archive`.
-Final implementation source: `ff45a2c5f946a77054baae36eb75a997b6e24fc6`.
+Final implementation source: `12277921b67f947a2ffbffdc525b45d11d225f91`.
 [Baseline JSON](evidence/retrieval-baseline.json) and
 [after JSON](evidence/retrieval-after.json) use identical dataset/corpus hashes.
 
@@ -27,8 +27,8 @@ Final implementation source: `ff45a2c5f946a77054baae36eb75a997b6e24fc6`.
 | Strict citation relevance | 24/40 (60%) | 33/40 (82.5%) | Every emitted source must belong to pre-labeled acceptable set; extra sources fail the whole case |
 | Expected answer status | 40/40 | 40/40 | retrieved_guidance / general_guidance / no_adequate_match per pre-labeled case |
 | Insufficient/unrelated behavior | 9/9 | 9/9 | Eight no-evidence cases abstain and one unknown Python failure explicitly general-guides |
-| Median search + ask | 14.88 ms | 13.73 ms | Median of each case's three separate search+ask subprocess pairs, including startup/index/store reads |
-| P95 search + ask | 18.49 ms | 18.03 ms | Nearest-rank P95 over case medians on this Linux host; not a portable performance guarantee |
+| Median search + ask | 14.88 ms | 14.66 ms | Median of each case's three separate search+ask subprocess pairs, including startup/index/store reads |
+| P95 search + ask | 18.49 ms | 18.47 ms | Nearest-rank P95 over case medians on this Linux host; not a portable performance guarantee |
 
 Implemented corrections: deduplicate terms; use Latin/underscore word boundaries
 while retaining Thai fragments; structurally prioritize exact codes, full titles

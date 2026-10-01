@@ -434,6 +434,10 @@ printed.
 Redaction handles multiple credentials per line, quoted structured keys, URI user information, and Unicode prefixes. Private-key blocks are redacted before passage selection while preserving line numbers. It is pattern-based, not a guarantee that arbitrary secrets are detected: review sensitive notes before opting into remote AI. Config display masks recognizable credentials without changing the saved value.
 
 Input limits: questions/search queries are at most 8 KiB; notes are at most 256 KiB **including serialized metadata**; error-log input is at most 2 MiB. AI user context is limited to 32,000 Unicode characters, with separate per-field limits and retrieved knowledge prioritized ahead of chat history. Each provider request has a 45-second timeout and a 2 MiB response limit.
+Streaming counts all wire bytes, including hidden reasoning and framing. It
+preserves UTF-8 split across HTTP chunks, stops at `[DONE]`, and redacts before
+callbacks/display. An incomplete logical line is held until its newline or
+completion so a credential split across content deltas cannot escape redaction.
 
 Note creation publishes a fully written temporary file without overwriting an existing target. Edits atomically replace a validated document; failed editor launches and cancellations clean up temporary files. Builtin overrides preserve retrieval metadata, and changed bodies reset verification to `unverified`. Editor arguments support quoting without launching a shell implicitly. Bounded text readers reject special files and symlinked path components (including parent directories); use real, non-symlinked storage paths.
 

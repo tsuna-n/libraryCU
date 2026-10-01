@@ -13,6 +13,10 @@
 - Added an immutable 40-case retrieval benchmark and per-case CI regression
   comparison. Top-1 28/31 → 31/31; Top-3 30/31 → 31/31; strict citation relevance
   24/40 → 33/40. Measurements are not incident-resolution accuracy.
+- Hardened both SSE providers with a shared 2 MiB wire budget including hidden
+  reasoning/framing, UTF-8 across arbitrary byte boundaries, immediate DONE
+  termination and line-buffered redaction before callbacks/display. Added actual
+  HTTP regressions and fixed inherited nonblocking Windows mock sockets.
 - Added a v0.5 acceptance ledger with exact evidence, separate repository and
   production denominators, and external gates. Starting `08bcba6` is confirmed
   green on CircleCI 158/160/159/161; earlier pending-CI claims are superseded.
