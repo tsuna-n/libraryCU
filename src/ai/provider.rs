@@ -46,6 +46,172 @@ pub async fn read_bounded_response(
     Ok((status, payload))
 }
 
+/// Bound all SSE wire bytes (including hidden reasoning/framing), decode only
+/// complete UTF-8 lines, and stop reading immediately at the completion marker.
+pub(crate) async fn read_chat_stream(
+    mut response: reqwest::Response,
+    model: &str,
+    on_event: &mut (dyn FnMut(StreamEvent) + Send),
+) -> anyhow::Result<AiResponse> {
+    let mut decoder = StreamDecoder::default();
+    let mut redactor = StreamRedactor::default();
+    while let Some(chunk) = response
+        .chunk()
+        .await
+        .map_err(|e| anyhow::anyhow!("failed to read provider stream: {}", e.without_url()))?
+    {
+        decoder.push(&chunk, on_event, &mut redactor)?;
+        if decoder.done {
+            break;
+        }
+    }
+    decoder.finish(on_event, &mut redactor)?;
+    let content = crate::security::redact_sensitive(decoder.content.trim());
+    if content.is_empty() {
+        anyhow::bail!(if decoder.thinking {
+            "the reasoning model spent its entire token budget on hidden reasoning and returned no answer"
+        } else {
+            "provider response contained no assistant content"
+        });
+    }
+    redactor.flush(true, on_event);
+    Ok(AiResponse {
+        content,
+        model: crate::security::redact_sensitive(model),
+    })
+}
+
+#[derive(Default)]
+struct StreamDecoder {
+    pending: Vec<u8>,
+    searched: usize,
+    wire_bytes: usize,
+    content: String,
+    thinking: bool,
+    done: bool,
+}
+
+impl StreamDecoder {
+    fn push(
+        &mut self,
+        chunk: &[u8],
+        callback: &mut (dyn FnMut(StreamEvent) + Send),
+        redactor: &mut StreamRedactor,
+    ) -> anyhow::Result<()> {
+        if self.done {
+            return Ok(());
+        }
+        anyhow::ensure!(
+            self.wire_bytes.saturating_add(chunk.len()) <= MAX_PROVIDER_RESPONSE_BYTES,
+            "provider stream exceeds 2 MB (including reasoning and framing)"
+        );
+        self.wire_bytes += chunk.len();
+        self.pending.extend_from_slice(chunk);
+        let mut consumed = 0;
+        let mut start = self.searched;
+        while let Some(relative) = self.pending[start..].iter().position(|byte| *byte == b'\n') {
+            let end = start + relative;
+            let line = std::str::from_utf8(&self.pending[consumed..end])
+                .map_err(|_| anyhow::anyhow!("provider stream was not valid UTF-8"))?;
+            let event = parse_sse_line(line.trim_end_matches('\r'))?;
+            self.event(event, callback, redactor);
+            consumed = end + 1;
+            start = consumed;
+            if self.done {
+                break;
+            }
+        }
+        self.pending.drain(..consumed);
+        self.searched = self.pending.len();
+        if self.done {
+            self.pending.clear();
+            self.searched = 0;
+        }
+        Ok(())
+    }
+
+    fn finish(
+        &mut self,
+        callback: &mut (dyn FnMut(StreamEvent) + Send),
+        redactor: &mut StreamRedactor,
+    ) -> anyhow::Result<()> {
+        if !self.done && !self.pending.is_empty() {
+            let line = std::str::from_utf8(&self.pending)
+                .map_err(|_| anyhow::anyhow!("provider stream ended with invalid UTF-8"))?;
+            let event = parse_sse_line(line.trim_end_matches(['\r', '\n']))?;
+            self.event(event, callback, redactor);
+            self.pending.clear();
+        }
+        Ok(())
+    }
+
+    fn event(
+        &mut self,
+        event: SseLine,
+        callback: &mut (dyn FnMut(StreamEvent) + Send),
+        redactor: &mut StreamRedactor,
+    ) {
+        match event {
+            SseLine::Done => self.done = true,
+            SseLine::Delta { content, reasoning } => {
+                if reasoning.is_some() && !self.thinking {
+                    self.thinking = true;
+                    callback(StreamEvent::Thinking);
+                }
+                if let Some(text) = content {
+                    self.content.push_str(&text);
+                    redactor.raw.push_str(&text);
+                    if text.contains('\n') {
+                        redactor.flush(false, callback);
+                    }
+                }
+            }
+            SseLine::Empty => {}
+        }
+    }
+}
+
+/// Hold incomplete logical lines so split credentials cannot escape redaction.
+/// Private-key state survives lines without repeatedly rescanning the response.
+#[derive(Default)]
+struct StreamRedactor {
+    raw: String,
+    private_key: bool,
+}
+
+impl StreamRedactor {
+    fn flush(&mut self, final_chunk: bool, callback: &mut (dyn FnMut(StreamEvent) + Send)) {
+        let end = if final_chunk {
+            self.raw.len()
+        } else {
+            self.raw.rfind('\n').map(|end| end + 1).unwrap_or(0)
+        };
+        let ready: String = self.raw.drain(..end).collect();
+        for line in ready.split_inclusive('\n') {
+            let safe = if self.private_key {
+                let contextual = crate::security::redact_sensitive(&format!(
+                    "-----BEGIN PRIVATE KEY-----\n{line}"
+                ));
+                contextual
+                    .strip_prefix("[REDACTED PRIVATE KEY]\n")
+                    .expect("private-key context is always redacted")
+                    .to_owned()
+            } else {
+                crate::security::redact_sensitive(line)
+            };
+            let lower = line.to_ascii_lowercase();
+            if lower.contains("-----begin") && lower.contains("private key-----") {
+                self.private_key = true;
+            }
+            if self.private_key && lower.contains("-----end") && lower.contains("private key-----")
+            {
+                self.private_key = false;
+            }
+            callback(StreamEvent::Content(&safe));
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StreamEvent<'a> {
     Thinking,
@@ -319,6 +485,120 @@ pub fn parse_chat_response(payload: &str, fallback_model: &str) -> anyhow::Resul
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn sse_decoder_preserves_every_utf8_byte_split_and_stops_at_done() {
+        let payload = "data: {\"choices\":[{\"delta\":{\"content\":\"งานไทย 🦀\\n\"}}]}\r\n\r\ndata: [DONE]\n";
+        for split in 0..=payload.len() {
+            let mut decoder = StreamDecoder::default();
+            let mut redactor = StreamRedactor::default();
+            let mut visible = String::new();
+            let mut callback = |event: StreamEvent<'_>| {
+                if let StreamEvent::Content(text) = event {
+                    visible.push_str(text);
+                }
+            };
+            decoder
+                .push(&payload.as_bytes()[..split], &mut callback, &mut redactor)
+                .unwrap();
+            decoder
+                .push(&payload.as_bytes()[split..], &mut callback, &mut redactor)
+                .unwrap();
+            decoder
+                .push(b"not JSON after DONE\n", &mut callback, &mut redactor)
+                .unwrap();
+            decoder.finish(&mut callback, &mut redactor).unwrap();
+            redactor.flush(true, &mut callback);
+            assert!(decoder.done);
+            assert_eq!(decoder.content, "งานไทย 🦀\n");
+            assert_eq!(visible, "งานไทย 🦀\n");
+        }
+    }
+
+    #[test]
+    fn sse_decoder_bounds_unfinished_lines_and_reasoning_wire_bytes_at_limit() {
+        for size in [
+            MAX_PROVIDER_RESPONSE_BYTES - 1,
+            MAX_PROVIDER_RESPONSE_BYTES,
+            MAX_PROVIDER_RESPONSE_BYTES + 1,
+        ] {
+            let mut decoder = StreamDecoder::default();
+            let mut redactor = StreamRedactor::default();
+            let mut callback = |_: StreamEvent<'_>| {};
+            assert_eq!(
+                decoder
+                    .push(&vec![b' '; size], &mut callback, &mut redactor)
+                    .is_ok(),
+                size <= MAX_PROVIDER_RESPONSE_BYTES
+            );
+            if size == MAX_PROVIDER_RESPONSE_BYTES {
+                assert!(decoder.push(b"x", &mut callback, &mut redactor).is_err());
+                assert_eq!(decoder.pending.len(), MAX_PROVIDER_RESPONSE_BYTES);
+            }
+        }
+        let line = b"data: {\"choices\":[{\"delta\":{\"reasoning_content\":\"hidden\"}}]}\n";
+        let mut decoder = StreamDecoder::default();
+        let mut redactor = StreamRedactor::default();
+        let mut callback = |_: StreamEvent<'_>| {};
+        for _ in 0..MAX_PROVIDER_RESPONSE_BYTES / line.len() {
+            decoder.push(line, &mut callback, &mut redactor).unwrap();
+        }
+        assert!(decoder.push(line, &mut callback, &mut redactor).is_err());
+        assert!(decoder.content.is_empty());
+        assert!(decoder.thinking);
+    }
+
+    #[test]
+    fn sse_decoder_rejects_invalid_utf8_and_parses_final_line_without_newline() {
+        let mut decoder = StreamDecoder::default();
+        let mut redactor = StreamRedactor::default();
+        let mut callback = |_: StreamEvent<'_>| {};
+        assert!(
+            decoder
+                .push(b"data: \xff\n", &mut callback, &mut redactor)
+                .is_err()
+        );
+        let mut decoder = StreamDecoder::default();
+        decoder
+            .push(
+                b"data: {\"choices\":[{\"delta\":{\"content\":\"ok\"}}]}",
+                &mut callback,
+                &mut redactor,
+            )
+            .unwrap();
+        decoder.finish(&mut callback, &mut redactor).unwrap();
+        assert_eq!(decoder.content, "ok");
+        let mut decoder = StreamDecoder::default();
+        decoder.push(&[0xe0], &mut callback, &mut redactor).unwrap();
+        assert!(decoder.finish(&mut callback, &mut redactor).is_err());
+    }
+
+    #[test]
+    fn streamed_secrets_are_redacted_before_callbacks_even_across_content_deltas() {
+        let mut redactor = StreamRedactor::default();
+        let mut visible = String::new();
+        let mut callback = |event: StreamEvent<'_>| {
+            if let StreamEvent::Content(text) = event {
+                visible.push_str(text);
+            }
+        };
+        for fragment in [
+            "Change: x\nAPI_",
+            "KEY=private-stream-marker",
+            "\n-----BEGIN PRIVATE KEY-----\n",
+            "private-interior-marker\n",
+            "-----END PRIVATE KEY-----\nDone",
+        ] {
+            redactor.raw.push_str(fragment);
+            redactor.flush(false, &mut callback);
+        }
+        redactor.flush(true, &mut callback);
+        assert!(visible.contains("Change: x"));
+        assert!(visible.ends_with("Done"));
+        assert!(!visible.contains("private-stream-marker"));
+        assert!(!visible.contains("private-interior-marker"));
+        assert!(visible.contains("[REDACTED PRIVATE KEY]"));
+    }
 
     #[test]
     fn parses_stated_confidence_levels() {

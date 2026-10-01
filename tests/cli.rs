@@ -9,6 +9,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 mod doctor;
 #[path = "cli/fix.rs"]
 mod fix;
+#[path = "cli/streaming.rs"]
+mod streaming;
 
 #[test]
 fn explain_broader_diagnostics_provides_known_guidance_without_claiming_verification() {

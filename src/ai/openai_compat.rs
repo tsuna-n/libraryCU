@@ -2,8 +2,8 @@ use anyhow::Context;
 use reqwest::Client;
 
 use super::provider::{
-    AiProvider, AiRequest, AiResponse, SseLine, StreamEvent, build_chat_body,
-    build_chat_body_streaming, parse_chat_response, parse_sse_line, read_bounded_response,
+    AiProvider, AiRequest, AiResponse, StreamEvent, build_chat_body, build_chat_body_streaming,
+    parse_chat_response, read_bounded_response,
 };
 
 /// Talks to any OpenAI-compatible endpoint such as a local Ollama server
@@ -70,7 +70,7 @@ impl AiProvider for OpenAiCompatProvider {
         if let Some(api_key) = &self.api_key {
             http = http.bearer_auth(api_key);
         }
-        let mut response = http
+        let response = http
             .json(&build_chat_body_streaming(&request, true))
             .send()
             .await
@@ -90,72 +90,7 @@ impl AiProvider for OpenAiCompatProvider {
             anyhow::bail!("provider request failed with status {status}");
         }
 
-        let mut accumulated_content = String::new();
-        let mut line_buffer = String::new();
-        let mut emitted_thinking = false;
-        let model = request.model.clone();
-
-        while let Some(chunk) = response.chunk().await.map_err(|e| {
-            anyhow::anyhow!("failed to read provider stream chunk: {}", e.without_url())
-        })? {
-            if accumulated_content.len() > crate::ai::provider::MAX_PROVIDER_RESPONSE_BYTES {
-                anyhow::bail!("provider response exceeded 2 MB");
-            }
-            let chunk_str = String::from_utf8_lossy(&chunk);
-            line_buffer.push_str(&chunk_str);
-
-            while let Some(pos) = line_buffer.find('\n') {
-                let line = line_buffer[..pos].trim_end_matches('\r').to_string();
-                line_buffer.drain(..=pos);
-
-                match parse_sse_line(&line)? {
-                    SseLine::Done => break,
-                    SseLine::Delta { content, reasoning } => {
-                        if reasoning.is_some() && !emitted_thinking {
-                            emitted_thinking = true;
-                            on_event(StreamEvent::Thinking);
-                        }
-                        if let Some(text) = content {
-                            accumulated_content.push_str(&text);
-                            on_event(StreamEvent::Content(&text));
-                        }
-                    }
-                    SseLine::Empty => {}
-                }
-            }
-        }
-
-        if !line_buffer.trim().is_empty() {
-            let line = line_buffer.trim_end_matches(['\r', '\n']).to_string();
-            match parse_sse_line(&line)? {
-                SseLine::Done => {}
-                SseLine::Delta { content, reasoning } => {
-                    if reasoning.is_some() && !emitted_thinking {
-                        on_event(StreamEvent::Thinking);
-                    }
-                    if let Some(text) = content {
-                        accumulated_content.push_str(&text);
-                        on_event(StreamEvent::Content(&text));
-                    }
-                }
-                SseLine::Empty => {}
-            }
-        }
-
-        let trimmed_content = accumulated_content.trim();
-        if trimmed_content.is_empty() {
-            if emitted_thinking {
-                anyhow::bail!(
-                    "the reasoning model spent its entire token budget on hidden reasoning and returned no answer"
-                );
-            }
-            anyhow::bail!("provider response contained no assistant content");
-        }
-
-        Ok(AiResponse {
-            content: crate::security::redact_sensitive(trimmed_content),
-            model: crate::security::redact_sensitive(&model),
-        })
+        super::provider::read_chat_stream(response, &request.model, on_event).await
     }
 }
 

@@ -78,6 +78,7 @@ fn explicit_connectivity_checks_models_and_reports_http_malformed_and_timeout_er
                     Err(error) => panic!("{error}"),
                 }
             };
+            stream.set_nonblocking(false).unwrap();
             stream
                 .set_read_timeout(Some(std::time::Duration::from_secs(5)))
                 .unwrap();
