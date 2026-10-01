@@ -6,7 +6,9 @@ They build/test installable candidates, verify packaged versions and
 install/uninstall, and persist archives/checksums/SBOM to dist.
 
 Linux runs fmt, locked check, strict all-target/all-feature Clippy, full tests,
-release build and release-binary CLI tests. Rust is pinned to 1.97.1.
+release build, release-binary CLI tests and the fixed 40-case retrieval benchmark
+with per-case baseline regression checks. Benchmark JSON is stored separately
+from the canonical production asset manifest. Rust is pinned to 1.97.1.
 Dependency security pins cargo-audit 0.22.2, cargo-deny 0.20.2 and
 cargo-cyclonedx 0.5.9, enforces deny.toml and validates dependency
 name/version/license/hash metadata. It runs real disposable OpenPGP and signed
@@ -14,9 +16,11 @@ source fixtures, 12 local draft API scenarios, 25 real ZIP/tar policy cases and
 22 mocked Mac signing cases. Windows additionally runs 28 signing/policy cases
 and three real disposable certificate/PFX lifecycle cases. None establishes
 production trust.
-The changed 28-case Windows suite has not run on this Linux host; hosted build
-150 passed the previous 26-case suite. Obtain a new Windows pass on the reviewed
-continuation revision. Native-command mocks and self-signed PFXs are test-only.
+The 28-case Windows suite and three disposable PFX lifecycle cases passed
+[Windows 162](https://circleci.com/gh/tsuna-n/libraryCU/162) on exact candidate
+`25d792efcf86b9e7a60ca5afcf0eb32135817974`, rechecked 2026-10-01.
+Final-source hosted validation is recorded in the acceptance ledger.
+Native-command mocks and self-signed PFXs are test-only.
 Config/data/cache/temp directories are isolated; Linux caches include Rust,
 architecture and lockfile checksum.
 

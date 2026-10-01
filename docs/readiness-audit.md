@@ -6,6 +6,7 @@ be read as evidence that all production edge cases were tested.
 
 This document is historical. Several listed gaps were addressed during v0.5
 hardening; use [the current v0.4/v0.5 requirement matrix](requirement-matrix-v0.4-v0.5.md)
+and [v0.5 acceptance ledger](v0.5-completion-checklist.md)
 for present status and keep any item without current evidence open.
 
 ## Fixes covered by regressions

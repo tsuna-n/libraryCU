@@ -4,7 +4,7 @@ libraryCube (`lbc`) is a terminal knowledge library. You can save ordinary Markd
 
 Version `0.5.0` is currently a release candidate. No production `v0.5.0`
 release or signed artifact set has been verified yet.
-As checked on 2026-09-17, GitHub does expose an empty public `v0.5.0`
+As rechecked on 2026-10-01, GitHub does expose an empty public `v0.5.0`
 Release despite its DRAFT title/body. This is a release-state inconsistency,
 not a production release; there are no verified production assets to install.
 
@@ -14,6 +14,8 @@ For copy-paste examples covering every command, see the
 [complete usage examples](docs/usage-examples.md).
 The [v0.5 roadmap checkpoint](docs/roadmap-progress.md) records current
 verification, external release gates, and remaining limitations.
+The [v0.5 acceptance/evidence ledger](docs/v0.5-completion-checklist.md) separates
+repository checks from external production gates; `ROADMAP.md` remains canonical.
 See the [changelog](CHANGELOG.md) for the version's changes.
 
 ## Install
@@ -263,9 +265,39 @@ An AI/patch failure preserves offline guidance and exits nonzero; preflight
 input/configuration errors go to stderr. Without `--ai`, fix makes no provider
 connection and changes no project files.
 
+Save a reviewed preview for a separate offline application:
+
+```bash
+lbc fix build.log --project ./app --ai --save-proposal --json
+lbc apply-proposal proposal-ID --project ./app --verify "cargo check" --json
+lbc rollback fix-ID --project ./app --json
+```
+
+Use the actual `proposal_id` returned by the first command. The preview changes
+no project source; the opt-in save writes a private authenticated record under
+`PROJECT/.lbc/proposals/`. Records bind ID, canonical project, diagnostic target
+and line, original SHA-256 and exact before/after replacement. Unix directories
+are mode 0700 and records/key are 0600; all platforms enforce the existing owner/
+ACL policy. Saving prunes to 100 records / 30 days; expired proposals cannot apply.
+Tampering, moving records to another project, changed source or unsafe paths/
+permissions are refused. This protects against edits without the private key;
+it does not defend against the account owner or an attacker possessing that key.
+
+`apply-proposal` never calls AI or loads AI configuration. It revalidates the
+source and boundaries, records recovery before writing, and shares the same
+explicit verification/automatic rollback workflow as `fix --ai --apply`.
+It requires no error log. An unchanged proposal can be applied again after a
+rollback within its validity window. Existing `fix --ai` remains a transient
+preview, and `fix --ai --apply` still generates a fresh proposal before applying;
+`--save-proposal` conflicts with `--apply`. Fix JSON adds nullable `proposal_id`;
+existing keys and statuses remain. A successful write without verification is
+still `unverified`. `apply-proposal --json` reports status, patch, proposal and
+recovery IDs, verification and error; refused applications exit nonzero.
+
 ## Optional AI
 
-No outbound provider call occurs unless `--ai` is present:
+Answer generation contacts providers only when `--ai` is present.
+`doctor --connectivity` separately opts into a model-list probe:
 
 ```bash
 lbc ask "How do I resolve the demo port conflict?" --ai
@@ -293,7 +325,23 @@ provider = "zai" # off | openai | zai | glm | ollama | openrouter | openai-compa
 | `openrouter` | OpenRouter gateway | `https://openrouter.ai/api/v1` | Set via `ai.model` | `OPENROUTER_API_KEY` |
 | `openai-compat` | Custom self-hosted server | Configured via `ai.base_url` | Configured via `ai.model` | `OPENAI_API_KEY`, `ZAI_API_KEY`, or `GLM_API_KEY` |
 
-Requests have a timeout and bounded input/output budgets. In terminal mode, `--ai` returns only the concrete edits to make (`Change`/`From`/`To`, or `แก้`/`จาก`/`เป็น`) and does not print the full offline explanation first. Selected note excerpts, source IDs, and bounded project evidence are redacted before sending. Notes are labeled as untrusted data in the prompt. If the provider fails, stderr and JSON expose the failure while the offline answer remains available. Validate your setup anytime with `lbc doctor`.
+Requests have a timeout and bounded input/output budgets. In terminal mode, `--ai` returns only the concrete edits to make (`Change`/`From`/`To`, or `แก้`/`จาก`/`เป็น`) and does not print the full offline explanation first. Selected note excerpts, source IDs, and bounded project evidence are redacted before sending. Notes are labeled as untrusted data in the prompt. If the provider fails, stderr and JSON expose the failure while the offline answer remains available. Check local configuration and credential presence with `lbc doctor`. Normal doctor
+makes no connection and reports provider connectivity as `untested` (or
+`unavailable` when AI is off or prerequisites are missing). A detected key does
+not establish its validity or provider availability.
+
+```bash
+lbc doctor --json
+lbc doctor --connectivity --connectivity-timeout 5 --json
+```
+
+`--connectivity` explicitly sends a bounded GET to the configured provider's
+`/models` endpoint, with its configured credential, a 1–45 second deadline and no
+redirects. No question, project context or generation request is sent. A valid
+model-list response reports `available`; it does not prove generation or the
+configured model works. Connection/HTTP/JSON/timeout errors report `error` and
+exit nonzero. JSON retains `healthy` and `checks`, adding `health_scope` and
+`provider_connectivity`; `healthy` without the opt-in describes local checks.
 
 ## English and Thai output
 
@@ -381,7 +429,7 @@ printed.
 
 ## Safety boundaries
 
-`search`, `inspect`, `ask`, `explain`, `scan`, and `doctor` do not change project sources, install packages, run suggested repairs, or execute arbitrary shell commands. Explicit add/edit/package/config/history-clear operations, `fix --ai --apply`, and `rollback` write their selected data targets. `fix --verify` additionally executes the user-selected verification command. Common keys, bearer values, provider tokens, authorization headers, passwords, database URLs, and known token formats are redacted from remote context and persistent history.
+`search`, `inspect`, `ask`, `explain`, `scan`, and `doctor` do not change project sources, install packages, run suggested repairs, or execute arbitrary shell commands. Explicit add/edit/package/config/history-clear operations, `fix --ai --save-proposal`, `fix --ai --apply`, `apply-proposal`, and `rollback` write their selected data targets. `fix --verify` additionally executes the user-selected verification command. Common keys, bearer values, provider tokens, authorization headers, passwords, database URLs, and known token formats are redacted from remote context and persistent history.
 
 Redaction handles multiple credentials per line, quoted structured keys, URI user information, and Unicode prefixes. Private-key blocks are redacted before passage selection while preserving line numbers. It is pattern-based, not a guarantee that arbitrary secrets are detected: review sensitive notes before opting into remote AI. Config display masks recognizable credentials without changing the saved value.
 
@@ -403,6 +451,12 @@ is not supported. Production readiness remains under
 audit, especially non-Unix directory races, and
 the final target-creation race on non-Linux platforms, and complete Thai
 diagnostic content.
+
+The fixed [retrieval benchmark](docs/retrieval-benchmark.md) evaluates 40 bilingual
+cases against embedded notes, the optional Python package and seven explicit
+reference fixtures. Top-1 improved 28/31 → 31/31 and Top-3 30/31 → 31/31;
+strict citation relevance remains 33/40. This measures that corpus, not product
+accuracy or successful resolution of arbitrary incidents.
 
 ## Development
 

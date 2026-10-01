@@ -105,8 +105,9 @@ stores are rejected, not repaired or made collaborative.
 # v0.5.0 — Security & Software Supply Chain
 
 **Status:** Repository hardening, executable native signing/source gates and all
-four hosted candidate gates passed starting revision `ac16da5`; local continuation
-changes still require hosted CI on their eventual reviewed signed revision.
+four hosted candidate gates passed starting revision `08bcba6` (158/160/159/161).
+The October core changes and exact-source validation are recorded in
+[the acceptance/evidence ledger](docs/v0.5-completion-checklist.md).
 Administrator controls, production credentials, hosted attestation and production
 release execution remain open. **NOT READY**, not released.
 The existing public, empty `v0.5.0` GitHub Release contradicts its DRAFT labeling
@@ -220,6 +221,10 @@ EXTERNAL CREDENTIAL REQUIRED.
 - [x] Validate same-priority conflicts
 - [x] Add failure-injection tests
 - [x] Add concurrent-write tests
+- [x] Record a fixed bilingual retrieval benchmark, baseline/after metrics and per-case regressions
+- [x] Preserve exact-code priority, bounded deterministic ranking and honest citation evidence
+- [x] Separate doctor configuration/credential checks from opt-in provider connectivity
+- [x] Save authenticated source-bound previews and explicitly apply without regenerating with AI
 
 ## Release Gate
 
@@ -244,9 +249,9 @@ EXTERNAL CREDENTIAL REQUIRED.
 - [ ] GitHub repository security controls ถูกเปิดใช้และทดสอบ
 - [x] Security documentation พร้อม
 
-Current starting-revision evidence: `ac16da5` passed dependency 151, Linux 152,
-macOS 149 and Windows 150; source gate 153 failed for a missing maintainer PUBLIC
-key. See `docs/release-0.5.0.md` for exact SHA/job IDs and continuation evidence.
+Current starting-revision evidence: exact `08bcba665087c788a80649045fe83a887ed270a3`
+passed dependency 158, Linux 160, macOS 159 and Windows 161 (rechecked 2026-10-01).
+Historical source gate 153 on `ac16da5` failed for a missing maintainer PUBLIC key. See `docs/release-0.5.0.md` for exact SHA/job IDs and continuation evidence.
 Candidate checkmarks never establish production artifacts, administrator settings
 or hosted SLSA Build Level 2. Approval does not replace these external gates.
 All four jobs must pass again on the actual reviewed signed release revision.

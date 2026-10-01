@@ -510,7 +510,8 @@ set of frameworks. Inventory counts do not imply that every file body was read.
 
 ## 11. Optional AI
 
-No outbound call occurs unless `--ai` is present:
+Answer generation contacts a provider only with `--ai`.
+`doctor --connectivity` separately opts into a bounded models-endpoint check:
 
 ```bash
 lbc ask "How do I resolve the demo port conflict?" --ai
@@ -981,3 +982,19 @@ Review sensitive content before using a remote provider because
 redaction is pattern-based rather than a universal secret detector.
 
 See the [readiness audit](readiness-audit.md) for known limitations.
+
+## Separate preview and offline application (v0.5)
+
+```bash
+lbc fix build.log --project ./app --ai --save-proposal --json
+# Read patch.before/after and proposal_id in the JSON before continuing.
+lbc apply-proposal proposal-ID --project ./app --verify "cargo check" --json
+lbc rollback fix-ID --project ./app --json
+lbc doctor --json
+lbc doctor --connectivity --connectivity-timeout 5 --json
+```
+
+Replace placeholder IDs with the actual returned IDs. The first command opts
+into AI and private proposal persistence; application makes no provider call.
+Normal doctor remains offline; the explicit probe tests only the models endpoint,
+not generation. See README for retention, source-integrity and JSON semantics.

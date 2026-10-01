@@ -1,5 +1,16 @@
 # v0.5.0 repository completion and owner handoff — 2026-09-17
 
+Current 2026-10-01 evidence is in [v0.5-completion-checklist.md](v0.5-completion-checklist.md).
+Starting `08bcba665087c788a80649045fe83a887ed270a3` passed dependency
+[158](https://circleci.com/gh/tsuna-n/libraryCU/158), Linux
+[160](https://circleci.com/gh/tsuna-n/libraryCU/160), macOS
+[159](https://circleci.com/gh/tsuna-n/libraryCU/159) and Windows
+[161](https://circleci.com/gh/tsuna-n/libraryCU/161), rechecked 2026-10-01.
+This supersedes old statements that the September continuation awaits CI.
+New October core changes need their own exact-source hosted evidence.
+The earlier checkpoint below is historical; its validation counts and status
+observations do not validate the October changes.
+
 ## Release readiness: NOT READY
 
 This is repository implementation/local test evidence, not a production release

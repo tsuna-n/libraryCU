@@ -1,3 +1,4 @@
 /target
 /.env*
 /.circleci/__pycache__/
+/benchmarks/retrieval/__pycache__/

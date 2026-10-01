@@ -153,7 +153,8 @@ Do not expand into those roles without an explicit design change, tests, and doc
 
 ### 2.2 Network access is explicit
 
-No AI provider call may occur unless the user explicitly requests AI behavior, currently with `--ai`.
+No AI provider call may occur unless the user explicitly requests AI behavior, currently with `--ai`, or `doctor --connectivity` for a bounded model-list probe.
+The probe sends no project context and never generates an answer.
 
 Never use a remote provider as an implicit fallback for weak retrieval.
 Tests must continue to prove zero provider connections when `--ai` is absent.
@@ -172,7 +173,14 @@ Do not fabricate source IDs, file locations, dependency states, executed-command
 ### 2.5 Analysis commands do not repair projects
 
 Read-only analysis may suggest commands such as `cargo check`; it must not execute repairs automatically.
-Writes are limited to explicit user operations such as knowledge add/edit, package install/remove, config updates, history clearing, `fix --ai --apply`, and `rollback`.
+Writes are limited to explicit user operations such as knowledge add/edit, package install/remove, config updates, history clearing, `fix --ai --save-proposal`, `fix --ai --apply`, `apply-proposal`, and `rollback`.
+
+`fix --ai --save-proposal` saves a private HMAC-authenticated 30-day/100-record
+proposal bound to canonical project, target/line, original SHA-256 and replacement.
+`apply-proposal ID` revalidates and applies those exact bytes without AI/config
+loading, through the same verification/recovery workflow. Normal doctor reports
+local health only; provider connectivity is untested unless `--connectivity`
+explicitly requests a bounded, non-redirecting model-list probe.
 
 `fix` is an explicit, single-file patch workflow: without `--ai` it provides offline
 guidance; `--ai` proposes one replacement; adding `--apply` writes it. It never
@@ -286,6 +294,7 @@ lbc history ...
 lbc scan
 lbc explain
 lbc fix
+lbc apply-proposal
 lbc rollback
 lbc search
 lbc config ...

@@ -1,6 +1,23 @@
 # Changelog
 
-## 0.5.0 — Unreleased production release (release-candidate checkpoint 2026-09-17)
+## 0.5.0 — Unreleased production release (checkpoint 2026-10-01)
+
+- Added `fix --ai --save-proposal` and offline `apply-proposal ID`, authenticated
+  private records bound to project/target/source hash/replacement, source-change
+  rejection, and shared verify/recovery/rollback behavior.
+- Doctor now distinguishes local health, key presence and untested connectivity;
+  `--connectivity` opts into a bounded models-endpoint GET without generation.
+- Fixed duplicate query weighting, Latin substring matches, underscore error
+  codes, metadata phrases, exact-code priority and weak cross-language matches.
+  Code-specific user notes remain in grounded context.
+- Added an immutable 40-case retrieval benchmark and per-case CI regression
+  comparison. Top-1 28/31 → 31/31; Top-3 30/31 → 31/31; strict citation relevance
+  24/40 → 33/40. Measurements are not incident-resolution accuracy.
+- Added a v0.5 acceptance ledger with exact evidence, separate repository and
+  production denominators, and external gates. Starting `08bcba6` is confirmed
+  green on CircleCI 158/160/159/161; earlier pending-CI claims are superseded.
+
+### Historical checkpoint — 2026-09-17
 
 - Confirmed the public GitHub `v0.5.0` Release is empty and contradicts its
   DRAFT title/body; it is not a verified production release. Existing publication

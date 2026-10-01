@@ -61,8 +61,11 @@ and ZIP re-extraction; packaged binary hashes must match.
 28 signing/policy cases exercise certificate policy, timestamps, embedded-vs-catalog
 signatures, traversal, failures and PFX cleanup, not actual certificate trust.
 Two new cases reject ZIP file entries marked as DOS directories/volumes in the
-same way as the Linux validator. These changed PowerShell cases require a fresh
-hosted Windows pass; build 150 verified the earlier 26-case suite only.
+same way as the Linux validator. These changed PowerShell cases passed native candidate
+[Windows 162](https://circleci.com/gh/tsuna-n/libraryCU/162) on exact source
+`25d792efcf86b9e7a60ca5afcf0eb32135817974`, rechecked 2026-10-01.
+The final candidate still requires its own exact-source passes; see
+[v0.5-completion-checklist.md](v0.5-completion-checklist.md).
 `.circleci/test-windows-pfx.ps1` additionally runs three real lifecycle cases
 only on the ephemeral hosted Windows VM: disposable one-day self-signed TEST
 certificate import/private-key availability/cleanup, wrong pin and malformed

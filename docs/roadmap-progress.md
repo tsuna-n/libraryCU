@@ -1,6 +1,45 @@
 # Roadmap progress
 
-## Release/security completion — 2026-09-17 (current)
+## Current checkpoint — 2026-10-01
+
+- Active milestone remains v0.5.0; version is 0.5.0 in Cargo.toml/Cargo.lock.
+- Started on main `08bcba665087c788a80649045fe83a887ed270a3`; remote HEAD agrees.
+  Rechecked four green candidate jobs: dependency 158, Linux 160, macOS 159,
+  Windows 161. The earlier pending-hosted-continuation language is obsolete.
+- Work is on `fix/v0.5-completion`. Exact implementation source:
+  `ff45a2c5f946a77054baae36eb75a997b6e24fc6`; local signed-commit verification succeeded but independent trust
+  and protected production contexts remain separate gates.
+- Implemented doctor local/key/connectivity separation and bounded opt-in GET;
+  private HMAC/source-bound saved proposals plus offline application using the
+  existing verify/recovery/rollback workflow; deterministic retrieval fixes.
+- Added 40 fixed labeled cases and seven explicit multilingual reference notes.
+  Baseline/after dataset and corpus hashes match. Top-1 28/31 → 31/31;
+  Top-3 30/31 → 31/31; citation identity 40/40; strict citation relevance 24/40 →
+  33/40; insufficient behavior 9/9. These are corpus measurements, not accuracy.
+- Full evidence, commands, acceptance criteria, dates, source IDs and separate
+  denominators are in [v0.5-completion-checklist.md](v0.5-completion-checklist.md),
+  which is an acceptance ledger. ROADMAP.md remains the canonical milestone checklist.
+- Local exact-source gate: fmt, locked check, strict Clippy, 194 tests
+  (112 library / 6 CI / 58 CLI / 12 filesystem / 6 privacy), release build and
+  58 release CLI tests; fresh audit/deny, SBOM, release/native fixtures and isolated
+  installation all passed. Local validation uses real owner/ACL and loopback
+  permission; sandbox-mapped failures were not counted as passes.
+- `nvim.log` was present before this task and is preserved untracked. No main
+  merge, tag change, release publication, external credentials or admin changes.
+- External gates: repository protections/private reporting, independently trusted
+  source identity, restricted contexts/production signing credentials, Windows/
+  Apple native trust, hosted-builder attestation, production assets/downloads,
+  and reconciliation of the empty public release/tag-to-old-source conflict.
+  Exact actions and verification commands are in the acceptance ledger and the
+  existing release runbooks. Do not start v0.6 or publish/move tags automatically.
+- Next action: finish/check the current candidate's four hosted jobs against its
+  exact final SHA, then owner executes the documented external configuration and
+  independent production verification gates. Candidate CI is not production trust.
+
+## Historical checkpoints (superseded)
+
+
+## Release/security completion — 2026-09-17 (historical)
 
 - Branch `main`, clean starting SHA `ac16da5b7f8944a3331f8c5c61812bbb30e3b86a`.
   The continuation changes release scripts/tests/config and matching docs only;
