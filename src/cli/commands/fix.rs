@@ -155,11 +155,19 @@ pub fn run(args: FixArgs) -> Result<()> {
             if report.application.verification.is_none() {
                 println!(
                     "{}",
-                    match (report.application.applied, thai) {
-                        (true, true) => "เขียนไฟล์แล้ว; ยังไม่ได้รันการตรวจสอบ",
-                        (false, true) => "ข้อเสนอเท่านั้น; ยังไม่ได้เขียนไฟล์หรือรันการตรวจสอบ",
-                        (true, false) => "Applied; no verification commands were run.",
-                        (false, false) =>
+                    match (
+                        report.application.applied,
+                        thai,
+                        report.proposal_id.is_some()
+                    ) {
+                        (false, true, true) =>
+                            "บันทึกข้อเสนอแล้ว; ยังไม่ได้แก้ source ของ project หรือรันการตรวจสอบ",
+                        (false, false, true) =>
+                            "Proposal saved; no project source changed or verification commands run.",
+                        (true, true, _) => "เขียนไฟล์แล้ว; ยังไม่ได้รันการตรวจสอบ",
+                        (false, true, false) => "ข้อเสนอเท่านั้น; ยังไม่ได้เขียนไฟล์หรือรันการตรวจสอบ",
+                        (true, false, _) => "Applied; no verification commands were run.",
+                        (false, false, false) =>
                             "Proposal only; no files changed or verification commands run.",
                     }
                 );

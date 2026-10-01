@@ -268,6 +268,32 @@ fn saved_proposal(home: &Path) -> String {
 }
 
 #[test]
+fn saved_proposal_terminal_distinguishes_private_record_from_project_source() {
+    let home = fixture();
+    let server = mock(home.path(), r#"{"before":"\"3\"","after":"3"}"#, "en", None);
+    let output = isolated_lbc(home.path())
+        .args(["fix", "error.log", "--ai", "--save-proposal"])
+        .output()
+        .unwrap();
+    server.join().unwrap();
+    assert!(output.status.success());
+    let text = String::from_utf8(output.stdout).unwrap();
+    assert!(text.contains("Proposal ID: proposal-"));
+    assert!(text.contains("Proposal saved; no project source changed"));
+    assert!(!text.contains("no files changed"));
+    assert_eq!(
+        std::fs::read_to_string(home.path().join("main.rs")).unwrap(),
+        SOURCE
+    );
+    assert_eq!(
+        std::fs::read_dir(home.path().join(".lbc/proposals"))
+            .unwrap()
+            .count(),
+        1
+    );
+}
+
+#[test]
 fn saved_proposal_applies_exact_preview_without_provider_and_preserves_later_edits() {
     let home = fixture();
     let id = saved_proposal(home.path());
