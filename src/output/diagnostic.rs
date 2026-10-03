@@ -51,7 +51,15 @@ pub fn print_explanation_deterministic(report: &ExplanationReport, verbose: bool
     }
     if !report.knowledge.is_empty() {
         println!("\nKnowledge");
+        if report
+            .knowledge
+            .first()
+            .is_some_and(|item| item.source_id.starts_with("project:") && item.details.is_some())
+        {
+            println!("  Found a previous solution from this project.");
+        }
         for item in &report.knowledge {
+            println!("  Match: {}", item.ranking_reasons.join(" + "));
             if verbose {
                 println!(
                     "  {} [{}] ({}, {}; status: {})\n    {}",
@@ -67,6 +75,19 @@ pub fn print_explanation_deterministic(report: &ExplanationReport, verbose: bool
                     "  {} [{}; status: {}]\n    {}",
                     item.title, item.source_id, item.verification_status, item.excerpt
                 );
+            }
+            if let Some(details) = &item.details {
+                println!(
+                    "    Problem:\n      {}\n    Previous solution:\n      {}",
+                    details.problem.replace('\n', "\n      "),
+                    details.solution.replace('\n', "\n      ")
+                );
+                if let Some(verification) = &details.recorded_verification {
+                    println!(
+                        "    Verification recorded (not rerun):\n      {}",
+                        verification.replace('\n', "\n      ")
+                    );
+                }
             }
         }
     } else {
@@ -143,10 +164,20 @@ fn print_explanation_thai_deterministic(report: &ExplanationReport, verbose: boo
         println!("  ไม่พบรายการที่เกี่ยวข้องเพียงพอ");
     }
     for item in &report.knowledge {
+        println!("  เหตุผลที่ตรงกัน: {}", item.ranking_reasons.join(" + "));
         println!(
             "  {} [{}; สถานะบันทึก: {}]\n    {}",
             item.title, item.source_id, item.verification_status, item.excerpt
         );
+        if let Some(details) = &item.details {
+            println!(
+                "    ปัญหาที่บันทึก:\n      {}\n    วิธีแก้ที่เคยใช้:\n      {}",
+                details.problem, details.solution
+            );
+            if let Some(verification) = &details.recorded_verification {
+                println!("    การตรวจสอบที่บันทึกไว้ (ไม่ได้ตรวจซ้ำ):\n      {verification}");
+            }
+        }
     }
     if verbose {
         println!(

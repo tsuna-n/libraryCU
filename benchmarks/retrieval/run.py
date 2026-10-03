@@ -54,26 +54,66 @@ def run(binary, destination, source_sha, baseline=None):
             identity_ok = all(p['source_id'] in documents and p['source_locator'] == documents[p['source_id']]['path'] and p['excerpt'] in documents[p['source_id']]['body'] for p in citations)
             relevance_ok = all(p['source_id'] in expected for p in citations) if expected else not citations
             rows.append(dict(id=case['id'], query=case['query'], expected_sources=case['expected_sources'],
+                retrieved_sources=ids, relevant_results=sum(source in expected for source in ids), result_count=len(ids),
+                irrelevant_citations=sum(p['source_id'] not in expected for p in citations), citation_count=len(citations),
                 top3=ids[:3], top1_relevant=(bool(ids) and ids[0] in expected) if measurable else None,
                 top3_relevant=bool(expected.intersection(ids[:3])) if measurable else None,
                 answer_status=answer['answer_status'], status_correct=answer['answer_status'] in case['acceptable_statuses'],
                 cited_sources=[p['source_id'] for p in citations], citation_identity_correct=identity_ok,
                 citation_relevance_correct=relevance_ok, median_search_ask_ms=statistics.median(durations)))
+        # Separate frozen synthetic project fixtures; never relabel the original corpus.
+        memory_path = ROOT / 'benchmarks/retrieval/project-memory.json'
+        memory = json.loads(memory_path.read_text())
+        for name in ['backend', 'other']:
+            (home / name).mkdir()
+        for capture in memory['captures']:
+            args = ['learn', '--yes', '--id', capture['id'], '--problem', capture['problem'],
+                '--solution', capture['solution'], '--verification', capture['verification'], '--json']
+            args += ['--user'] if capture['destination'] == 'user' else ['--project', str(home / capture['destination'])]
+            cli(*args)
+        memory_rows = []
+        for case in memory['cases']:
+            durations = []
+            for _ in range(3):
+                started = time.perf_counter()
+                results = json.loads(cli('search', case['query'], '--project', str(home / case['project']), '--json'))
+                answer = json.loads(cli('ask', case['query'], '--project', str(home / case['project']), '--json'))
+                durations.append((time.perf_counter() - started) * 1000)
+            top1 = results[0]['source_id'] if results else None
+            passed = top1 == case['expected_top1'] and (
+                bool(answer['passages']) and answer['passages'][0]['source_id'] == top1
+                if top1 else answer['answer_status'] == 'no_adequate_match' and not answer['passages'])
+            memory_rows.append(dict(**case, observed_top1=top1, passed=passed,
+                median_search_ask_ms=statistics.median(durations)))
     def metric(field):
         values = [r[field] for r in rows if r[field] is not None]
         return dict(passed=sum(values), total=len(values), percent=round(100 * sum(values) / len(values), 2) if values else None)
     abstention = [r for r,c in zip(rows,dataset['cases']) if c['kind'] in ['insufficient','unrelated']]
     latencies = sorted(r['median_search_ask_ms'] for r in rows)
+    no_matches = [r for r,c in zip(rows,dataset['cases']) if c['acceptable_statuses'] == ['no_adequate_match']]
+    def ratio(numerator, denominator):
+        return dict(numerator=numerator, denominator=denominator,
+            percent=round(100 * numerator / denominator, 2) if denominator else None)
     report = dict(source_sha=source_sha, checked_at=datetime.now(timezone.utc).isoformat(),
         binary_sha256=digest(binary), dataset_sha256=digest(dataset_path),
+        implementation_sha256={str(p.relative_to(ROOT)):digest(p) for p in sorted((ROOT/'src').rglob('*.rs'))},
         corpus_sha256={str(p.relative_to(ROOT)):digest(p) for base in ['knowledge','packages/python-fastapi-basics','benchmarks/retrieval/corpus'] for p in sorted((ROOT/base).rglob('*')) if p.is_file()},
         metrics={k:metric(k) for k in ['top1_relevant','top3_relevant','status_correct','citation_identity_correct','citation_relevance_correct']},
         insufficient_behavior=dict(passed=sum(r['status_correct'] for r in abstention), total=len(abstention)),
+        result_precision=ratio(sum(r['relevant_results'] for r in rows), sum(r['result_count'] for r in rows)),
+        irrelevant_citation_rate=ratio(sum(r['irrelevant_citations'] for r in rows), sum(r['citation_count'] for r in rows)),
+        no_match_correctness=ratio(sum(r['status_correct'] and not r['cited_sources'] for r in no_matches), len(no_matches)),
+        project_memory=dict(dataset_sha256=digest(memory_path), passed=sum(r['passed'] for r in memory_rows),
+            total=len(memory_rows), cases=memory_rows),
         latency=dict(unit='milliseconds',scope='three repetitions, median of separate search + ask subprocesses; includes startup/store reads',
             median=statistics.median(latencies),p95=latencies[max(0, (95*len(latencies)+99)//100-1)]),cases=rows)
     destination.parent.mkdir(parents=True,exist_ok=True)
     destination.write_text(json.dumps(report,indent=2,ensure_ascii=False)+'\n')
-    print(json.dumps({k:report[k] for k in ['source_sha','dataset_sha256','metrics','insufficient_behavior','latency']},indent=2))
+    print(json.dumps({k:report[k] for k in ['source_sha','dataset_sha256','metrics','insufficient_behavior',
+        'result_precision','irrelevant_citation_rate','no_match_correctness','latency']},indent=2))
+    print(f"Synthetic project memory: {report['project_memory']['passed']}/{report['project_memory']['total']}")
+    if not all(row['passed'] for row in memory_rows):
+        raise AssertionError('Project memory regression; inspect the retained case report')
     if baseline:
         previous = json.loads(baseline.read_text())
         if previous['dataset_sha256'] != report['dataset_sha256'] or previous['corpus_sha256'] != report['corpus_sha256']:

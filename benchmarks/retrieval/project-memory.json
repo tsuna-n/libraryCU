@@ -1,0 +1,16 @@
+{
+  "description": "Synthetic capture/reuse regression fixtures; not independently collected field incidents.",
+  "captures": [
+    {"id": "backend-db-borrow", "destination": "backend", "problem": "Rust E0308 String to &str mismatch", "solution": "Borrow the backend database value using &value", "verification": "cargo test"},
+    {"id": "personal-db-borrow", "destination": "user", "problem": "Rust E0308 String to &str mismatch", "solution": "Borrow the personal utility value instead of cloning it", "verification": "cargo check"},
+    {"id": "backend-pool-cache", "destination": "backend", "problem": "POOLCACHE-8134 backend cache incident", "solution": "Reset this backend's pool cache", "verification": ""}
+  ],
+  "cases": [
+    {"id": "P01", "project": "backend", "query": "Rust E0308 mismatched types", "expected_top1": "project:backend-db-borrow", "rationale": "Previous exact-code project solution precedes generic personal/builtin guidance despite generic wording."},
+    {"id": "P02", "project": "other", "query": "Rust E0308 mismatched types", "expected_top1": "user:personal-db-borrow", "rationale": "Project scope is isolated; the user's comparable exact-code note precedes builtin guidance."},
+    {"id": "P03", "project": "backend", "query": "POOLCACHE-8134", "expected_top1": "project:backend-pool-cache", "rationale": "A previously captured project incident is retrievable without AI."},
+    {"id": "P04", "project": "other", "query": "POOLCACHE-8134", "expected_top1": null, "rationale": "Another project cannot retrieve this project's private knowledge."},
+    {"id": "P05", "project": "backend", "query": "user:personal-db-borrow", "expected_top1": "user:personal-db-borrow", "rationale": "An explicit source-qualified identifier wins over project preference."},
+    {"id": "P06", "project": "backend", "query": "E03080", "expected_top1": null, "rationale": "A near error code must not match E0308."}
+  ]
+}

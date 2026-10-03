@@ -20,6 +20,9 @@ pub struct AnswerPassage {
     pub source_locator: String,
     pub excerpt: String,
     pub match_reason: String,
+    pub ranking_reasons: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub details: Option<knowledge::document::TroubleshootingDetails>,
     pub score: u32,
     pub verification_status: String,
 }
@@ -99,6 +102,8 @@ pub fn answer(
             source_locator: security::redact_sensitive(&result.document.path),
             excerpt: result.excerpt.clone(),
             match_reason: result.match_reason.clone(),
+            ranking_reasons: result.ranking_reasons.clone(),
+            details: result.document.troubleshooting_details(),
             score: result.score,
             verification_status: verification_label(
                 &result.document.verification_status,
@@ -136,14 +141,40 @@ pub fn answer(
         for passage in &passages {
             if language == "th" {
                 text.push_str(&format!(
-                    "\n[{}] {}\n{}\nสถานะ: {}\n",
-                    passage.source_id, passage.title, passage.excerpt, passage.verification_status
+                    "\n[{}] {}\nเหตุผลที่ตรงกัน: {}\n{}\nสถานะ: {}\n",
+                    passage.source_id,
+                    passage.title,
+                    passage.ranking_reasons.join(" + "),
+                    passage.excerpt,
+                    passage.verification_status
                 ));
             } else {
                 text.push_str(&format!(
-                    "\n[{}] {}\n{}\nStatus: {}\n",
-                    passage.source_id, passage.title, passage.excerpt, passage.verification_status
+                    "\n[{}] {}\nMatch: {}\n{}\nStatus: {}\n",
+                    passage.source_id,
+                    passage.title,
+                    passage.ranking_reasons.join(" + "),
+                    passage.excerpt,
+                    passage.verification_status
                 ));
+            }
+            if let Some(details) = &passage.details {
+                let (problem, solution, check) = if language == "th" {
+                    ("ปัญหาที่บันทึก", "วิธีแก้ที่เคยใช้", "การตรวจสอบที่บันทึกไว้ (ไม่ได้ตรวจซ้ำ)")
+                } else {
+                    (
+                        "Recorded problem",
+                        "Previous solution",
+                        "Verification recorded (not rerun)",
+                    )
+                };
+                text.push_str(&format!(
+                    "{problem}:\n{}\n{solution}:\n{}\n",
+                    details.problem, details.solution
+                ));
+                if let Some(verification) = &details.recorded_verification {
+                    text.push_str(&format!("{check}:\n{verification}\n"));
+                }
             }
         }
         (
@@ -192,6 +223,11 @@ pub fn enhance_stream(
     history: &[String],
     mut on_event: Option<&mut (dyn FnMut(ai::StreamEvent) + Send)>,
 ) -> Result<()> {
+    if report.answer_status == "no_adequate_match" {
+        anyhow::bail!(
+            "no sufficiently relevant local evidence; capture knowledge with `lbc learn` or refine the query"
+        );
+    }
     let client = ai::resolve_client(ai_config)?;
     let request = build_ai_request(report, ai_config.effective_model(), history);
     let runtime = tokio::runtime::Builder::new_current_thread()
@@ -242,6 +278,15 @@ pub fn build_ai_request(report: &AnswerReport, model: &str, history: &[String]) 
             ),
             2_000,
         );
+        if let Some(details) = &passage.details {
+            user.push(
+                &format!("\nRecorded problem: {}\nPrevious solution: {}\nHistorical check (not rerun): {}\n",
+                    bounded_redacted(&details.problem, 300),
+                    bounded_redacted(&details.solution, 800),
+                    bounded_redacted(details.recorded_verification.as_deref().unwrap_or("none"), 200)),
+                1_400,
+            );
+        }
     }
     if !report.project_evidence.is_empty() {
         user.push("\n# Bounded project evidence\n", 100);
@@ -287,6 +332,7 @@ pub fn is_adequate(result: &SearchResult) -> bool {
         return false;
     }
     result.match_reason == "exact error code"
+        || result.match_reason == "exact identifier"
         || result.match_reason == "title match"
         || (result.query_terms > 0 && result.matched_terms * 3 >= result.query_terms * 2)
 }

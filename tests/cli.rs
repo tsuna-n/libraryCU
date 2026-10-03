@@ -9,6 +9,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 mod doctor;
 #[path = "cli/fix.rs"]
 mod fix;
+#[path = "cli/learn.rs"]
+mod learn;
 #[path = "cli/streaming.rs"]
 mod streaming;
 
@@ -125,7 +127,13 @@ fn help_lists_v01_commands() {
     for command in ["scan", "explain", "search", "config", "doctor"] {
         assert!(stdout.contains(command), "help did not list {command}");
     }
-    assert!(stdout.contains("libraryCube - terminal knowledge library"));
+    assert!(stdout.contains("libraryCube - local-first developer knowledge engine"));
+    for command in [
+        "add", "learn", "search", "ask", "inspect", "edit", "explain",
+    ] {
+        assert!(stdout.contains(command));
+    }
+    assert!(stdout.contains("Experimental"));
 }
 
 #[test]
@@ -1032,6 +1040,41 @@ fn offline_commands_never_connect_to_the_configured_provider() {
         .output()
         .unwrap();
     assert!(result.status.success());
+    let capture = isolated_lbc(home.path())
+        .args([
+            "learn",
+            "--yes",
+            "--problem",
+            "Rust E0308 database mismatch",
+            "--solution",
+            "Borrow with &value",
+            "--verification",
+            "cargo test",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        capture.status.success(),
+        "{}",
+        String::from_utf8_lossy(&capture.stderr)
+    );
+    std::fs::write(
+        home.path().join("unrelated.log"),
+        "intergalactic nebula frobnication",
+    )
+    .unwrap();
+    for args in [
+        vec!["search", "E0308", "--json"],
+        vec!["inspect", "project:rust-e0308-database-mismatch", "--json"],
+        vec!["index", "--json"],
+        vec!["list", "--json"],
+        vec!["ask", "intergalactic nebula frobnication", "--ai", "--json"],
+        vec!["explain", "unrelated.log", "--ai", "--json"],
+    ] {
+        let result = isolated_lbc(home.path()).args(args).output().unwrap();
+        assert!(result.status.success());
+    }
     for (command, input) in [
         ("explain", "error[E0308]: mismatched types\n"),
         ("chat", "E0308\n/exit\n"),

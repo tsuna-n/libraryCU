@@ -1,24 +1,29 @@
 # libraryCube
 
-libraryCube (`lbc`) is a terminal knowledge library. You can save ordinary Markdown notes, find and inspect them, ask questions against retrieved passages, and use the same knowledge when explaining diagnostics. Retrieval and cited offline answers work without an API key, network connection, model, vector database, or Python service. Optional AI expands the retrieved answer; it never replaces retrieval.
+libraryCube (`lbc`) is a **local-first developer knowledge engine**.
 
-Version `0.5.0` is currently a release candidate. No production `v0.5.0`
-release or signed artifact set has been verified yet.
-As rechecked on 2026-10-01, GitHub does expose an empty public `v0.5.0`
-Release despite its DRAFT title/body. This is a release-state inconsistency,
-not a production release; there are no verified production assets to install.
+Save solutions, notes, debugging knowledge, and project-specific fixes as portable
+local Markdown. Search them instantly or reuse them to explain similar problems
+later. Everything important works offline. AI is optional.
 
-The Rust package and crate are named `librarycube`; the executable is `lbc`.
+**Save. Find. Reuse.**
 
-For copy-paste examples covering every command, see the
-[complete usage examples](docs/usage-examples.md).
-The [v0.5 roadmap checkpoint](docs/roadmap-progress.md) records current
-verification, external release gates, and remaining limitations.
-The [v0.5 acceptance/evidence ledger](docs/v0.5-completion-checklist.md) separates
-repository checks from external production gates; `ROADMAP.md` remains canonical.
-See the [changelog](CHANGELOG.md) for the version's changes.
+```bash
+lbc search "E0308"
+lbc explain build.log
+lbc learn
+```
+
+Find yesterday's solution, solve today's problem, and capture what worked for
+next time. The primary commands are `add`, `learn`, `search`, `ask`, `inspect`,
+`edit`, and `explain`. See [usage examples](docs/usage-examples.md),
+[product direction](docs/product-direction.md), and the [roadmap](ROADMAP.md).
+The crate is `librarycube`; the executable is `lbc`.
 
 ## Install
+
+For a source checkout, `cargo install --path .` builds the CLI. Binary release
+status and integrity instructions are [documented below](#release-status-and-integrity).
 
 Download the archive for your platform from
 [GitHub Releases](https://github.com/tsuna-n/libraryCU/releases). Release
@@ -43,27 +48,6 @@ directory and adds it to the user `PATH`. Use `-Prefix C:\path\to\bin` to choose
 another directory, `-System` from an elevated PowerShell for a machine-wide
 installation, or `-Uninstall` to remove it.
 
-After every hosted and repository gate passes, the `v0.5.x` release pipeline is
-configured to publish every archive, checksum, SBOM, and provenance file with a
-detached `.asc` signature. Download
-`lbc-release-signing-key.asc`, compare its full
-fingerprint with the value published by the maintainer through a separate trusted
-channel, then verify before installation:
-
-Use the [clean-keyring full-manifest verification procedure](docs/circleci.md#reproducible-independent-verification)
-to verify all 25 files, trusted fingerprints, checksums, SBOM and exact
-source/version/workflow provenance before extracting or installing anything.
-The key shipped alongside the assets is not itself an independent trust anchor.
-
-The tag workflow now requires Windows Authenticode and macOS Developer ID,
-hardened runtime, notarization and a stapled DMG before production packaging.
-These executable jobs have not run with production credentials. Candidates
-remain unsigned on Windows and ad-hoc signed on macOS; no production native
-trust or valid production `v0.5.0` release is claimed. See the
-[native signing and independent verification runbook](docs/native-code-signing.md).
-The DMG is the offline-ticket delivery path; a raw tar cannot carry a stapled
-ticket. Certificate trust does not guarantee absence of SmartScreen prompts.
-
 From a source checkout, run the Unix/macOS installation script to build and
 install `lbc` to `~/.local/bin`:
 
@@ -86,6 +70,30 @@ cargo build --release
 cargo install --path .
 lbc --help
 ```
+
+## Capture a solved problem
+
+Run `lbc learn` for a short guided capture: what happened, cause (optional),
+solution, historical verification (optional), project/user destination, and
+confirmation. Preview before saving. It generates an ID, metadata, and portable
+troubleshooting Markdown. The default destination is `.lbc/knowledge` in the
+current directory. Use `--project PATH` or `--user` to choose explicitly.
+
+```bash
+lbc learn
+lbc learn --yes --problem 'Rust E0308 String to &str mismatch' \
+  --cause 'Function expected &str but database value was String' \
+  --solution 'Borrowed the database value using &value' \
+  --verification 'cargo test' --project ./backend
+lbc search E0308 --project ./backend
+```
+
+`learn` records a check; it never runs it. A supplied check is `recorded-check`,
+otherwise `unverified`. `ask` and `explain` show the recorded problem, previous
+solution, and check when those sections exist, with ranking reasons and sources.
+Optional capture flags include `--title`, `--id`, `--language`, `--tool`, `--framework`,
+`--error-code`, `--tag`, `--symptoms`, `--context`, and `--reference`.
+Scripts use `--yes --problem ... --solution ...`; add `--json` for structured output.
 
 ## Add, find, inspect, and edit knowledge
 
@@ -132,6 +140,8 @@ Change the development port to 4318, restart the development process, and
 confirm that it listens on 4318.
 ```
 
+Optional `created_at_unix` and `updated_at_unix` record UTC seconds since the Unix
+epoch; older notes need no changes. Optional `framework` describes technical context.
 Existing metadata remains supported: `id`, `title`, `title_th`, `language`, `tool`, `category`, `error_code`, `tags`, and `keywords`. `language` describes technical material; it is separate from the UI language. `title_th` is an optional Thai display title.
 
 Built-in bilingual notes keep each translation in an explicit block:
@@ -154,7 +164,9 @@ Troubleshooting notes can use headings for symptoms/environment, cause, suggeste
 
 ### Sources, collisions, and overrides
 
-The sources are:
+When relevance is comparable, source preference is project → user → installed
+package → builtin. Exact error codes and entry IDs take priority over weaker
+lexical overlap. Ranking reasons appear in text and JSON. The sources are:
 
 - `builtin:ID`: knowledge embedded in the executable.
 - `package:NAME:ID`: installed package knowledge under `$XDG_DATA_HOME/lbc/knowledge` (fallback `~/.local/share/lbc/knowledge`).
@@ -197,7 +209,7 @@ letters, Unicode, ANSI colors, and CRLF logs are supported. Selected known rules
 cover TypeScript type/module errors, Node module resolution, and Go undefined
 identifiers. These rules supply general guidance, not a project-verified cause.
 
-## Propose and apply a small patch
+## Experimental: propose and apply a small patch
 
 ```bash
 lbc fix build.log --project ./my-project             # Offline guidance
@@ -355,7 +367,7 @@ lbc config set output.language auto
 
 Supported values are `en`, `th`, and `auto`. `auto` selects Thai when the current question contains Thai characters and otherwise falls back to English. Built-in notes include clean English and Thai sections, so their title and excerpt follow the selected language. Retrieval supports Unicode and matches Thai terms present in a note's title, body, tags, or keywords; unmarked user notes are not translated automatically in offline mode. Commands, paths, error codes, source IDs, and JSON keys remain unchanged.
 
-## Chat memory
+## Optional chat and history
 
 The default is honest session-only memory:
 
@@ -426,6 +438,48 @@ files are applied to inventory and diagnostic evidence. JSON commands print one
 machine-readable value to stdout, while warnings go to stderr. `doctor` exits
 nonzero when any check fails, including with `--json`; the JSON report is still
 printed.
+
+## Release status and integrity
+
+The following release observations are the dated 2026-10-01 checkpoint, not a
+new check of hosted state. This product refocus does not publish a release.
+
+Version `0.5.0` is currently a release candidate. No production `v0.5.0`
+release or signed artifact set has been verified yet.
+As rechecked on 2026-10-01, GitHub does expose an empty public `v0.5.0`
+Release despite its DRAFT title/body. This is a release-state inconsistency,
+not a production release; there are no verified production assets to install.
+
+The Rust package and crate are named `librarycube`; the executable is `lbc`.
+
+For copy-paste examples covering every command, see the
+[complete usage examples](docs/usage-examples.md).
+The [v0.5 roadmap checkpoint](docs/roadmap-progress.md) records current
+verification, external release gates, and remaining limitations.
+The [v0.5 acceptance/evidence ledger](docs/v0.5-completion-checklist.md) separates
+repository checks from external production gates; `ROADMAP.md` remains canonical.
+See the [changelog](CHANGELOG.md) for the version's changes.
+
+After every hosted and repository gate passes, the `v0.5.x` release pipeline is
+configured to publish every archive, checksum, SBOM, and provenance file with a
+detached `.asc` signature. Download
+`lbc-release-signing-key.asc`, compare its full
+fingerprint with the value published by the maintainer through a separate trusted
+channel, then verify before installation:
+
+Use the [clean-keyring full-manifest verification procedure](docs/circleci.md#reproducible-independent-verification)
+to verify all 25 files, trusted fingerprints, checksums, SBOM and exact
+source/version/workflow provenance before extracting or installing anything.
+The key shipped alongside the assets is not itself an independent trust anchor.
+
+The tag workflow now requires Windows Authenticode and macOS Developer ID,
+hardened runtime, notarization and a stapled DMG before production packaging.
+These executable jobs have not run with production credentials. Candidates
+remain unsigned on Windows and ad-hoc signed on macOS; no production native
+trust or valid production `v0.5.0` release is claimed. See the
+[native signing and independent verification runbook](docs/native-code-signing.md).
+The DMG is the offline-ticket delivery path; a raw tar cannot carry a stapled
+ticket. Certificate trust does not guarantee absence of SmartScreen prompts.
 
 ## Safety boundaries
 

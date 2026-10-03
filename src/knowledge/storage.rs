@@ -10,7 +10,7 @@ use std::{
 use anyhow::{Context, Result, bail};
 
 use super::loader::{parse_document_for_source, validate_id};
-use super::{KnowledgeDocument, load_all_documents};
+use super::{KnowledgeDocument, KnowledgeMetadata, load_all_documents};
 
 const MAX_NOTE_BYTES: u64 = 256 * 1024;
 
@@ -40,12 +40,20 @@ pub fn notes_dir() -> PathBuf {
 }
 
 pub fn add_entry(input: AddEntry<'_>) -> Result<KnowledgeDocument> {
-    add_entry_with_metadata(input, None)
+    add_entry_impl(input, None)
 }
 
-fn add_entry_with_metadata(
+/// Capture structured metadata through the same locked, non-overwriting writer as `add`.
+pub fn add_entry_with_metadata(
     input: AddEntry<'_>,
-    template: Option<&KnowledgeDocument>,
+    metadata: KnowledgeMetadata,
+) -> Result<KnowledgeDocument> {
+    add_entry_impl(input, Some(metadata))
+}
+
+fn add_entry_impl(
+    input: AddEntry<'_>,
+    metadata: Option<KnowledgeMetadata>,
 ) -> Result<KnowledgeDocument> {
     if input.title.trim().is_empty() {
         bail!("title must not be empty");
@@ -105,12 +113,12 @@ fn add_entry_with_metadata(
             target.display()
         );
     }
-    let encoded = if let Some(template) = template {
-        let mut document = template.clone();
-        document.metadata.id = id.clone();
-        document.metadata.overrides = input.overrides.map(str::to_owned);
-        document.verification_status = "unverified".to_owned();
-        encode_existing(&document, input.body)?
+    let encoded = if let Some(mut metadata) = metadata {
+        metadata.id = id.clone();
+        metadata.title = Some(input.title.to_owned());
+        metadata.kind = Some(input.kind.to_owned());
+        metadata.overrides = input.overrides.map(str::to_owned);
+        encode_metadata(&metadata, input.body)?
     } else {
         encode(&id, input.title, input.kind, input.overrides, input.body)?
     };
@@ -119,6 +127,9 @@ fn add_entry_with_metadata(
     } else {
         "user"
     };
+    if encoded.len() as u64 > MAX_NOTE_BYTES {
+        bail!("note including metadata is larger than 256 KB; nothing was saved");
+    }
     let document = parse_document_for_source(
         &format!("{id}.md"),
         &encoded,
@@ -208,6 +219,8 @@ pub fn edit_entry(input: EditEntry<'_>) -> Result<KnowledgeDocument> {
             atomic_replace(&target, encoded.as_bytes())?;
             return inspect_entry(&existing.source_id, input.project);
         }
+        let mut metadata = original.metadata.clone();
+        metadata.verification_status = Some("unverified".to_owned());
         return add_entry_with_metadata(
             AddEntry {
                 id: Some(&original.metadata.id),
@@ -217,7 +230,7 @@ pub fn edit_entry(input: EditEntry<'_>) -> Result<KnowledgeDocument> {
                 project: None,
                 overrides: Some(&original.source_id),
             },
-            Some(&original),
+            metadata,
         );
     }
     let target = PathBuf::from(&original.path);
@@ -271,6 +284,13 @@ fn encode_existing(document: &KnowledgeDocument, body: &str) -> Result<String> {
     } else {
         "unverified".to_owned()
     });
+    if metadata.updated_at_unix.is_some() && body.trim() != document.body.trim() {
+        metadata.updated_at_unix = Some(SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs());
+    }
+    encode_metadata(&metadata, body)
+}
+
+fn encode_metadata(metadata: &KnowledgeMetadata, body: &str) -> Result<String> {
     let frontmatter = serde_yaml::to_string(&metadata)?
         .trim_start_matches("---\n")
         .trim_end()

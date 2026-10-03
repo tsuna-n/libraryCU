@@ -22,6 +22,9 @@ pub struct KnowledgeReference {
     pub title: String,
     pub path: String,
     pub match_reason: String,
+    pub ranking_reasons: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub details: Option<knowledge::document::TroubleshootingDetails>,
     pub excerpt: String,
     pub score: u32,
     pub verification_status: String,
@@ -62,7 +65,13 @@ pub fn explain(
     let query = diagnostic
         .code
         .as_ref()
-        .map(|code| format!("{code} {}", diagnostic.message))
+        .map(|code| {
+            format!(
+                "{code} {} {}",
+                diagnostic.source.as_deref().unwrap_or_default(),
+                diagnostic.message
+            )
+        })
         .unwrap_or_else(|| diagnostic.message.clone());
     let retrieved = knowledge::retrieve(&scan.project.root, &query)?;
     let matches: Vec<_> = retrieved
@@ -98,10 +107,12 @@ pub fn explain(
         .into_iter()
         .take(3)
         .map(|result| KnowledgeReference {
+            details: result.document.troubleshooting_details(),
             source_id: crate::security::redact_sensitive(&result.document.source_id),
             title: crate::security::redact_sensitive(&result.document.title),
             path: crate::security::redact_sensitive(&result.document.path),
             match_reason: result.match_reason,
+            ranking_reasons: result.ranking_reasons,
             excerpt: result.excerpt,
             score: result.score,
             verification_status: result.document.verification_status,
@@ -111,7 +122,16 @@ pub fn explain(
         cause = "No hardcoded diagnostic rule matched. The guidance below comes from retrieved local knowledge and has not been verified against this project.".to_owned();
         suggested_fixes = knowledge
             .iter()
-            .map(|item| format!("[{}] {}", item.source_id, item.excerpt))
+            .map(|item| {
+                format!(
+                    "[{}] {}",
+                    item.source_id,
+                    item.details
+                        .as_ref()
+                        .map(|details| details.solution.as_str())
+                        .unwrap_or(&item.excerpt)
+                )
+            })
             .collect();
         confidence = Confidence::RetrievedKnowledge;
     }

@@ -106,6 +106,8 @@ fn large_chat_history_cannot_displace_retrieved_knowledge() {
             source_locator: "fixture.md".into(),
             excerpt: "Use UNIQUE-RECOVERY-STEP then verify port 4429".into(),
             match_reason: "title match".into(),
+            ranking_reasons: vec!["title match".into()],
+            details: None,
             score: 100,
             verification_status: "unverified".into(),
         }],

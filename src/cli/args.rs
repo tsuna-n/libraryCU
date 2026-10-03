@@ -6,7 +6,8 @@ use clap::{Args, Parser, Subcommand};
 #[command(
     name = "lbc",
     version,
-    about = "libraryCube - terminal knowledge library",
+    about = "libraryCube - local-first developer knowledge engine",
+    after_help = "Save: lbc learn / add\nFind: lbc search\nReuse: lbc ask / explain\nAI is optional. Core knowledge workflows work offline.",
     propagate_version = true
 )]
 pub struct Cli {
@@ -18,6 +19,8 @@ pub struct Cli {
 pub enum Command {
     /// Add a Markdown entry to your knowledge library
     Add(AddArgs),
+    /// Capture a solved problem as portable local Markdown
+    Learn(Box<LearnArgs>),
     /// List effective knowledge entries
     List(ListArgs),
     /// Show a complete knowledge entry
@@ -28,7 +31,7 @@ pub enum Command {
     Index(IndexArgs),
     /// Answer a question from retrieved local knowledge
     Ask(AskArgs),
-    /// Start a bounded interactive question session
+    /// Optional: start a bounded interactive knowledge Q&A session
     Chat(ChatArgs),
     /// Inspect or clear explicitly persisted chat history
     History {
@@ -39,11 +42,11 @@ pub enum Command {
     Scan(ScanArgs),
     /// Explain compiler or runtime errors
     Explain(ExplainArgs),
-    /// Generate a minimal AI patch grounded in local knowledge
+    /// Experimental: generate a minimal AI patch grounded in local knowledge
     Fix(FixArgs),
-    /// Apply a previously saved proposal without contacting AI
+    /// Experimental: apply a saved proposal without contacting AI
     ApplyProposal(ApplyProposalArgs),
-    /// Restore a recorded fix, only if its target still matches the applied content
+    /// Experimental support: restore a recorded fix if its target still matches
     Rollback(RollbackArgs),
     /// Search local technical knowledge
     Search(SearchArgs),
@@ -59,6 +62,51 @@ pub enum Command {
         #[command(subcommand)]
         command: KnowledgeCommand,
     },
+}
+
+#[derive(Debug, Args)]
+pub struct LearnArgs {
+    #[arg(long)]
+    pub problem: Option<String>,
+    #[arg(long)]
+    pub cause: Option<String>,
+    #[arg(long)]
+    pub solution: Option<String>,
+    /// A historical check to record; this command never executes it
+    #[arg(long)]
+    pub verification: Option<String>,
+    #[arg(long)]
+    pub title: Option<String>,
+    #[arg(long)]
+    pub id: Option<String>,
+    #[arg(long)]
+    pub language: Option<String>,
+    #[arg(long)]
+    pub tool: Option<String>,
+    #[arg(long)]
+    pub framework: Option<String>,
+    #[arg(long)]
+    pub error_code: Option<String>,
+    #[arg(long = "tag")]
+    pub tags: Vec<String>,
+    #[arg(long)]
+    pub symptoms: Option<String>,
+    #[arg(long)]
+    pub context: Option<String>,
+    #[arg(long = "reference")]
+    pub references: Vec<String>,
+    /// Save in PATH/.lbc/knowledge (default: current directory)
+    #[arg(long, conflicts_with = "user")]
+    pub project: Option<PathBuf>,
+    /// Save in your personal notes store
+    #[arg(long)]
+    pub user: bool,
+    /// Save supplied fields without prompts; requires --problem and --solution
+    #[arg(long, requires_all = ["problem", "solution"])]
+    pub yes: bool,
+    /// Machine-readable output for noninteractive capture
+    #[arg(long, requires = "yes")]
+    pub json: bool,
 }
 
 #[derive(Debug, Args)]

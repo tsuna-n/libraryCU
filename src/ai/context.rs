@@ -62,6 +62,15 @@ pub fn build_request_with_language(
                 ),
                 2_300,
             );
+            if let Some(details) = &item.details {
+                user.push(
+                    &format!("\nRecorded problem: {}\nPrevious solution: {}\nHistorical check (not rerun): {}\n",
+                        bounded_redacted(&details.problem, 300),
+                        bounded_redacted(&details.solution, 800),
+                        bounded_redacted(details.recorded_verification.as_deref().unwrap_or("none"), 200)),
+                    1_400,
+                );
+            }
         }
     }
     if !report.project_evidence.is_empty() {

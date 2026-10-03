@@ -6,6 +6,7 @@ use super::document::KnowledgeDocument;
 
 /// Weight for an exact error-code hit; dominates all other signals.
 const CODE_WEIGHT: u32 = 1_000;
+const IDENTIFIER_WEIGHT: u32 = 500;
 /// Weight for a full-query title hit.
 const TITLE_WEIGHT: u32 = 100;
 /// Weight for an exact tag, keyword, category, or tool hit.
@@ -45,6 +46,8 @@ pub struct SearchResult {
     pub source_locator: String,
     pub score: u32,
     pub match_reason: String,
+    /// Additional ranking context; `match_reason` retains its stable primary signal.
+    pub ranking_reasons: Vec<String>,
     pub excerpt: String,
     pub matched_terms: usize,
     pub query_terms: usize,
@@ -74,6 +77,9 @@ impl KnowledgeIndex {
             }
             for tag in &metadata.tags {
                 add_lookup_value(&mut index.by_tag, tag, position);
+            }
+            if let Some(framework) = &metadata.framework {
+                add_lookup_value(&mut index.by_tag, framework, position);
             }
             for keyword in &metadata.keywords {
                 add_lookup_value(&mut index.by_keyword, keyword, position);
@@ -148,6 +154,21 @@ impl KnowledgeIndex {
                 && contains_term(&normalized, &code.to_lowercase())
             {
                 credit(position, CODE_WEIGHT, CODE_WEIGHT, "exact error code");
+            }
+            if contains_identifier(&normalized, &document.source_id.to_lowercase())
+                || normalized == document.metadata.id.to_lowercase()
+            {
+                credit(
+                    position,
+                    IDENTIFIER_WEIGHT,
+                    IDENTIFIER_WEIGHT,
+                    "exact identifier",
+                );
+                for (index, term) in terms.iter().enumerate() {
+                    if contains_term(&document.source_id.to_lowercase(), term) {
+                        matched_terms[position][index] = true;
+                    }
+                }
             }
             if contains_term(&self.titles[position], &normalized) {
                 credit(position, TITLE_WEIGHT, TITLE_WEIGHT, "title match");
@@ -235,7 +256,7 @@ impl KnowledgeIndex {
         // Exact error codes still take priority, and unclassified user notes remain eligible.
         if let Some(language) = query_language(query) {
             for (position, document) in self.documents.iter().enumerate() {
-                if best_signal[position] < CODE_WEIGHT
+                if best_signal[position] < IDENTIFIER_WEIGHT
                     && let Some(other) = document
                         .metadata
                         .language
@@ -264,8 +285,25 @@ impl KnowledgeIndex {
                     kind: localized.kind.clone(),
                     verification_status: localized.verification_status.clone(),
                     source_locator: localized.path.clone(),
-                    score: scores[position],
+                    score: scores[position] + source_weight(&document.source),
                     match_reason: reasons[position].to_owned(),
+                    ranking_reasons: {
+                        let mut context = vec![reasons[position].to_owned()];
+                        if source_weight(&document.source) > 0 {
+                            context.push(format!("source preference: {}", document.source));
+                        }
+                        if let Some(language) = query_language(query)
+                            && document
+                                .metadata
+                                .language
+                                .as_deref()
+                                .and_then(language_family)
+                                == Some(language)
+                        {
+                            context.push("same language".to_owned());
+                        }
+                        context
+                    },
                     excerpt: make_excerpt(&localized.body, &terms),
                     matched_terms: matched_terms[position].iter().filter(|hit| **hit).count(),
                     query_terms: terms.len(),
@@ -282,6 +320,23 @@ impl KnowledgeIndex {
             (right.match_reason == "exact error code")
                 .cmp(&(left.match_reason == "exact error code"))
                 .then_with(|| {
+                    (right.match_reason == "exact identifier")
+                        .cmp(&(left.match_reason == "exact identifier"))
+                })
+                .then_with(|| {
+                    // Matching a diagnostic code already establishes comparable
+                    // relevance. Generic diagnostic words should not displace
+                    // this project's previously recorded solution.
+                    if left.match_reason == "exact error code"
+                        && right.match_reason == "exact error code"
+                    {
+                        source_weight(&right.document.source)
+                            .cmp(&source_weight(&left.document.source))
+                    } else {
+                        std::cmp::Ordering::Equal
+                    }
+                })
+                .then_with(|| {
                     (right.match_reason == "title match").cmp(&(left.match_reason == "title match"))
                 })
                 .then_with(|| {
@@ -295,6 +350,33 @@ impl KnowledgeIndex {
         });
         results
     }
+}
+
+// A bounded preference applies only after a real match. Stronger signals and
+// complete metadata phrases still take priority for lexical matches. Among exact
+// code matches, source preference wins before generic message overlap.
+// Source alone cannot create a hit.
+fn source_weight(source: &str) -> u32 {
+    match source {
+        "project" => 160,
+        "user" => 80,
+        source if source.starts_with("package:") => 40,
+        _ => 0,
+    }
+}
+
+fn contains_identifier(query: &str, id: &str) -> bool {
+    if id.is_empty() {
+        return false;
+    }
+    let identifier = |c: char| c.is_alphanumeric() || matches!(c, '_' | '-' | ':');
+    query.match_indices(id).any(|(start, _)| {
+        !query[..start].chars().next_back().is_some_and(identifier)
+            && !query[start + id.len()..]
+                .chars()
+                .next()
+                .is_some_and(identifier)
+    })
 }
 
 fn localized_title(document: &KnowledgeDocument, language: &str) -> String {
@@ -366,8 +448,8 @@ pub(crate) fn contains_term(text: &str, term: &str) -> bool {
 
 fn language_family(value: &str) -> Option<&'static str> {
     match value {
-        "rust" => Some("rust"),
-        "python" | "ไพทอน" => Some("python"),
+        "rust" | "rustc" | "cargo" => Some("rust"),
+        "python" | "pytest" | "ไพทอน" => Some("python"),
         "typescript" | "javascript" | "node" | "nodejs" => Some("javascript"),
         "go" => Some("go"),
         _ => None,
@@ -563,6 +645,92 @@ mod tests {
     use crate::knowledge::KnowledgeMetadata;
 
     #[test]
+    fn comparable_evidence_prefers_project_user_package_then_builtin() {
+        let documents = ["builtin", "package:local", "user", "project"]
+            .into_iter()
+            .map(|source| {
+                let mut item = document(
+                    "shared",
+                    "Database borrow",
+                    "Borrow the value.",
+                    KnowledgeMetadata {
+                        error_code: Some("E0308".into()),
+                        language: Some("rust".into()),
+                        ..Default::default()
+                    },
+                );
+                item.source = source.to_owned();
+                item.source_id = format!("{source}:shared");
+                item
+            })
+            .collect();
+        let index = KnowledgeIndex::build(documents);
+        let results = index.search("Rust E0308");
+        assert_eq!(
+            results
+                .iter()
+                .map(|r| r.source_id.as_str())
+                .collect::<Vec<_>>(),
+            [
+                "project:shared",
+                "user:shared",
+                "package:local:shared",
+                "builtin:shared"
+            ]
+        );
+        assert!(
+            results[0]
+                .ranking_reasons
+                .contains(&"same language".to_owned())
+        );
+        assert!(
+            results[0]
+                .ranking_reasons
+                .contains(&"source preference: project".to_owned())
+        );
+        assert!(index.search("intergalactic unrelated nebula").is_empty());
+        let qualified = index.search("user:shared");
+        assert_eq!(qualified[0].source_id, "user:shared");
+        assert_eq!(qualified[0].match_reason, "exact identifier");
+        assert_eq!(index.search("shared")[0].source_id, "project:shared");
+    }
+
+    #[test]
+    fn source_preference_cannot_outvote_an_exact_code_and_ids_are_whole() {
+        let mut weak = document(
+            "weak",
+            "Rust borrow",
+            "E0308 borrow database",
+            KnowledgeMetadata::default(),
+        );
+        weak.source = "project".into();
+        weak.source_id = "project:weak".into();
+        let mut exact = document(
+            "diagnostic",
+            "Mismatched types",
+            "Use a borrow.",
+            KnowledgeMetadata {
+                error_code: Some("E0308".into()),
+                ..Default::default()
+            },
+        );
+        exact.source = "builtin".into();
+        exact.source_id = "builtin:diagnostic".into();
+        let index = KnowledgeIndex::build(vec![weak, exact]);
+        assert_eq!(
+            index.search("E0308 Rust borrow database")[0].source_id,
+            "builtin:diagnostic"
+        );
+        assert!(!contains_identifier("project:note-extra", "note"));
+        assert!(!contains_identifier("project:note", "note"));
+        assert!(contains_identifier(
+            "inspect `project:note`",
+            "project:note"
+        ));
+        assert!(contains_identifier("inspect note", "note"));
+    }
+
+    #[test]
     fn repeated_terms_cannot_outvote_exact_codes_or_inflate_coverage() {
         let index = KnowledgeIndex::build(vec![
             document(
@@ -630,7 +798,7 @@ mod tests {
     #[test]
     fn complete_metadata_phrases_match_and_partial_phrases_do_not() {
         let index = KnowledgeIndex::build(vec![document(
-            "module",
+            "phrase-fixture",
             "Import guide",
             "Check ESM imports.",
             KnowledgeMetadata {

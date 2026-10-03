@@ -2,7 +2,7 @@
 name = "librarycube"
 version = "0.5.0"
 edition = "2024"
-description = "A terminal knowledge library with offline retrieval and optional AI"
+description = "A local-first developer knowledge engine with offline retrieval and optional AI"
 license = "MIT"
 
 [lib]

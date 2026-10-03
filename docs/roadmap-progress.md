@@ -1,6 +1,16 @@
 # Roadmap progress
 
-## Current checkpoint — 2026-10-01
+## Product refocus — 2026-10-03
+
+The [product roadmap](../ROADMAP.md) now prioritizes local knowledge foundation,
+capture, retrieval, project memory, and lifecycle. Enterprise milestones are
+Future / Post-1.0. See [product direction](product-direction.md) for architecture,
+classification, and migration. `learn` and the first retrieval/reuse increment
+are part of the refocus; historical release evidence below does not certify them.
+The previous prohibition on starting capture work is superseded. Production
+release gates remain in their dedicated ledger and runbooks.
+
+## Historical release checkpoint — 2026-10-01
 
 - Active milestone remains v0.5.0; version is 0.5.0 in Cargo.toml/Cargo.lock.
 - Started on main `08bcba665087c788a80649045fe83a887ed270a3`; remote HEAD agrees.

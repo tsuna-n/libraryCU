@@ -196,16 +196,18 @@ pub fn print_search_language(query: &str, results: &[SearchResult], language: &s
         if language == "th" {
             let match_reason = match result.match_reason.as_str() {
                 "exact error code" => "รหัสข้อผิดพลาดตรงกัน",
+                "exact identifier" => "รหัสรายการตรงกัน",
                 "title match" => "ชื่อตรงกับคำค้น",
                 "metadata match" => "ข้อมูลกำกับตรงกัน",
                 _ => "คำสำคัญตรงกัน",
             };
             println!("   เหตุผลที่ตรงกัน: {match_reason}");
+            println!("   ลำดับ: {}", result.ranking_reasons.join(" + "));
             println!("   แหล่งอ้างอิง: {}", result.document.source_id);
             println!("   ตำแหน่ง: {}", result.document.path);
             println!("   เนื้อหาที่เกี่ยวข้อง: {}", result.excerpt);
         } else {
-            println!("   Match: {}", result.match_reason);
+            println!("   Match: {}", result.ranking_reasons.join(" + "));
             println!("   Source: {}", result.document.source_id);
             println!("   Locator: {}", result.document.path);
             println!("   Excerpt: {}", result.excerpt);

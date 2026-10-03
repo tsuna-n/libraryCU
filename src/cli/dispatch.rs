@@ -8,6 +8,7 @@ use super::{
 pub fn dispatch(cli: Cli) -> Result<()> {
     match cli.command {
         Command::Add(args) => commands::entries::add(args),
+        Command::Learn(args) => commands::learn::run(*args),
         Command::List(args) => commands::entries::list(args),
         Command::Inspect(args) => commands::entries::inspect(args),
         Command::Edit(args) => commands::entries::edit(args),

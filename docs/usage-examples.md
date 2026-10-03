@@ -1,5 +1,30 @@
 # Complete libraryCube usage examples
 
+The core workflow is Save → Find → Reuse. AI and chat are optional supporting
+features; fix/apply-proposal/rollback is experimental source-changing tooling.
+See [product direction](product-direction.md) for scope and compatibility.
+
+## Capture today's solution with `learn`
+
+```bash
+lbc learn
+lbc learn --yes --problem 'Rust E0308 database String mismatch' \
+  --cause 'Function expected &str' --solution 'Borrowed with &value' \
+  --verification 'cargo test' --project ./backend --json
+lbc learn --yes --user --problem 'Local port occupied' \
+  --solution 'Changed the development port' --tag networking
+lbc search E0308 --project ./backend
+lbc explain build.log --project ./backend
+```
+
+The interactive flow previews Markdown and destination before confirmation. It
+defaults to the exact current directory's `.lbc/knowledge`; `--user` saves personal
+notes. Blank cause/check is allowed; EOF or cancellation saves nothing. IDs,
+titles, conservative language/tool/code hints, tags, and UTC timestamps are
+generated. Explicit IDs never overwrite; generated collisions get a suffix.
+Verification is a historical record, never executed by `learn`; empty means
+`unverified`, supplied means `recorded-check`. No AI configuration is required.
+
 This guide covers the knowledge and analysis commands in libraryCube 0.5.0. Commands run
 offline unless `--ai` is explicitly supplied. Paths, scores, and document counts
 in the sample output will vary by machine. An ellipsis (`...`) means that only a

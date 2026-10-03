@@ -32,6 +32,11 @@ pub fn enhance_with_language_stream(
     language: &str,
     mut on_event: Option<&mut (dyn FnMut(super::provider::StreamEvent) + Send)>,
 ) -> Result<()> {
+    if report.knowledge.is_empty() && report.confidence == crate::diagnostics::Confidence::Unknown {
+        anyhow::bail!(
+            "no sufficiently relevant local knowledge or known diagnostic rule; capture knowledge with `lbc learn` or refine the diagnostic"
+        );
+    }
     let client = resolve_client(ai)?;
     let request = super::context::build_request_with_language(
         report,

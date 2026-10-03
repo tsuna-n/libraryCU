@@ -7,5 +7,6 @@ pub mod explain;
 pub mod fix;
 pub mod history;
 pub mod knowledge;
+pub mod learn;
 pub mod scan;
 pub mod search;

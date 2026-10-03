@@ -1,5 +1,11 @@
 # Retrieval benchmark — v0.5, 2026-10-01
 
+The 2026-10-03 refocus retains these original labels and adds separately frozen
+synthetic project-memory cases plus explicit result precision, irrelevant-citation
+rate, and no-match metrics. See [refocus validation](product-refocus-validation.md)
+and its [current worktree receipt](evidence/product-refocus-retrieval.json).
+The historical release-binary measurements below remain unchanged.
+
 Labels were fixed before ranking changes in [cases.json](../benchmarks/retrieval/cases.json).
 Dataset SHA-256: `6ba824757fca6994397873de76a7f71d3f57a8a0b2f0a56f0f00bf42e4b7a794`. The 40 cases cover Rust, Python,
 TypeScript/Node and Go with English/Thai, exact codes, paraphrases, ambiguity,
