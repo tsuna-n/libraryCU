@@ -1,5 +1,11 @@
 # Retrieval benchmark — v0.5, 2026-10-01
 
+The [2026-11-09 retrieval evaluation](retrieval-engine-improvements.md) retains
+these labels, measures the new ranking against the pre-change release build,
+and reports a separately frozen synthetic evaluation set and offline FTS5/BM25
+experiment. [Dataset policy](retrieval-datasets.md) explains how to evaluate
+authentic error logs without counting generated fixtures as incidents.
+
 The 2026-10-03 refocus retains these original labels and adds separately frozen
 synthetic project-memory cases plus explicit result precision, irrelevant-citation
 rate, and no-match metrics. See [refocus validation](product-refocus-validation.md)

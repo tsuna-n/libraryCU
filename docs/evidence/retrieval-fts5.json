@@ -1,0 +1,4575 @@
+{
+  "schema": 1,
+  "checked_at": "2026-11-09T13:02:28.555168+00:00",
+  "binary": "/home/tsuna/project/libraryCU/target/release/lbc",
+  "binary_sha256": "0d44c92f69913370d54b6f6ab3c8a51447e7c16cc78aa9fbbb16427864d0eef4",
+  "sqlite_version": "3.54.1",
+  "experiment_sha256": "52a08bfb8bb37d9943a0ef39fc3a16b2e643fddd63821b3a77443c1108a1753f",
+  "dataset_sha256": "6ba824757fca6994397873de76a7f71d3f57a8a0b2f0a56f0f00bf42e4b7a794",
+  "frozen_reference_sha256": "18ecacfd6d73bddf0037d70283c89da7886859deccc8380fbac8755de0bafad2",
+  "corpus_sha256": {
+    "knowledge/docker/daemon-not-running.md": "d46184d38fff0c8740760ef0470f4046d8d0b3ea89fe0f9db9cb52b8a1be1042",
+    "knowledge/docker/port-in-use.md": "d2d7b5f965b12551a6e3475aa961bcd552c528c1d89504e6c4a01fe814c7925c",
+    "knowledge/git/detached-head.md": "577423c7dc08772c2f3d9796af9823f9d37f79f1f6a6ee10d6412dbbbbbc7d47",
+    "knowledge/git/merge-conflict.md": "53ccdb8344d2501dc916278ce8f8634409406538e455679e485fb3ce7876a65b",
+    "knowledge/linux/command-not-found.md": "1808c05c8695e3177e67630400456edccfb04deb40911971411b6be97254e675",
+    "knowledge/linux/permission-denied.md": "b45eee9f49fd831ca6b88ff4d153c8145dabe67e4cf5b6a00c24ac36bd3b4bda",
+    "knowledge/rust/E0308.md": "91167413e641690c0fcf3252d2861011abe6464f8b5a80367c7a5f49a793d80a",
+    "knowledge/rust/E0382.md": "1a2a37f8914397597de2132080701e7e9aa34c730c15f1db43418b2aef9f9ce2",
+    "knowledge/rust/E0432.md": "b303c351e0e1cd06f5568a79b5e53c03c56f28eca900c452d4e18ca928c1b63d",
+    "knowledge/rust/E0433.md": "d194ae798b7677a7ff0e3407acb4d73e5e51c46c345fd8eddee7366c437ee62e",
+    "knowledge/rust/E0499.md": "3ebedaa386e83a5ded6d448002332de4d86db0437af4a171845ceffcfdee9051",
+    "knowledge/rust/ownership.md": "3300ab9125aaed1da4db183ca9b40c973b06811bb671e2d647b0dac9d548911e",
+    "packages/python-fastapi-basics/fastapi/blocking-async.md": "582f3583694704de64a573512dff37c1bf6d7690912987c93f23f80c182e57ce",
+    "packages/python-fastapi-basics/fastapi/body-vs-query.md": "0d72f57e22941cb5364b8aa7842e4a39fb30d422a8fbf152e3bd019abb0cab71",
+    "packages/python-fastapi-basics/fastapi/cors.md": "d71c58ec1a9b2b6204b278a40eede161701a2938a614f7b04f22d3594ed471ff",
+    "packages/python-fastapi-basics/fastapi/file-upload.md": "a8826e09279e687a0e2c8bc0e4ce36c42b42a766f413ef6dcb9f3f25106d676b",
+    "packages/python-fastapi-basics/fastapi/lifespan.md": "a285e6efd5e9337bedd71d6c6f5e8410396b434c140aea39f051bad011e66d5d",
+    "packages/python-fastapi-basics/fastapi/minimal-app.md": "6fa34ca9173d906838f75850c0d02c7c64e72647a2110a81d60caf968d807b7b",
+    "packages/python-fastapi-basics/fastapi/port-in-use.md": "f768ddc26c121fdadaef30bb3c99478569f58c7918b6745874f058e59baf67d9",
+    "packages/python-fastapi-basics/fastapi/request-validation-422.md": "ef82d8a5ed2373929be5eac5e6bc9552eaf215e8d4a257231c162723729d07dc",
+    "packages/python-fastapi-basics/fastapi/response-validation-error.md": "b6f6480e07e0e5cdc9a52853699bc55451a510d5e9fb855a61ca5633778e5350",
+    "packages/python-fastapi-basics/fastapi/uvicorn-import-error.md": "9e1b9dc4bca8406bcfbb9b12ba1e3ae7648382dd78e8d12a8159eedfa7667d23",
+    "packages/python-fastapi-basics/package.toml": "7f74ea088febea1041652af8de3e992537d9dff0cacfbaf2e8c0d321a7a7dbd3",
+    "packages/python-fastapi-basics/python/arithmetic-errors.md": "bcc825149cc986bc9a81fd91bfd699cba3ecba6a29f1beb50f68e19befbd8191",
+    "packages/python-fastapi-basics/python/assertion-error.md": "de579168bbbd2cf4b6cdebd08a8d99e96fd01ccecb71976d62d7bca3a33f102c",
+    "packages/python-fastapi-basics/python/async-event-loop-errors.md": "1c89c7f453de64ab3c2ba174fb5a0f44234645172ba9892cc87e8b6393208b45",
+    "packages/python-fastapi-basics/python/attribute-error.md": "6d111e0ac65bc506d1128aee0a1f6f93fe2be56e88dd6269a89a7b246e3749d2",
+    "packages/python-fastapi-basics/python/circular-import.md": "90dc937d772944099ca2ea1d895c3ab20e560cd83d37c405bdb5d71319359cd0",
+    "packages/python-fastapi-basics/python/collection-access-errors.md": "53c747449ad041593c7cfe1a7fdee8517310c165453bd1a7d45eb2692020ed0e",
+    "packages/python-fastapi-basics/python/coroutine-not-awaited.md": "ae0fdc0f26e70a26f810e31706cfac9c41d146b7295383df008100e46e11022e",
+    "packages/python-fastapi-basics/python/dataclass-errors.md": "99e216efe4905fc2d17ca43eb6b5bc4cbe46d2d04b4260097b9b9d76403573cf",
+    "packages/python-fastapi-basics/python/environment-and-pip.md": "a1f1d8a341d93919d807f5c0e18f39828313abb6dab4d94590bb9e2eec202bd1",
+    "packages/python-fastapi-basics/python/file-and-os-errors.md": "103cc2a1f3d27ab36d24096f2e58921aab9822371b544d8fc402f58ba68d1d57",
+    "packages/python-fastapi-basics/python/indentation-error.md": "be0491d59b2473d326895fcdc20d55d65e85255e787f5b28dd0b494603a33f6a",
+    "packages/python-fastapi-basics/python/iteration-errors.md": "67d0e50322cec89431c19ffed3f4d455e96a04ac123595e377f01b9cbb073a15",
+    "packages/python-fastapi-basics/python/json-decode-error.md": "c4546899ea95525db93a227bb5968c837a8fb8f553dae727ec124f9ac1a2dcc8",
+    "packages/python-fastapi-basics/python/module-not-found.md": "ebc8dc0defa3a75176d3161656587f7fa817c6a337550a375864195c28e00ae2",
+    "packages/python-fastapi-basics/python/multiprocessing-errors.md": "27fdeb509d7e98f73fe2bd9563ce622e373c3ead31e6613b9f427b49c4874394",
+    "packages/python-fastapi-basics/python/name-errors.md": "7a2e723192e691b4e6a18cdd6fb447384200726b2fabec5d67534e95efdff7eb",
+    "packages/python-fastapi-basics/python/network-errors.md": "346c797c924feb10215260548416d5c770fe2616c790f71a256388336390fb7b",
+    "packages/python-fastapi-basics/python/none-type-error.md": "9898fbf31540e890a8bb693dcbd8a9a732c632a269fa403a1c977c5f047da1d9",
+    "packages/python-fastapi-basics/python/pip-externally-managed.md": "0e3231d9bc4a17f28a69aae24ae8575ccc2eb562fb5ab13cb0be9b662cdebb5c",
+    "packages/python-fastapi-basics/python/pip-resolution-impossible.md": "347384cfa3c01ac437674b581b93885345070ef3892d3e185d021af14cd98b12",
+    "packages/python-fastapi-basics/python/pip-ssl-certificate-error.md": "9f256f524c0eae60a4c0cb3b50a21cb58fc16890fabc59834fcd6e716f3fabba",
+    "packages/python-fastapi-basics/python/pip-wheel-build-error.md": "41d857d05cf2ac75d8780d8bafbe414fd36e67a5dc3b90cb9374656fe9c8554b",
+    "packages/python-fastapi-basics/python/pytest-fixture-and-import-errors.md": "f2110b353bedfe3eb260bdecb88640008592fcb145f3e31366eaffe863483139",
+    "packages/python-fastapi-basics/python/recursion-and-memory-errors.md": "a9a5adfea412d2862da60ea1322097bceece4657c08b43a1b50560c1271bcdf1",
+    "packages/python-fastapi-basics/python/sqlite-database-locked.md": "bd8e93d0bdfbb732a54b9ba509a416f2f3a440913577a630b92b4078357dff0e",
+    "packages/python-fastapi-basics/python/syntax-error.md": "2159d07a2c0cfa86bcd83da173cfeeffc1c5bafa77e4c319f9887a635cb57333",
+    "packages/python-fastapi-basics/python/task-exception-not-retrieved.md": "7e2337bb85871fd19055b6ecb11862e2f21411f7c3edcacdff4f13d8e2c6c8f0",
+    "packages/python-fastapi-basics/python/traceback-playbook.md": "1e11136dffcc5e59ea06b6299897aa913dcb752b39724653fb323d3f9c65460d",
+    "packages/python-fastapi-basics/python/type-and-value-errors.md": "6bb909aba62f9f1b2476d8aaca5b676b005e3f12a9fe4be1fe0264a3e183f1ad",
+    "packages/python-fastapi-basics/python/unicode-errors.md": "17439b272b57ce3c349109ba4b49e8129e53edcf63850a89491ccfa81c5e5d72",
+    "benchmarks/retrieval/corpus/go-undefined.md": "267cdbdbff2a27a3d002d1d9ba3705fe44fa11b859c2547e7a613d3edff2b407",
+    "benchmarks/retrieval/corpus/go-unused.md": "3e9508f344908c7e67edd66777fcc7414efa37374d7c6990fd368fb1bb6a1399",
+    "benchmarks/retrieval/corpus/node-enoent.md": "3ade6d74e7c22e72af4d52e03339f78e041bf99fbe043a14d4e3af1fcd3d11da",
+    "benchmarks/retrieval/corpus/node-module.md": "629948bc8771571177d1a53036d3581e5b1d9e169d3aa85dba4b98f94a5a9f81",
+    "benchmarks/retrieval/corpus/node-port.md": "b1f90b8984bce2d660efb363664324a4871d398397ffcb4b6630d30ad521dfc6",
+    "benchmarks/retrieval/corpus/package.toml": "24fba93ecfd03a0d2eb4a54a5cbb5f76b85a5caf5848ee7d0f45b4408d185afe",
+    "benchmarks/retrieval/corpus/ts2307.md": "d9b7a58063e38ba87b1735b7fc745f6f4a37ef5e3e1adde3e88a9954f56382c8",
+    "benchmarks/retrieval/corpus/ts2322.md": "01138eeb88e31062e98e25eb7e1d014ad6fcda3f57baabfa8f242b33b7070304"
+  },
+  "loaded_document_count": 59,
+  "loaded_documents_sha256": "5012cc75646329ed54c42588d9f44b131d4aae3b71794d218bda24249015360b",
+  "configuration": {
+    "tokenizer": "unicode61",
+    "query": "deduplicated lowercased whitespace phrases joined with OR",
+    "bm25_weights": {
+      "title": 5,
+      "metadata": 3,
+      "body": 1
+    },
+    "broad_limit": 3,
+    "rerank": "same adequate CLI search candidates; missing/tied BM25 scores retain CLI order"
+  },
+  "metrics": {
+    "lexical": {
+      "top1": {
+        "numerator": 31,
+        "denominator": 31,
+        "percent": 100.0
+      },
+      "top3": {
+        "numerator": 31,
+        "denominator": 31,
+        "percent": 100.0
+      },
+      "result_precision": {
+        "numerator": 35,
+        "denominator": 40,
+        "percent": 87.5
+      },
+      "top3_source_relevance_proxy": {
+        "numerator": 37,
+        "denominator": 40,
+        "percent": 92.5
+      },
+      "no_match_candidate_abstention_proxy": {
+        "numerator": 8,
+        "denominator": 8,
+        "percent": 100.0
+      }
+    },
+    "bm25_rerank": {
+      "top1": {
+        "numerator": 31,
+        "denominator": 31,
+        "percent": 100.0
+      },
+      "top3": {
+        "numerator": 31,
+        "denominator": 31,
+        "percent": 100.0
+      },
+      "result_precision": {
+        "numerator": 35,
+        "denominator": 40,
+        "percent": 87.5
+      },
+      "top3_source_relevance_proxy": {
+        "numerator": 37,
+        "denominator": 40,
+        "percent": 92.5
+      },
+      "no_match_candidate_abstention_proxy": {
+        "numerator": 8,
+        "denominator": 8,
+        "percent": 100.0
+      }
+    },
+    "fts_broad_top3": {
+      "top1": {
+        "numerator": 30,
+        "denominator": 31,
+        "percent": 96.77
+      },
+      "top3": {
+        "numerator": 31,
+        "denominator": 31,
+        "percent": 100.0
+      },
+      "result_precision": {
+        "numerator": 35,
+        "denominator": 99,
+        "percent": 35.35
+      },
+      "top3_source_relevance_proxy": {
+        "numerator": 7,
+        "denominator": 40,
+        "percent": 17.5
+      },
+      "no_match_candidate_abstention_proxy": {
+        "numerator": 5,
+        "denominator": 8,
+        "percent": 62.5
+      }
+    }
+  },
+  "actual_cli_answers": {
+    "status_correct": {
+      "numerator": 40,
+      "denominator": 40,
+      "percent": 100.0
+    },
+    "no_match_correctness": {
+      "numerator": 8,
+      "denominator": 8,
+      "percent": 100.0
+    },
+    "strict_citation_relevance": {
+      "numerator": 37,
+      "denominator": 40,
+      "percent": 92.5
+    },
+    "citation_identity_correct": {
+      "numerator": 40,
+      "denominator": 40,
+      "percent": 100.0
+    },
+    "irrelevant_citation_rate": {
+      "numerator": 4,
+      "denominator": 40,
+      "percent": 10.0
+    }
+  },
+  "candidate_answer_citation_metrics": null,
+  "limitations": [
+    "FTS candidates have no answer/evidence policy; top3 source relevance and candidate abstention are proxies, not measured answer citations/statuses.",
+    "Reranking preserves candidate membership and CLI adequacy; result precision and candidate abstention cannot improve by construction.",
+    "Broad FTS is diagnostic only: no adequacy gate, exact-code override, context filter or project priority.",
+    "FTS latency is warm in-process query plus reranking, excluding index construction and CLI/store startup; never a CLI speedup claim.",
+    "Only original fixed 40 cases; project-memory, large corpus, native platforms and independent incidents are not evaluated."
+  ],
+  "latency": {
+    "cli_search_ask": {
+      "unit": "milliseconds",
+      "scope": "three repetitions, separate actual search + ask subprocesses, startup/store reads included",
+      "median": 15.230937500064101,
+      "p95": 18.480879999970057
+    },
+    "in_process_fts_rerank": {
+      "unit": "milliseconds",
+      "scope": "three repetitions, warm SQLite MATCH/BM25 plus Python candidate reranking; excludes index build, CLI/store startup and answer construction",
+      "median": 0.09038250004778092,
+      "p95": 0.2003879999392666
+    },
+    "in_memory_index_build_ms": 2.620866000142996
+  },
+  "decision": {
+    "promote": false,
+    "top1_regressions": [],
+    "top1_improvements": [],
+    "reason": "Offline ranking experiment only; promotion requires a measured gain without case regressions and validated answer/project policies."
+  },
+  "cases": [
+    {
+      "id": "R01",
+      "query": "E0382 use of moved value",
+      "kind": "exact",
+      "expected_sources": [
+        "builtin:rust-e0382"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "measurable": true,
+      "lexical": [
+        "builtin:rust-e0382"
+      ],
+      "bm25_rerank": [
+        "builtin:rust-e0382"
+      ],
+      "fts_broad_top3": [
+        "builtin:rust-e0382",
+        "package:python-fastapi-basics:fastapi-body-vs-query",
+        "package:python-fastapi-basics:python-arithmetic-errors"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "builtin:rust-e0382",
+          "bm25": -19.402448738804075
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-body-vs-query",
+          "bm25": -3.911472237536766
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-arithmetic-errors",
+          "bm25": -3.3584233427161454
+        },
+        {
+          "source_id": "builtin:rust-ownership-basics",
+          "bm25": -2.7941215252716836
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-type-and-value-errors",
+          "bm25": -2.6226594223700967
+        },
+        {
+          "source_id": "builtin:rust-e0499",
+          "bm25": -2.5015225384280133
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-name-errors",
+          "bm25": -2.486389545524085
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-collection-access-errors",
+          "bm25": -2.3059659076368244
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-recursion-and-memory-errors",
+          "bm25": -1.9897857617582946
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-response-validation-error",
+          "bm25": -1.9505173876640938
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-externally-managed",
+          "bm25": -1.6153131413001154
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-none-type-error",
+          "bm25": -1.610142220570447
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-attribute-error",
+          "bm25": -1.604079797566391
+        },
+        {
+          "source_id": "builtin:git-detached-head",
+          "bm25": -1.4157835215602057
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-json-decode-error",
+          "bm25": -1.3539844015126854
+        },
+        {
+          "source_id": "package:retrieval-benchmark:ts2322",
+          "bm25": -1.27706226237042
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-lifespan",
+          "bm25": -1.0854585737652425
+        },
+        {
+          "source_id": "builtin:rust-e0308",
+          "bm25": -1.0034541471978737
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-assertion-error",
+          "bm25": -0.8762762390183665
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-dataclass-errors",
+          "bm25": -0.8275785341834947
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-request-validation-422",
+          "bm25": -0.7766676721487257
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-traceback-playbook",
+          "bm25": -0.5780119970268583
+        },
+        {
+          "source_id": "package:retrieval-benchmark:node-port",
+          "bm25": -2.0786966429225057e-06
+        },
+        {
+          "source_id": "builtin:docker-port-in-use",
+          "bm25": -2.0704420679400663e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-port-in-use",
+          "bm25": -2.0415141143379988e-06
+        },
+        {
+          "source_id": "builtin:rust-e0432",
+          "bm25": -1.8304583966978058e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-environment-and-pip",
+          "bm25": -1.8246133492928465e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-wheel-build-error",
+          "bm25": -1.5961148328654829e-06
+        },
+        {
+          "source_id": "builtin:git-merge-conflict",
+          "bm25": -1.509383814629761e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-iteration-errors",
+          "bm25": -1.3951684770827815e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-file-upload",
+          "bm25": -1.3299659047859578e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-async-event-loop-errors",
+          "bm25": -1.1995630497470968e-06
+        },
+        {
+          "source_id": "builtin:linux-command-not-found",
+          "bm25": -1.1927274224766297e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-file-and-os-errors",
+          "bm25": -1.1811628926521416e-06
+        },
+        {
+          "source_id": "builtin:linux-permission-denied",
+          "bm25": -1.1692891531000514e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-indentation-error",
+          "bm25": -1.0493175251569192e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-minimal-app",
+          "bm25": -1.0376726438923026e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-module-not-found",
+          "bm25": -9.950783766373202e-07
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-coroutine-not-awaited",
+          "bm25": -9.530594448740518e-07
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-ssl-certificate-error",
+          "bm25": -9.326882049382915e-07
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-blocking-async",
+          "bm25": -9.221756123188116e-07
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-unicode-errors",
+          "bm25": -9.221756123188116e-07
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-uvicorn-import-error",
+          "bm25": -9.157247419257949e-07
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-multiprocessing-errors",
+          "bm25": -8.741436030543567e-07
+        }
+      ],
+      "answer_status": "retrieved_guidance",
+      "cited_sources": [
+        "builtin:rust-e0382"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 16.971973999716283,
+      "median_in_process_fts_rerank_ms": 0.2023010001721559
+    },
+    {
+      "id": "R02",
+      "query": "E0308 mismatched types",
+      "kind": "exact",
+      "expected_sources": [
+        "builtin:rust-e0308"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "measurable": true,
+      "lexical": [
+        "builtin:rust-e0308"
+      ],
+      "bm25_rerank": [
+        "builtin:rust-e0308"
+      ],
+      "fts_broad_top3": [
+        "builtin:rust-e0308",
+        "package:python-fastapi-basics:python-type-and-value-errors",
+        "package:python-fastapi-basics:fastapi-response-validation-error"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "builtin:rust-e0308",
+          "bm25": -20.625107785324985
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-type-and-value-errors",
+          "bm25": -4.354823841367443
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-response-validation-error",
+          "bm25": -2.879306245274444
+        }
+      ],
+      "answer_status": "retrieved_guidance",
+      "cited_sources": [
+        "builtin:rust-e0308"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 15.854794000006223,
+      "median_in_process_fts_rerank_ms": 0.06923299997652066
+    },
+    {
+      "id": "R03",
+      "query": "E0499 cannot borrow as mutable more than once",
+      "kind": "exact",
+      "expected_sources": [
+        "builtin:rust-e0499"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "measurable": true,
+      "lexical": [
+        "builtin:rust-e0499"
+      ],
+      "bm25_rerank": [
+        "builtin:rust-e0499"
+      ],
+      "fts_broad_top3": [
+        "builtin:rust-e0499",
+        "builtin:rust-ownership-basics",
+        "builtin:rust-e0382"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "builtin:rust-e0499",
+          "bm25": -21.649053858078833
+        },
+        {
+          "source_id": "builtin:rust-ownership-basics",
+          "bm25": -8.515788827579001
+        },
+        {
+          "source_id": "builtin:rust-e0382",
+          "bm25": -5.543210335930766
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-multiprocessing-errors",
+          "bm25": -5.353270436156271
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-dataclass-errors",
+          "bm25": -5.205564129344664
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-name-errors",
+          "bm25": -4.758759431716797
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-type-and-value-errors",
+          "bm25": -3.4174758294421532
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-lifespan",
+          "bm25": -3.264154050520118
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-file-and-os-errors",
+          "bm25": -3.0607625983304234
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-syntax-error",
+          "bm25": -2.9856641957685692
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-externally-managed",
+          "bm25": -2.911989962674148
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-coroutine-not-awaited",
+          "bm25": -2.6509135637728978
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-module-not-found",
+          "bm25": -2.3056710833920606
+        },
+        {
+          "source_id": "package:retrieval-benchmark:ts2307",
+          "bm25": -2.2031798745985474
+        },
+        {
+          "source_id": "package:retrieval-benchmark:node-module",
+          "bm25": -2.1969471382216077
+        },
+        {
+          "source_id": "builtin:docker-daemon-not-running",
+          "bm25": -2.1034618548661435
+        },
+        {
+          "source_id": "builtin:linux-command-not-found",
+          "bm25": -2.0401900158997717
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-unicode-errors",
+          "bm25": -1.9368292816292143
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-async-event-loop-errors",
+          "bm25": -1.7398225634466704
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-ssl-certificate-error",
+          "bm25": -1.5953864460594027
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-none-type-error",
+          "bm25": -1.5514737862963277
+        },
+        {
+          "source_id": "builtin:rust-e0432",
+          "bm25": -1.2836393874265348
+        },
+        {
+          "source_id": "builtin:rust-e0433",
+          "bm25": -1.2136762465451636
+        },
+        {
+          "source_id": "builtin:git-merge-conflict",
+          "bm25": -1.2115461243264158
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-file-upload",
+          "bm25": -0.8722924328391085
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-json-decode-error",
+          "bm25": -0.8678837202353119
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-sqlite-database-locked",
+          "bm25": -0.8506856863373534
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-task-exception-not-retrieved",
+          "bm25": -0.819819080128629
+        },
+        {
+          "source_id": "builtin:linux-permission-denied",
+          "bm25": -0.7669084420733143
+        },
+        {
+          "source_id": "builtin:rust-e0308",
+          "bm25": -0.7417321170240907
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-circular-import",
+          "bm25": -0.6428742462217683
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-body-vs-query",
+          "bm25": -0.6250886122853444
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-cors",
+          "bm25": -0.6126005476811724
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-uvicorn-import-error",
+          "bm25": -0.600601684652939
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-request-validation-422",
+          "bm25": -0.5740963434111436
+        }
+      ],
+      "answer_status": "retrieved_guidance",
+      "cited_sources": [
+        "builtin:rust-e0499"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 18.480879999970057,
+      "median_in_process_fts_rerank_ms": 0.1475069998377876
+    },
+    {
+      "id": "R04",
+      "query": "E0432 unresolved import",
+      "kind": "exact",
+      "expected_sources": [
+        "builtin:rust-e0432"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "measurable": true,
+      "lexical": [
+        "builtin:rust-e0432"
+      ],
+      "bm25_rerank": [
+        "builtin:rust-e0432"
+      ],
+      "fts_broad_top3": [
+        "builtin:rust-e0432",
+        "package:python-fastapi-basics:python-circular-import",
+        "package:retrieval-benchmark:go-unused"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "builtin:rust-e0432",
+          "bm25": -15.14323627208425
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-circular-import",
+          "bm25": -2.1407954468459925e-06
+        },
+        {
+          "source_id": "package:retrieval-benchmark:go-unused",
+          "bm25": -2.107750876698248e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-uvicorn-import-error",
+          "bm25": -2.10174558885958e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pytest-fixture-and-import-errors",
+          "bm25": -2.0713962995946125e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-module-not-found",
+          "bm25": -2.012542343437853e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-body-vs-query",
+          "bm25": -1.8061518793944779e-06
+        },
+        {
+          "source_id": "package:retrieval-benchmark:ts2307",
+          "bm25": -1.775523184085702e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-environment-and-pip",
+          "bm25": -1.7644012866124078e-06
+        },
+        {
+          "source_id": "package:retrieval-benchmark:node-module",
+          "bm25": -1.7564643899480725e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-multiprocessing-errors",
+          "bm25": -1.7560783362638696e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-cors",
+          "bm25": -1.64319754907523e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-name-errors",
+          "bm25": -1.6380571295258767e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-arithmetic-errors",
+          "bm25": -1.634988286432019e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-response-validation-error",
+          "bm25": -1.6309143380023931e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-lifespan",
+          "bm25": -1.598063321390022e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-minimal-app",
+          "bm25": -1.4101980451109516e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-attribute-error",
+          "bm25": -1.3326738140155524e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-file-upload",
+          "bm25": -1.3299659047859578e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-coroutine-not-awaited",
+          "bm25": -1.3299659047859578e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-json-decode-error",
+          "bm25": -1.3232440335117045e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-dataclass-errors",
+          "bm25": -1.3100020918964457e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-externally-managed",
+          "bm25": -1.3060810353768801e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-blocking-async",
+          "bm25": -1.2995978439499912e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-unicode-errors",
+          "bm25": -1.2995978439499912e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-sqlite-database-locked",
+          "bm25": -1.2970225533606133e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-request-validation-422",
+          "bm25": -1.2523525119584898e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-wheel-build-error",
+          "bm25": -1.2523525119584898e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-task-exception-not-retrieved",
+          "bm25": -1.2499608888217557e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-file-and-os-errors",
+          "bm25": -1.1811628926521416e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-type-and-value-errors",
+          "bm25": -1.1726979178265229e-06
+        }
+      ],
+      "answer_status": "retrieved_guidance",
+      "cited_sources": [
+        "builtin:rust-e0432"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 15.755515999899217,
+      "median_in_process_fts_rerank_ms": 0.12190100005682325
+    },
+    {
+      "id": "R05",
+      "query": "E0433 failed to resolve",
+      "kind": "exact",
+      "expected_sources": [
+        "builtin:rust-e0433"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "measurable": true,
+      "lexical": [
+        "builtin:rust-e0433"
+      ],
+      "bm25_rerank": [
+        "builtin:rust-e0433"
+      ],
+      "fts_broad_top3": [
+        "builtin:rust-e0433",
+        "package:python-fastapi-basics:python-pip-ssl-certificate-error",
+        "package:python-fastapi-basics:python-pip-wheel-build-error"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "builtin:rust-e0433",
+          "bm25": -15.888674459798054
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-ssl-certificate-error",
+          "bm25": -3.685153600941364
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-wheel-build-error",
+          "bm25": -3.6709369884949123
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-network-errors",
+          "bm25": -3.441696015122771
+        },
+        {
+          "source_id": "package:retrieval-benchmark:node-enoent",
+          "bm25": -3.390343084851014
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-assertion-error",
+          "bm25": -3.371948976069087
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-file-and-os-errors",
+          "bm25": -3.203457472399829
+        },
+        {
+          "source_id": "builtin:git-merge-conflict",
+          "bm25": -2.63464375015889
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-request-validation-422",
+          "bm25": -1.5768902290112123
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-task-exception-not-retrieved",
+          "bm25": -1.5726838892673372
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pytest-fixture-and-import-errors",
+          "bm25": -1.5160665838141796
+        },
+        {
+          "source_id": "builtin:docker-daemon-not-running",
+          "bm25": -1.8933866275676258e-06
+        },
+        {
+          "source_id": "builtin:rust-e0308",
+          "bm25": -1.8501862131965427e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-indentation-error",
+          "bm25": -1.804284107934352e-06
+        },
+        {
+          "source_id": "builtin:git-detached-head",
+          "bm25": -1.787956771856179e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-type-and-value-errors",
+          "bm25": -1.7595913921567777e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-blocking-async",
+          "bm25": -1.722608982689454e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-multiprocessing-errors",
+          "bm25": -1.687958225030014e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-async-event-loop-errors",
+          "bm25": -1.6496695022170833e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-traceback-playbook",
+          "bm25": -1.6422791228908637e-06
+        },
+        {
+          "source_id": "builtin:rust-ownership-basics",
+          "bm25": -1.6379702809314428e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-iteration-errors",
+          "bm25": -1.588929120035111e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-circular-import",
+          "bm25": -1.554956043218576e-06
+        },
+        {
+          "source_id": "builtin:docker-port-in-use",
+          "bm25": -1.497298834233722e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-syntax-error",
+          "bm25": -1.4428385505856566e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-response-validation-error",
+          "bm25": -1.2957387316854937e-06
+        },
+        {
+          "source_id": "builtin:rust-e0432",
+          "bm25": -1.2171245469349163e-06
+        },
+        {
+          "source_id": "builtin:rust-e0382",
+          "bm25": -1.136795831657034e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-attribute-error",
+          "bm25": -9.558430414837795e-07
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-name-errors",
+          "bm25": -9.274021181386638e-07
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-resolution-impossible",
+          "bm25": -9.234767082230654e-07
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-unicode-errors",
+          "bm25": -9.221756123188116e-07
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-uvicorn-import-error",
+          "bm25": -9.157247419257949e-07
+        }
+      ],
+      "answer_status": "retrieved_guidance",
+      "cited_sources": [
+        "builtin:rust-e0433"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 17.003474999910395,
+      "median_in_process_fts_rerank_ms": 0.1637749996916682
+    },
+    {
+      "id": "R06",
+      "query": "value used after ownership moved",
+      "kind": "paraphrase",
+      "expected_sources": [
+        "builtin:rust-e0382"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "measurable": true,
+      "lexical": [
+        "builtin:rust-e0382"
+      ],
+      "bm25_rerank": [
+        "builtin:rust-e0382"
+      ],
+      "fts_broad_top3": [
+        "builtin:rust-e0382",
+        "builtin:rust-ownership-basics",
+        "package:retrieval-benchmark:go-unused"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "builtin:rust-e0382",
+          "bm25": -17.668811512071372
+        },
+        {
+          "source_id": "builtin:rust-ownership-basics",
+          "bm25": -8.05596135873018
+        },
+        {
+          "source_id": "package:retrieval-benchmark:go-unused",
+          "bm25": -5.781848294279977
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-traceback-playbook",
+          "bm25": -3.40003268119818
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-multiprocessing-errors",
+          "bm25": -2.4314109119692295
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-assertion-error",
+          "bm25": -2.407600896512685
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-dataclass-errors",
+          "bm25": -2.2738011413451336
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-body-vs-query",
+          "bm25": -1.6776901410874352
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-syntax-error",
+          "bm25": -1.6644257930922968
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-type-and-value-errors",
+          "bm25": -1.633979830034513
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-none-type-error",
+          "bm25": -1.610142220570447
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-attribute-error",
+          "bm25": -1.604079797566391
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-iteration-errors",
+          "bm25": -1.583901842973289
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-module-not-found",
+          "bm25": -1.5429659559601336
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-resolution-impossible",
+          "bm25": -1.4319405941926675
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-uvicorn-import-error",
+          "bm25": -1.4199204153110212
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-lifespan",
+          "bm25": -1.3608973524644399
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-json-decode-error",
+          "bm25": -1.3539844015126854
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-name-errors",
+          "bm25": -1.3394119606922041
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-arithmetic-errors",
+          "bm25": -1.3363300107540506
+        },
+        {
+          "source_id": "package:retrieval-benchmark:ts2322",
+          "bm25": -1.27706226237042
+        },
+        {
+          "source_id": "builtin:rust-e0499",
+          "bm25": -1.0449812419030466
+        },
+        {
+          "source_id": "builtin:rust-e0308",
+          "bm25": -1.0034541471978737
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-response-validation-error",
+          "bm25": -0.8148054038304104
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-request-validation-422",
+          "bm25": -0.7766676721487257
+        }
+      ],
+      "answer_status": "retrieved_guidance",
+      "cited_sources": [
+        "builtin:rust-e0382"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 15.320271000291541,
+      "median_in_process_fts_rerank_ms": 0.1653099998293328
+    },
+    {
+      "id": "R07",
+      "query": "แก้ E0382 ใช้ค่าหลังย้าย ownership อย่างไร",
+      "kind": "thai",
+      "expected_sources": [
+        "builtin:rust-e0382"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "measurable": true,
+      "lexical": [
+        "builtin:rust-e0382"
+      ],
+      "bm25_rerank": [
+        "builtin:rust-e0382"
+      ],
+      "fts_broad_top3": [
+        "builtin:rust-e0382",
+        "builtin:rust-ownership-basics",
+        "package:python-fastapi-basics:python-dataclass-errors"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "builtin:rust-e0382",
+          "bm25": -20.78958726137921
+        },
+        {
+          "source_id": "builtin:rust-ownership-basics",
+          "bm25": -6.602585095143184
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-dataclass-errors",
+          "bm25": -1.8805883534584736e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-syntax-error",
+          "bm25": -1.8724614725681453e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-attribute-error",
+          "bm25": -1.8550566835329533e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-resolution-impossible",
+          "bm25": -1.8372042445606372e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-assertion-error",
+          "bm25": -1.8263103964688262e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-indentation-error",
+          "bm25": -1.804284107934352e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-iteration-errors",
+          "bm25": -1.7875305502752608e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-sqlite-database-locked",
+          "bm25": -1.785621257542713e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-module-not-found",
+          "bm25": -1.771085258281993e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-circular-import",
+          "bm25": -1.7615521462131464e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-request-validation-422",
+          "bm25": -1.75686393448838e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-coroutine-not-awaited",
+          "bm25": -1.7437191072793933e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-traceback-playbook",
+          "bm25": -1.740320868467963e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-json-decode-error",
+          "bm25": -1.7390860536262732e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-ssl-certificate-error",
+          "bm25": -1.7298934159168351e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-externally-managed",
+          "bm25": -1.7271545452376977e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-name-errors",
+          "bm25": -1.7262435145919818e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-response-validation-error",
+          "bm25": -1.7198931116389548e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-none-type-error",
+          "bm25": -1.6958302471756167e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-wheel-build-error",
+          "bm25": -1.688829283225703e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-task-exception-not-retrieved",
+          "bm25": -1.6870880649135428e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-arithmetic-errors",
+          "bm25": -1.634988286432019e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-unicode-errors",
+          "bm25": -1.6339678924152619e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-collection-access-errors",
+          "bm25": -1.6178130923994818e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-recursion-and-memory-errors",
+          "bm25": -1.6088656200309688e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-multiprocessing-errors",
+          "bm25": -1.595142369334141e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pytest-fixture-and-import-errors",
+          "bm25": -1.5674474454159549e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-network-errors",
+          "bm25": -1.566509590226555e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-async-event-loop-errors",
+          "bm25": -1.5525752403032729e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-file-and-os-errors",
+          "bm25": -1.5370796653907646e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-type-and-value-errors",
+          "bm25": -1.5298941571861527e-06
+        },
+        {
+          "source_id": "builtin:git-merge-conflict",
+          "bm25": -1.509383814629761e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-uvicorn-import-error",
+          "bm25": -1.2931786978021367e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-port-in-use",
+          "bm25": -1.094957705212419e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-environment-and-pip",
+          "bm25": -9.8460021756867e-07
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-file-upload",
+          "bm25": -9.530594448740518e-07
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-body-vs-query",
+          "bm25": -9.530594448740518e-07
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-cors",
+          "bm25": -9.34019155728982e-07
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-blocking-async",
+          "bm25": -9.221756123188116e-07
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-lifespan",
+          "bm25": -8.776600177271384e-07
+        }
+      ],
+      "answer_status": "retrieved_guidance",
+      "cited_sources": [
+        "builtin:rust-e0382"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 19.248044000050868,
+      "median_in_process_fts_rerank_ms": 0.16095799992399407
+    },
+    {
+      "id": "R08",
+      "query": "ownership borrow",
+      "kind": "ambiguous",
+      "expected_sources": [
+        "builtin:rust-ownership-basics",
+        "builtin:rust-e0382",
+        "builtin:rust-e0499"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "measurable": true,
+      "lexical": [
+        "builtin:rust-e0382",
+        "builtin:rust-ownership-basics"
+      ],
+      "bm25_rerank": [
+        "builtin:rust-e0382",
+        "builtin:rust-ownership-basics"
+      ],
+      "fts_broad_top3": [
+        "builtin:rust-e0382",
+        "builtin:rust-ownership-basics",
+        "builtin:rust-e0499"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "builtin:rust-e0382",
+          "bm25": -12.10058240265904
+        },
+        {
+          "source_id": "builtin:rust-ownership-basics",
+          "bm25": -11.469391228270702
+        },
+        {
+          "source_id": "builtin:rust-e0499",
+          "bm25": -5.6716827834190155
+        }
+      ],
+      "answer_status": "retrieved_guidance",
+      "cited_sources": [
+        "builtin:rust-e0382",
+        "builtin:rust-ownership-basics"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 16.49333600016689,
+      "median_in_process_fts_rerank_ms": 0.066607999997359
+    },
+    {
+      "id": "R09",
+      "query": "E0382 port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port port ",
+      "kind": "distractor",
+      "expected_sources": [
+        "builtin:rust-e0382"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "measurable": true,
+      "lexical": [
+        "builtin:rust-e0382"
+      ],
+      "bm25_rerank": [
+        "builtin:rust-e0382"
+      ],
+      "fts_broad_top3": [
+        "builtin:rust-e0382",
+        "builtin:docker-port-in-use",
+        "package:retrieval-benchmark:node-port"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "builtin:rust-e0382",
+          "bm25": -7.699769764414234
+        },
+        {
+          "source_id": "builtin:docker-port-in-use",
+          "bm25": -4.097843338072827
+        },
+        {
+          "source_id": "package:retrieval-benchmark:node-port",
+          "bm25": -4.017268927949466
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-port-in-use",
+          "bm25": -4.011130768612994
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-type-and-value-errors",
+          "bm25": -3.511885416785481
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-network-errors",
+          "bm25": -3.0482869102143337
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-cors",
+          "bm25": -2.5516998979983265
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-file-and-os-errors",
+          "bm25": -2.2984368604993337
+        }
+      ],
+      "answer_status": "retrieved_guidance",
+      "cited_sources": [
+        "builtin:rust-e0382"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 18.25591400029225,
+      "median_in_process_fts_rerank_ms": 0.09090599996852688
+    },
+    {
+      "id": "R10",
+      "query": "ModuleNotFoundError: No module named requests",
+      "kind": "exact",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-module-not-found"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "measurable": true,
+      "lexical": [
+        "package:python-fastapi-basics:python-module-not-found"
+      ],
+      "bm25_rerank": [
+        "package:python-fastapi-basics:python-module-not-found"
+      ],
+      "fts_broad_top3": [
+        "package:python-fastapi-basics:python-module-not-found",
+        "builtin:rust-e0432",
+        "package:python-fastapi-basics:fastapi-blocking-async"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "package:python-fastapi-basics:python-module-not-found",
+          "bm25": -15.836123179751318
+        },
+        {
+          "source_id": "builtin:rust-e0432",
+          "bm25": -6.439240588165813
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-blocking-async",
+          "bm25": -5.459246927741887
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-attribute-error",
+          "bm25": -4.215150843182888
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-file-upload",
+          "bm25": -3.8486186119704975
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-body-vs-query",
+          "bm25": -3.8486186119704975
+        },
+        {
+          "source_id": "builtin:rust-e0433",
+          "bm25": -3.7830027700432804
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pytest-fixture-and-import-errors",
+          "bm25": -3.5110852015670715
+        },
+        {
+          "source_id": "package:retrieval-benchmark:node-module",
+          "bm25": -3.0631444230108587
+        },
+        {
+          "source_id": "package:retrieval-benchmark:ts2307",
+          "bm25": -3.0449501285696687
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-circular-import",
+          "bm25": -2.9237079446904213
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-indentation-error",
+          "bm25": -2.9186532646037473
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-uvicorn-import-error",
+          "bm25": -2.895549086506402
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-multiprocessing-errors",
+          "bm25": -2.527377377944432
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-cors",
+          "bm25": -2.346541577839344
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-traceback-playbook",
+          "bm25": -1.8739630827488547
+        },
+        {
+          "source_id": "package:retrieval-benchmark:node-enoent",
+          "bm25": -1.2409688311641665
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-async-event-loop-errors",
+          "bm25": -1.1290503128876428
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-wheel-build-error",
+          "bm25": -1.046853070173171
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-resolution-impossible",
+          "bm25": -0.9877869264752471
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-file-and-os-errors",
+          "bm25": -0.9161163407222144
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-task-exception-not-retrieved",
+          "bm25": -0.819819080128629
+        },
+        {
+          "source_id": "builtin:rust-e0499",
+          "bm25": -0.7724280685586393
+        },
+        {
+          "source_id": "builtin:rust-e0382",
+          "bm25": -0.7455968593398348
+        },
+        {
+          "source_id": "builtin:rust-e0308",
+          "bm25": -0.7417321170240907
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-iteration-errors",
+          "bm25": -0.6699629816973083
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-coroutine-not-awaited",
+          "bm25": -0.6250886122853444
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-response-validation-error",
+          "bm25": -0.6022869493673264
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-request-validation-422",
+          "bm25": -0.5740963434111436
+        }
+      ],
+      "answer_status": "retrieved_guidance",
+      "cited_sources": [
+        "package:python-fastapi-basics:python-module-not-found"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 15.395216999877448,
+      "median_in_process_fts_rerank_ms": 0.12610200019480544
+    },
+    {
+      "id": "R11",
+      "query": "IndentationError: unexpected indent",
+      "kind": "exact",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-indentation-error"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "measurable": true,
+      "lexical": [
+        "package:python-fastapi-basics:python-indentation-error"
+      ],
+      "bm25_rerank": [
+        "package:python-fastapi-basics:python-indentation-error"
+      ],
+      "fts_broad_top3": [
+        "package:python-fastapi-basics:python-indentation-error",
+        "package:python-fastapi-basics:python-syntax-error",
+        "package:python-fastapi-basics:python-type-and-value-errors"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "package:python-fastapi-basics:python-indentation-error",
+          "bm25": -17.14016284517935
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-syntax-error",
+          "bm25": -3.73789895907283
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-type-and-value-errors",
+          "bm25": -3.7363535994815806
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-none-type-error",
+          "bm25": -2.0291973492066835
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-traceback-playbook",
+          "bm25": -1.4940120088829196
+        }
+      ],
+      "answer_status": "retrieved_guidance",
+      "cited_sources": [
+        "package:python-fastapi-basics:python-indentation-error"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 15.141603999836661,
+      "median_in_process_fts_rerank_ms": 0.07831899984012125
+    },
+    {
+      "id": "R12",
+      "query": "JSONDecodeError",
+      "kind": "exact",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-json-decode-error"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "measurable": true,
+      "lexical": [
+        "package:python-fastapi-basics:python-json-decode-error"
+      ],
+      "bm25_rerank": [
+        "package:python-fastapi-basics:python-json-decode-error"
+      ],
+      "fts_broad_top3": [
+        "package:python-fastapi-basics:python-json-decode-error"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "package:python-fastapi-basics:python-json-decode-error",
+          "bm25": -7.558991433127869
+        }
+      ],
+      "answer_status": "retrieved_guidance",
+      "cited_sources": [
+        "package:python-fastapi-basics:python-json-decode-error"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 13.683733000107168,
+      "median_in_process_fts_rerank_ms": 0.048520000291318865
+    },
+    {
+      "id": "R13",
+      "query": "coroutine was never awaited",
+      "kind": "exact",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-coroutine-not-awaited"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "measurable": true,
+      "lexical": [
+        "package:python-fastapi-basics:python-coroutine-not-awaited"
+      ],
+      "bm25_rerank": [
+        "package:python-fastapi-basics:python-coroutine-not-awaited"
+      ],
+      "fts_broad_top3": [
+        "package:python-fastapi-basics:python-coroutine-not-awaited",
+        "package:python-fastapi-basics:python-task-exception-not-retrieved",
+        "package:python-fastapi-basics:python-syntax-error"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "package:python-fastapi-basics:python-coroutine-not-awaited",
+          "bm25": -22.166080919802848
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-task-exception-not-retrieved",
+          "bm25": -12.963525284081763
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-syntax-error",
+          "bm25": -7.266058181804891
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-async-event-loop-errors",
+          "bm25": -7.202332598700341
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-none-type-error",
+          "bm25": -2.4557604626207787
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-sqlite-database-locked",
+          "bm25": -2.3102770306222338
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-traceback-playbook",
+          "bm25": -1.956040525009164
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-assertion-error",
+          "bm25": -1.921725194683796
+        }
+      ],
+      "answer_status": "retrieved_guidance",
+      "cited_sources": [
+        "package:python-fastapi-basics:python-coroutine-not-awaited"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 14.497553000182961,
+      "median_in_process_fts_rerank_ms": 0.07623800001965719
+    },
+    {
+      "id": "R14",
+      "query": "cannot import name from partially initialized module",
+      "kind": "exact",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-circular-import"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "measurable": true,
+      "lexical": [
+        "package:python-fastapi-basics:python-circular-import"
+      ],
+      "bm25_rerank": [
+        "package:python-fastapi-basics:python-circular-import"
+      ],
+      "fts_broad_top3": [
+        "package:python-fastapi-basics:python-circular-import",
+        "package:python-fastapi-basics:python-attribute-error",
+        "package:python-fastapi-basics:python-module-not-found"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "package:python-fastapi-basics:python-circular-import",
+          "bm25": -16.085617494884364
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-attribute-error",
+          "bm25": -12.478025585412635
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-module-not-found",
+          "bm25": -5.763400411651597
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-multiprocessing-errors",
+          "bm25": -5.295379064232844
+        },
+        {
+          "source_id": "package:retrieval-benchmark:node-module",
+          "bm25": -5.260093317696857
+        },
+        {
+          "source_id": "package:retrieval-benchmark:ts2307",
+          "bm25": -5.2481317786914
+        },
+        {
+          "source_id": "builtin:rust-e0433",
+          "bm25": -4.24190587676623
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-uvicorn-import-error",
+          "bm25": -3.648965458563633
+        },
+        {
+          "source_id": "builtin:rust-e0432",
+          "bm25": -3.5391948188170295
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pytest-fixture-and-import-errors",
+          "bm25": -3.0632412688573893
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-name-errors",
+          "bm25": -2.9476569497248923
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-none-type-error",
+          "bm25": -2.4859371318926455
+        },
+        {
+          "source_id": "builtin:docker-daemon-not-running",
+          "bm25": -2.1034618548661435
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-traceback-playbook",
+          "bm25": -2.0323486460886793
+        },
+        {
+          "source_id": "builtin:linux-command-not-found",
+          "bm25": -1.9527983056197455
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-unicode-errors",
+          "bm25": -1.9368320861307384
+        },
+        {
+          "source_id": "builtin:rust-e0499",
+          "bm25": -1.7995377570760815
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-ssl-certificate-error",
+          "bm25": -1.7468739392818193
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-async-event-loop-errors",
+          "bm25": -1.7398242131161725
+        },
+        {
+          "source_id": "builtin:git-merge-conflict",
+          "bm25": -1.2115461243264158
+        },
+        {
+          "source_id": "builtin:rust-e0382",
+          "bm25": -1.1088835961451233
+        },
+        {
+          "source_id": "builtin:rust-e0308",
+          "bm25": -1.1072733052108426
+        },
+        {
+          "source_id": "builtin:rust-ownership-basics",
+          "bm25": -1.0940372243401864
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-indentation-error",
+          "bm25": -1.0836723411003124
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-network-errors",
+          "bm25": -1.0661580443040253
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-body-vs-query",
+          "bm25": -1.052277473650261
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-externally-managed",
+          "bm25": -1.04363630613007
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-response-validation-error",
+          "bm25": -1.039842884833797
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-wheel-build-error",
+          "bm25": -1.0235595027867903
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-request-validation-422",
+          "bm25": -0.9299076855370059
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-file-upload",
+          "bm25": -0.5552601496014519
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-cors",
+          "bm25": -3.37400585322611e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-lifespan",
+          "bm25": -3.196126642780044e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-minimal-app",
+          "bm25": -2.8203960902219033e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-blocking-async",
+          "bm25": -2.8045015239832453e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-json-decode-error",
+          "bm25": -2.646488067023409e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-dataclass-errors",
+          "bm25": -2.6200041837928914e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-file-and-os-errors",
+          "bm25": -2.362325785304283e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-type-and-value-errors",
+          "bm25": -2.3453958356530457e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-coroutine-not-awaited",
+          "bm25": -2.2830253496600097e-06
+        },
+        {
+          "source_id": "package:retrieval-benchmark:go-unused",
+          "bm25": -2.107750876698248e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-environment-and-pip",
+          "bm25": -1.7644012866124078e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-arithmetic-errors",
+          "bm25": -1.634988286432019e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-sqlite-database-locked",
+          "bm25": -1.2970225533606133e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-task-exception-not-retrieved",
+          "bm25": -1.2499608888217557e-06
+        },
+        {
+          "source_id": "builtin:git-detached-head",
+          "bm25": -1.1447486734582968e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-resolution-impossible",
+          "bm25": -9.234767082230654e-07
+        }
+      ],
+      "answer_status": "retrieved_guidance",
+      "cited_sources": [
+        "package:python-fastapi-basics:python-circular-import"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 18.392499000128737,
+      "median_in_process_fts_rerank_ms": 0.20057999972777907
+    },
+    {
+      "id": "R15",
+      "query": "Python หา module ไม่เจอ",
+      "kind": "paraphrase",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-module-not-found"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "measurable": true,
+      "lexical": [
+        "package:python-fastapi-basics:python-module-not-found"
+      ],
+      "bm25_rerank": [
+        "package:python-fastapi-basics:python-module-not-found"
+      ],
+      "fts_broad_top3": [
+        "package:retrieval-benchmark:node-module",
+        "package:python-fastapi-basics:python-module-not-found",
+        "package:python-fastapi-basics:fastapi-uvicorn-import-error"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "package:retrieval-benchmark:node-module",
+          "bm25": -9.535383306423821
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-module-not-found",
+          "bm25": -8.03516638479349
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-uvicorn-import-error",
+          "bm25": -7.753923824564835
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pytest-fixture-and-import-errors",
+          "bm25": -7.20836252283025
+        },
+        {
+          "source_id": "builtin:rust-e0433",
+          "bm25": -5.706188404340761
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-attribute-error",
+          "bm25": -5.620509781947357
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-name-errors",
+          "bm25": -4.891989155821914
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-network-errors",
+          "bm25": -4.632041575315864
+        },
+        {
+          "source_id": "builtin:rust-e0432",
+          "bm25": -4.007259371172192
+        },
+        {
+          "source_id": "package:retrieval-benchmark:node-enoent",
+          "bm25": -3.532205464925391
+        },
+        {
+          "source_id": "package:retrieval-benchmark:ts2307",
+          "bm25": -3.0449501285696687
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-circular-import",
+          "bm25": -2.9237100510699046
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-multiprocessing-errors",
+          "bm25": -2.5273794418396123
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-port-in-use",
+          "bm25": -1.5758834372079398
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-traceback-playbook",
+          "bm25": -1.4467113777517229
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-unicode-errors",
+          "bm25": -1.327212695546753
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-sqlite-database-locked",
+          "bm25": -1.3234833407613633
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-environment-and-pip",
+          "bm25": -2.128972337669562e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-syntax-error",
+          "bm25": -2.1256350649422134e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-indentation-error",
+          "bm25": -2.122418471042358e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-externally-managed",
+          "bm25": -2.119411904602194e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-file-upload",
+          "bm25": -2.118478727375012e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-iteration-errors",
+          "bm25": -2.112936382419381e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-wheel-build-error",
+          "bm25": -2.111246269846694e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-assertion-error",
+          "bm25": -2.1075906518617663e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-json-decode-error",
+          "bm25": -2.100585198246672e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-coroutine-not-awaited",
+          "bm25": -2.098320406676514e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-arithmetic-errors",
+          "bm25": -2.096500162867292e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-collection-access-errors",
+          "bm25": -2.09243098509238e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-dataclass-errors",
+          "bm25": -2.090737017018657e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-none-type-error",
+          "bm25": -2.0890917392847185e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-resolution-impossible",
+          "bm25": -2.0847309276955455e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-recursion-and-memory-errors",
+          "bm25": -2.082294888403751e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-type-and-value-errors",
+          "bm25": -2.0786071329890875e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-ssl-certificate-error",
+          "bm25": -2.077280306969572e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-task-exception-not-retrieved",
+          "bm25": -2.0738978725415294e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-file-and-os-errors",
+          "bm25": -2.063109329687686e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-async-event-loop-errors",
+          "bm25": -2.0623967039250552e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-minimal-app",
+          "bm25": -2.0121753176264212e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-blocking-async",
+          "bm25": -1.97225946212808e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-body-vs-query",
+          "bm25": -1.945464132541167e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-response-validation-error",
+          "bm25": -1.930544909181803e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-cors",
+          "bm25": -1.881264005715956e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-lifespan",
+          "bm25": -1.8513326448550901e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-request-validation-422",
+          "bm25": -1.85002445231798e-06
+        }
+      ],
+      "answer_status": "retrieved_guidance",
+      "cited_sources": [
+        "package:python-fastapi-basics:python-module-not-found"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 17.4364310000783,
+      "median_in_process_fts_rerank_ms": 0.18412200006423518
+    },
+    {
+      "id": "R16",
+      "query": "pip externally managed environment",
+      "kind": "paraphrase",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-pip-externally-managed"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "measurable": true,
+      "lexical": [
+        "package:python-fastapi-basics:python-pip-externally-managed"
+      ],
+      "bm25_rerank": [
+        "package:python-fastapi-basics:python-pip-externally-managed"
+      ],
+      "fts_broad_top3": [
+        "package:python-fastapi-basics:python-pip-externally-managed",
+        "package:python-fastapi-basics:python-environment-and-pip",
+        "package:python-fastapi-basics:python-pip-resolution-impossible"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-externally-managed",
+          "bm25": -23.026439737817533
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-environment-and-pip",
+          "bm25": -7.8960676734131
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-resolution-impossible",
+          "bm25": -7.157800665287261
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-minimal-app",
+          "bm25": -5.284612527809517
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-file-upload",
+          "bm25": -4.983948535709687
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-wheel-build-error",
+          "bm25": -3.7990642082527084
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-ssl-certificate-error",
+          "bm25": -3.779904653681916
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-module-not-found",
+          "bm25": -3.042352586997745
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-network-errors",
+          "bm25": -2.366773919311673
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-async-event-loop-errors",
+          "bm25": -2.3342419129346195
+        }
+      ],
+      "answer_status": "retrieved_guidance",
+      "cited_sources": [
+        "package:python-fastapi-basics:python-pip-externally-managed"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 17.539874000249256,
+      "median_in_process_fts_rerank_ms": 0.08985900012703496
+    },
+    {
+      "id": "R17",
+      "query": "Python import",
+      "kind": "ambiguous",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-module-not-found",
+        "package:python-fastapi-basics:python-circular-import",
+        "package:python-fastapi-basics:python-environment-and-pip"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "measurable": true,
+      "lexical": [
+        "package:python-fastapi-basics:python-circular-import",
+        "package:python-fastapi-basics:python-module-not-found",
+        "package:python-fastapi-basics:python-pytest-fixture-and-import-errors",
+        "package:python-fastapi-basics:python-environment-and-pip",
+        "package:python-fastapi-basics:fastapi-minimal-app"
+      ],
+      "bm25_rerank": [
+        "package:python-fastapi-basics:python-circular-import",
+        "package:python-fastapi-basics:python-module-not-found",
+        "package:python-fastapi-basics:python-pytest-fixture-and-import-errors",
+        "package:python-fastapi-basics:python-environment-and-pip",
+        "package:python-fastapi-basics:fastapi-minimal-app"
+      ],
+      "fts_broad_top3": [
+        "package:python-fastapi-basics:python-circular-import",
+        "package:python-fastapi-basics:python-module-not-found",
+        "package:python-fastapi-basics:python-pytest-fixture-and-import-errors"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "package:python-fastapi-basics:python-circular-import",
+          "bm25": -4.247174930162713e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-module-not-found",
+          "bm25": -4.140952034561978e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pytest-fixture-and-import-errors",
+          "bm25": -4.137960457410674e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-uvicorn-import-error",
+          "bm25": -4.071531951066179e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-environment-and-pip",
+          "bm25": -3.8933736242819695e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-multiprocessing-errors",
+          "bm25": -3.819973516318584e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-body-vs-query",
+          "bm25": -3.751616011935645e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-name-errors",
+          "bm25": -3.735277026069642e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-arithmetic-errors",
+          "bm25": -3.731488449299311e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-response-validation-error",
+          "bm25": -3.5614592471841964e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-cors",
+          "bm25": -3.524461554791186e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-lifespan",
+          "bm25": -3.4493959662451122e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-file-upload",
+          "bm25": -3.44844463216097e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-attribute-error",
+          "bm25": -3.4349457164616585e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-coroutine-not-awaited",
+          "bm25": -3.4282863114624722e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-externally-managed",
+          "bm25": -3.425492939979074e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-json-decode-error",
+          "bm25": -3.4238292317583765e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-minimal-app",
+          "bm25": -3.422373362737373e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-dataclass-errors",
+          "bm25": -3.4007391089151025e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-unicode-errors",
+          "bm25": -3.395858205357702e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-sqlite-database-locked",
+          "bm25": -3.3714404410572557e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-wheel-build-error",
+          "bm25": -3.3635987818051836e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-task-exception-not-retrieved",
+          "bm25": -3.323858761363285e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-blocking-async",
+          "bm25": -3.2718573060780713e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-type-and-value-errors",
+          "bm25": -3.2513050508156106e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-file-and-os-errors",
+          "bm25": -3.2442722223398278e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-request-validation-422",
+          "bm25": -3.10237696427647e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-syntax-error",
+          "bm25": -2.1256350649422134e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-indentation-error",
+          "bm25": -2.122418471042358e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-iteration-errors",
+          "bm25": -2.112936382419381e-06
+        },
+        {
+          "source_id": "builtin:rust-e0432",
+          "bm25": -2.110307603073634e-06
+        },
+        {
+          "source_id": "package:retrieval-benchmark:go-unused",
+          "bm25": -2.107750876698248e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-assertion-error",
+          "bm25": -2.1075906518617663e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-collection-access-errors",
+          "bm25": -2.09243098509238e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-none-type-error",
+          "bm25": -2.0890917392847185e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-resolution-impossible",
+          "bm25": -2.0847309276955455e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-recursion-and-memory-errors",
+          "bm25": -2.082294888403751e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-ssl-certificate-error",
+          "bm25": -2.077280306969572e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-traceback-playbook",
+          "bm25": -2.076587751122073e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-async-event-loop-errors",
+          "bm25": -2.0623967039250552e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-network-errors",
+          "bm25": -2.061084252147111e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-port-in-use",
+          "bm25": -1.953556410391527e-06
+        },
+        {
+          "source_id": "package:retrieval-benchmark:ts2307",
+          "bm25": -1.775523184085702e-06
+        },
+        {
+          "source_id": "package:retrieval-benchmark:node-module",
+          "bm25": -1.7564643899480725e-06
+        }
+      ],
+      "answer_status": "retrieved_guidance",
+      "cited_sources": [
+        "package:python-fastapi-basics:python-circular-import",
+        "package:python-fastapi-basics:python-module-not-found",
+        "package:python-fastapi-basics:python-pytest-fixture-and-import-errors",
+        "package:python-fastapi-basics:python-environment-and-pip"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": false,
+      "irrelevant_citations": 1,
+      "median_cli_search_ask_ms": 16.482264999922336,
+      "median_in_process_fts_rerank_ms": 0.1312740000685153
+    },
+    {
+      "id": "R18",
+      "query": "Python CustomWidgetError failed in worker.py",
+      "kind": "insufficient",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-traceback-playbook"
+      ],
+      "acceptable_statuses": [
+        "general_guidance"
+      ],
+      "measurable": false,
+      "lexical": [],
+      "bm25_rerank": [],
+      "fts_broad_top3": [
+        "package:python-fastapi-basics:python-pip-ssl-certificate-error",
+        "package:python-fastapi-basics:python-pip-wheel-build-error",
+        "builtin:rust-e0433"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-ssl-certificate-error",
+          "bm25": -4.246704887909206
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-wheel-build-error",
+          "bm25": -3.995557164327168
+        },
+        {
+          "source_id": "builtin:rust-e0433",
+          "bm25": -3.598765238334198
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-assertion-error",
+          "bm25": -3.371951083659739
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-network-errors",
+          "bm25": -2.044197596162096
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-task-exception-not-retrieved",
+          "bm25": -1.8964372391621518
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pytest-fixture-and-import-errors",
+          "bm25": -1.8281647393354301
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-request-validation-422",
+          "bm25": -1.5768912037230585
+        },
+        {
+          "source_id": "package:retrieval-benchmark:node-port",
+          "bm25": -0.7709045617188769
+        },
+        {
+          "source_id": "builtin:docker-port-in-use",
+          "bm25": -0.7646269266525324
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-port-in-use",
+          "bm25": -0.7571170183808588
+        },
+        {
+          "source_id": "package:retrieval-benchmark:go-unused",
+          "bm25": -0.5349405971124191
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-json-decode-error",
+          "bm25": -0.4907398256758953
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-name-errors",
+          "bm25": -0.4838919721308179
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-response-validation-error",
+          "bm25": -0.4805390509819762
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-collection-access-errors",
+          "bm25": -0.47443436630621955
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-none-type-error",
+          "bm25": -0.4680310428254542
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-lifespan",
+          "bm25": -0.4653391335771704
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-multiprocessing-errors",
+          "bm25": -0.46400508711732963
+        },
+        {
+          "source_id": "builtin:rust-e0432",
+          "bm25": -0.4513822969824885
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-indentation-error",
+          "bm25": -0.3891515779627586
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-iteration-errors",
+          "bm25": -0.37882718116554026
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-file-upload",
+          "bm25": -0.3534533429006343
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-resolution-impossible",
+          "bm25": -0.3424822678948324
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-recursion-and-memory-errors",
+          "bm25": -0.3303635009231364
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-async-event-loop-errors",
+          "bm25": -0.3058080506973663
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-traceback-playbook",
+          "bm25": -0.2415892200296337
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-environment-and-pip",
+          "bm25": -2.128972337669562e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-module-not-found",
+          "bm25": -2.1284096911241246e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-syntax-error",
+          "bm25": -2.1256350649422134e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-externally-managed",
+          "bm25": -2.119411904602194e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-circular-import",
+          "bm25": -2.1063794833167214e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-attribute-error",
+          "bm25": -2.102271902446106e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-coroutine-not-awaited",
+          "bm25": -2.098320406676514e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-arithmetic-errors",
+          "bm25": -2.096500162867292e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-unicode-errors",
+          "bm25": -2.0962603614077107e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-dataclass-errors",
+          "bm25": -2.090737017018657e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-type-and-value-errors",
+          "bm25": -2.0786071329890875e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-sqlite-database-locked",
+          "bm25": -2.0744178876966424e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-file-and-os-errors",
+          "bm25": -2.063109329687686e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-minimal-app",
+          "bm25": -2.0121753176264212e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-blocking-async",
+          "bm25": -1.97225946212808e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-uvicorn-import-error",
+          "bm25": -1.9697863622065986e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-body-vs-query",
+          "bm25": -1.945464132541167e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-cors",
+          "bm25": -1.881264005715956e-06
+        }
+      ],
+      "answer_status": "general_guidance",
+      "cited_sources": [
+        "package:python-fastapi-basics:python-traceback-playbook"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 16.456978999940475,
+      "median_in_process_fts_rerank_ms": 0.187127999652148
+    },
+    {
+      "id": "R19",
+      "query": "TS2322 incompatible assignment",
+      "kind": "exact",
+      "expected_sources": [
+        "package:retrieval-benchmark:ts2322"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "measurable": true,
+      "lexical": [
+        "package:retrieval-benchmark:ts2322"
+      ],
+      "bm25_rerank": [
+        "package:retrieval-benchmark:ts2322"
+      ],
+      "fts_broad_top3": [
+        "package:retrieval-benchmark:ts2322",
+        "package:python-fastapi-basics:python-name-errors",
+        "package:python-fastapi-basics:python-pip-resolution-impossible"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "package:retrieval-benchmark:ts2322",
+          "bm25": -20.051398100288925
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-name-errors",
+          "bm25": -5.412626555288366
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-resolution-impossible",
+          "bm25": -2.568629842370835
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-type-and-value-errors",
+          "bm25": -2.223539220995473
+        }
+      ],
+      "answer_status": "retrieved_guidance",
+      "cited_sources": [
+        "package:retrieval-benchmark:ts2322"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 14.218596999853617,
+      "median_in_process_fts_rerank_ms": 0.06973199970161659
+    },
+    {
+      "id": "R20",
+      "query": "TS2307 cannot find module",
+      "kind": "exact",
+      "expected_sources": [
+        "package:retrieval-benchmark:ts2307"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "measurable": true,
+      "lexical": [
+        "package:retrieval-benchmark:ts2307"
+      ],
+      "bm25_rerank": [
+        "package:retrieval-benchmark:ts2307"
+      ],
+      "fts_broad_top3": [
+        "package:retrieval-benchmark:ts2307",
+        "package:retrieval-benchmark:node-module",
+        "builtin:rust-e0432"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "package:retrieval-benchmark:ts2307",
+          "bm25": -16.23834952104031
+        },
+        {
+          "source_id": "package:retrieval-benchmark:node-module",
+          "bm25": -8.490152002168518
+        },
+        {
+          "source_id": "builtin:rust-e0432",
+          "bm25": -5.426462881568822
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-module-not-found",
+          "bm25": -4.60876750749204
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-multiprocessing-errors",
+          "bm25": -4.566445980309576
+        },
+        {
+          "source_id": "builtin:rust-e0433",
+          "bm25": -4.24190587676623
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-none-type-error",
+          "bm25": -4.038535023842609
+        },
+        {
+          "source_id": "builtin:linux-command-not-found",
+          "bm25": -3.107349035486279
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-circular-import",
+          "bm25": -2.9237079446904213
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-uvicorn-import-error",
+          "bm25": -2.895549086506402
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-attribute-error",
+          "bm25": -2.85644042310954
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pytest-fixture-and-import-errors",
+          "bm25": -2.572946779044917
+        },
+        {
+          "source_id": "builtin:docker-port-in-use",
+          "bm25": -2.3217076979690665
+        },
+        {
+          "source_id": "package:retrieval-benchmark:node-port",
+          "bm25": -2.236634976688105
+        },
+        {
+          "source_id": "builtin:docker-daemon-not-running",
+          "bm25": -2.1034618548661435
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-unicode-errors",
+          "bm25": -1.9368292816292143
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-name-errors",
+          "bm25": -1.82058128167747
+        },
+        {
+          "source_id": "builtin:rust-e0499",
+          "bm25": -1.7995377570760815
+        },
+        {
+          "source_id": "builtin:git-detached-head",
+          "bm25": -1.775044330925551
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-async-event-loop-errors",
+          "bm25": -1.7398225634466704
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-port-in-use",
+          "bm25": -1.6978385844020465
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-traceback-playbook",
+          "bm25": -1.4467093011639718
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-sqlite-database-locked",
+          "bm25": -1.4259051731000099
+        },
+        {
+          "source_id": "builtin:git-merge-conflict",
+          "bm25": -1.2115461243264158
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-ssl-certificate-error",
+          "bm25": -0.983658836773886
+        }
+      ],
+      "answer_status": "retrieved_guidance",
+      "cited_sources": [
+        "package:retrieval-benchmark:ts2307"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 15.55965199986531,
+      "median_in_process_fts_rerank_ms": 0.11099999983343878
+    },
+    {
+      "id": "R21",
+      "query": "ENOENT no such file",
+      "kind": "exact",
+      "expected_sources": [
+        "package:retrieval-benchmark:node-enoent"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "measurable": true,
+      "lexical": [
+        "package:retrieval-benchmark:node-enoent"
+      ],
+      "bm25_rerank": [
+        "package:retrieval-benchmark:node-enoent"
+      ],
+      "fts_broad_top3": [
+        "package:retrieval-benchmark:node-enoent",
+        "package:python-fastapi-basics:python-file-and-os-errors",
+        "package:python-fastapi-basics:python-pip-wheel-build-error"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "package:retrieval-benchmark:node-enoent",
+          "bm25": -13.567118939557451
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-file-and-os-errors",
+          "bm25": -4.62437802134343
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-wheel-build-error",
+          "bm25": -4.416616868651318
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-module-not-found",
+          "bm25": -3.6848380719532603
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-attribute-error",
+          "bm25": -2.846062665548744
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pytest-fixture-and-import-errors",
+          "bm25": -2.324730105358826
+        },
+        {
+          "source_id": "builtin:rust-e0308",
+          "bm25": -2.2514892828650064
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-uvicorn-import-error",
+          "bm25": -2.1101975823579306
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-file-upload",
+          "bm25": -1.9802751187853096
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-indentation-error",
+          "bm25": -1.8031290826988444
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-request-validation-422",
+          "bm25": -1.7426396064769518
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-lifespan",
+          "bm25": -1.675097000266164
+        },
+        {
+          "source_id": "builtin:linux-command-not-found",
+          "bm25": -1.5922923813272152
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-syntax-error",
+          "bm25": -1.57994166469277
+        },
+        {
+          "source_id": "builtin:linux-permission-denied",
+          "bm25": -1.5610022667071233
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-body-vs-query",
+          "bm25": -1.272335375566191
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-sqlite-database-locked",
+          "bm25": -1.257334385913315
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-async-event-loop-errors",
+          "bm25": -1.1290503128876428
+        },
+        {
+          "source_id": "builtin:git-merge-conflict",
+          "bm25": -1.1136153392830486
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-type-and-value-errors",
+          "bm25": -1.0672123182337745
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-resolution-impossible",
+          "bm25": -0.9877869264752471
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-assertion-error",
+          "bm25": -0.9573522577048517
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-circular-import",
+          "bm25": -0.9501839616849796
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-ssl-certificate-error",
+          "bm25": -0.9041484655499519
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-unicode-errors",
+          "bm25": -0.8939575524071366
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-task-exception-not-retrieved",
+          "bm25": -0.819819080128629
+        },
+        {
+          "source_id": "builtin:rust-e0432",
+          "bm25": -0.7982825185920251
+        },
+        {
+          "source_id": "builtin:rust-e0499",
+          "bm25": -0.7724280685586393
+        },
+        {
+          "source_id": "builtin:rust-e0433",
+          "bm25": -0.7547731398222138
+        },
+        {
+          "source_id": "builtin:rust-e0382",
+          "bm25": -0.7455968593398348
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-iteration-errors",
+          "bm25": -0.6699629816973083
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-coroutine-not-awaited",
+          "bm25": -0.6250886122853444
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-blocking-async",
+          "bm25": -0.6048326543408122
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-response-validation-error",
+          "bm25": -0.6022869493673264
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-traceback-playbook",
+          "bm25": -0.42725378158488286
+        }
+      ],
+      "answer_status": "retrieved_guidance",
+      "cited_sources": [
+        "package:retrieval-benchmark:node-enoent"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 14.515880999624642,
+      "median_in_process_fts_rerank_ms": 0.12712800025838078
+    },
+    {
+      "id": "R22",
+      "query": "EADDRINUSE address already in use",
+      "kind": "exact",
+      "expected_sources": [
+        "package:retrieval-benchmark:node-port"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "measurable": true,
+      "lexical": [
+        "package:retrieval-benchmark:node-port",
+        "package:python-fastapi-basics:fastapi-port-in-use"
+      ],
+      "bm25_rerank": [
+        "package:retrieval-benchmark:node-port",
+        "package:python-fastapi-basics:fastapi-port-in-use"
+      ],
+      "fts_broad_top3": [
+        "package:retrieval-benchmark:node-port",
+        "package:python-fastapi-basics:fastapi-port-in-use",
+        "builtin:docker-port-in-use"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "package:retrieval-benchmark:node-port",
+          "bm25": -17.278361447450465
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-port-in-use",
+          "bm25": -16.16863984475405
+        },
+        {
+          "source_id": "builtin:docker-port-in-use",
+          "bm25": -10.097689796286499
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-async-event-loop-errors",
+          "bm25": -4.089246012421847
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-uvicorn-import-error",
+          "bm25": -3.2488610310191586
+        },
+        {
+          "source_id": "builtin:docker-daemon-not-running",
+          "bm25": -2.364856362103476
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-ssl-certificate-error",
+          "bm25": -0.5615518722691561
+        },
+        {
+          "source_id": "package:retrieval-benchmark:go-unused",
+          "bm25": -0.5349405971124191
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-network-errors",
+          "bm25": -0.5300765408033923
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-json-decode-error",
+          "bm25": -0.4907377250906971
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-name-errors",
+          "bm25": -0.4838911796901489
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-response-validation-error",
+          "bm25": -0.48053712043706703
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-collection-access-errors",
+          "bm25": -0.4744331757209308
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-none-type-error",
+          "bm25": -0.46802895373371495
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-lifespan",
+          "bm25": -0.46533874674197834
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-multiprocessing-errors",
+          "bm25": -0.46400389736575265
+        },
+        {
+          "source_id": "builtin:rust-e0432",
+          "bm25": -0.4513841274408852
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-indentation-error",
+          "bm25": -0.38915050486181274
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-iteration-errors",
+          "bm25": -0.3788264633976349
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-file-upload",
+          "bm25": -0.3534525543878117
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-resolution-impossible",
+          "bm25": -0.34248018316390466
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-recursion-and-memory-errors",
+          "bm25": -0.3303623094274545
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-wheel-build-error",
+          "bm25": -0.32461966070081877
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-task-exception-not-retrieved",
+          "bm25": -0.32375214897466015
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pytest-fixture-and-import-errors",
+          "bm25": -0.31209693050723253
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-traceback-playbook",
+          "bm25": -0.24158779486672682
+        },
+        {
+          "source_id": "builtin:rust-e0382",
+          "bm25": -1.9033161651757476e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-environment-and-pip",
+          "bm25": -1.8246133492928465e-06
+        },
+        {
+          "source_id": "builtin:git-merge-conflict",
+          "bm25": -1.509383814629761e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-dataclass-errors",
+          "bm25": -1.3100020918964457e-06
+        },
+        {
+          "source_id": "builtin:linux-command-not-found",
+          "bm25": -1.1927274224766297e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-file-and-os-errors",
+          "bm25": -1.1811628926521416e-06
+        },
+        {
+          "source_id": "builtin:linux-permission-denied",
+          "bm25": -1.1692891531000514e-06
+        },
+        {
+          "source_id": "builtin:git-detached-head",
+          "bm25": -1.1447486734582968e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-minimal-app",
+          "bm25": -1.0376726438923026e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-module-not-found",
+          "bm25": -9.950783766373202e-07
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-assertion-error",
+          "bm25": -9.875713920381892e-07
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-body-vs-query",
+          "bm25": -9.530594448740518e-07
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-coroutine-not-awaited",
+          "bm25": -9.530594448740518e-07
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-externally-managed",
+          "bm25": -9.287180144936832e-07
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-arithmetic-errors",
+          "bm25": -9.234767082230654e-07
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-blocking-async",
+          "bm25": -9.221756123188116e-07
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-unicode-errors",
+          "bm25": -9.221756123188116e-07
+        }
+      ],
+      "answer_status": "retrieved_guidance",
+      "cited_sources": [
+        "package:retrieval-benchmark:node-port",
+        "package:python-fastapi-basics:fastapi-port-in-use"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": false,
+      "irrelevant_citations": 1,
+      "median_cli_search_ask_ms": 17.069134999928792,
+      "median_in_process_fts_rerank_ms": 0.2003879999392666
+    },
+    {
+      "id": "R23",
+      "query": "ERR_MODULE_NOT_FOUND cannot find package",
+      "kind": "exact",
+      "expected_sources": [
+        "package:retrieval-benchmark:node-module"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "measurable": true,
+      "lexical": [
+        "package:retrieval-benchmark:node-module"
+      ],
+      "bm25_rerank": [
+        "package:retrieval-benchmark:node-module"
+      ],
+      "fts_broad_top3": [
+        "package:retrieval-benchmark:node-module",
+        "package:retrieval-benchmark:ts2307",
+        "builtin:linux-command-not-found"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "package:retrieval-benchmark:node-module",
+          "bm25": -15.696221263295469
+        },
+        {
+          "source_id": "package:retrieval-benchmark:ts2307",
+          "bm25": -5.4424039931032056
+        },
+        {
+          "source_id": "builtin:linux-command-not-found",
+          "bm25": -4.582469735981044
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-module-not-found",
+          "bm25": -4.124511209820362
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-none-type-error",
+          "bm25": -4.038535023842609
+        },
+        {
+          "source_id": "builtin:rust-e0432",
+          "bm25": -3.17090956048593
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-ssl-certificate-error",
+          "bm25": -3.0146294686528834
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-wheel-build-error",
+          "bm25": -2.4161619507254484
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-externally-managed",
+          "bm25": -2.36167790229755
+        },
+        {
+          "source_id": "builtin:docker-port-in-use",
+          "bm25": -2.3217076979690665
+        },
+        {
+          "source_id": "package:retrieval-benchmark:node-port",
+          "bm25": -2.236634976688105
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-attribute-error",
+          "bm25": -2.235837711136282
+        },
+        {
+          "source_id": "package:retrieval-benchmark:go-undefined",
+          "bm25": -2.2139175642275
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-resolution-impossible",
+          "bm25": -2.131580398826177
+        },
+        {
+          "source_id": "builtin:docker-daemon-not-running",
+          "bm25": -2.1034618548661435
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-environment-and-pip",
+          "bm25": -2.079224273054483
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-multiprocessing-errors",
+          "bm25": -2.0390686023651434
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-unicode-errors",
+          "bm25": -1.9368292816292143
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-name-errors",
+          "bm25": -1.82058128167747
+        },
+        {
+          "source_id": "builtin:rust-e0499",
+          "bm25": -1.7995377570760815
+        },
+        {
+          "source_id": "builtin:git-detached-head",
+          "bm25": -1.775044330925551
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pytest-fixture-and-import-errors",
+          "bm25": -1.76901566615788
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-async-event-loop-errors",
+          "bm25": -1.7398225634466704
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-port-in-use",
+          "bm25": -1.6978385844020465
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-circular-import",
+          "bm25": -1.6772283384209707
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-sqlite-database-locked",
+          "bm25": -1.4259051731000099
+        },
+        {
+          "source_id": "builtin:rust-e0433",
+          "bm25": -1.2136762465451636
+        },
+        {
+          "source_id": "builtin:git-merge-conflict",
+          "bm25": -1.2115461243264158
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-uvicorn-import-error",
+          "bm25": -1.1325341375694191
+        }
+      ],
+      "answer_status": "retrieved_guidance",
+      "cited_sources": [
+        "package:retrieval-benchmark:node-module"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 20.372340999983862,
+      "median_in_process_fts_rerank_ms": 0.17380799999955343
+    },
+    {
+      "id": "R24",
+      "query": "Go undefined identifier",
+      "kind": "exact",
+      "expected_sources": [
+        "package:retrieval-benchmark:go-undefined"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "measurable": true,
+      "lexical": [
+        "package:retrieval-benchmark:go-undefined"
+      ],
+      "bm25_rerank": [
+        "package:retrieval-benchmark:go-undefined"
+      ],
+      "fts_broad_top3": [
+        "package:retrieval-benchmark:go-undefined",
+        "package:retrieval-benchmark:go-unused"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "package:retrieval-benchmark:go-undefined",
+          "bm25": -22.26365434638269
+        },
+        {
+          "source_id": "package:retrieval-benchmark:go-unused",
+          "bm25": -6.712538786023159
+        }
+      ],
+      "answer_status": "retrieved_guidance",
+      "cited_sources": [
+        "package:retrieval-benchmark:go-undefined"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 14.184589000251435,
+      "median_in_process_fts_rerank_ms": 0.06155600021884311
+    },
+    {
+      "id": "R25",
+      "query": "Go imported and not used",
+      "kind": "exact",
+      "expected_sources": [
+        "package:retrieval-benchmark:go-unused"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "measurable": true,
+      "lexical": [
+        "package:retrieval-benchmark:go-unused"
+      ],
+      "bm25_rerank": [
+        "package:retrieval-benchmark:go-unused"
+      ],
+      "fts_broad_top3": [
+        "package:retrieval-benchmark:go-unused",
+        "package:retrieval-benchmark:go-undefined",
+        "package:python-fastapi-basics:python-circular-import"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "package:retrieval-benchmark:go-unused",
+          "bm25": -19.01213253825128
+        },
+        {
+          "source_id": "package:retrieval-benchmark:go-undefined",
+          "bm25": -6.735730872204166
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-circular-import",
+          "bm25": -3.073340730215524
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-multiprocessing-errors",
+          "bm25": -2.4314128453786226
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-traceback-playbook",
+          "bm25": -1.8119259514326844
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pytest-fixture-and-import-errors",
+          "bm25": -3.937412343153769e-06
+        },
+        {
+          "source_id": "package:retrieval-benchmark:node-module",
+          "bm25": -3.839571465377363e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-name-errors",
+          "bm25": -3.6994515311081665e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-type-and-value-errors",
+          "bm25": -3.6793077065639294e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-collection-access-errors",
+          "bm25": -3.670979845292547e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-recursion-and-memory-errors",
+          "bm25": -3.623783757242177e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-network-errors",
+          "bm25": -3.580196161416595e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-dataclass-errors",
+          "bm25": -3.572269027324168e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-environment-and-pip",
+          "bm25": -3.5169283001297493e-06
+        },
+        {
+          "source_id": "builtin:linux-command-not-found",
+          "bm25": -3.267568284584414e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-arithmetic-errors",
+          "bm25": -3.2337145909963465e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-task-exception-not-retrieved",
+          "bm25": -3.1883421801306554e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-json-decode-error",
+          "bm25": -3.1730580174488587e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-file-and-os-errors",
+          "bm25": -3.15424026115566e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-indentation-error",
+          "bm25": -3.147553883504665e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-wheel-build-error",
+          "bm25": -3.10237696427647e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-none-type-error",
+          "bm25": -2.9512233281902264e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-resolution-impossible",
+          "bm25": -2.93587761449526e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-iteration-errors",
+          "bm25": -2.91018205810715e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-syntax-error",
+          "bm25": -2.8856771011713133e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-uvicorn-import-error",
+          "bm25": -2.8855111041323936e-06
+        },
+        {
+          "source_id": "builtin:docker-daemon-not-running",
+          "bm25": -2.881538631871757e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-coroutine-not-awaited",
+          "bm25": -2.86187292089153e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-async-event-loop-errors",
+          "bm25": -2.84923255196418e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-unicode-errors",
+          "bm25": -2.7973761691231755e-06
+        },
+        {
+          "source_id": "builtin:linux-permission-denied",
+          "bm25": -2.6962795774471214e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-attribute-error",
+          "bm25": -2.665347628031105e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-ssl-certificate-error",
+          "bm25": -2.574855090722134e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-module-not-found",
+          "bm25": -2.562446299251133e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-sqlite-database-locked",
+          "bm25": -2.5515153089475407e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-response-validation-error",
+          "bm25": -2.549208567552171e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-assertion-error",
+          "bm25": -2.3507766635566922e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-port-in-use",
+          "bm25": -2.189915410424838e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-lifespan",
+          "bm25": -1.9545905089692816e-06
+        },
+        {
+          "source_id": "builtin:rust-ownership-basics",
+          "bm25": -1.917956989501617e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-minimal-app",
+          "bm25": -1.8965215642437198e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-cors",
+          "bm25": -1.868038311457964e-06
+        },
+        {
+          "source_id": "builtin:rust-e0432",
+          "bm25": -1.733403157028503e-06
+        },
+        {
+          "source_id": "builtin:rust-e0433",
+          "bm25": -1.5111261837059455e-06
+        },
+        {
+          "source_id": "builtin:docker-port-in-use",
+          "bm25": -1.497298834233722e-06
+        },
+        {
+          "source_id": "package:retrieval-benchmark:ts2307",
+          "bm25": -1.4883541669343131e-06
+        },
+        {
+          "source_id": "package:retrieval-benchmark:node-enoent",
+          "bm25": -1.4782697460763048e-06
+        },
+        {
+          "source_id": "package:retrieval-benchmark:ts2322",
+          "bm25": -1.4392625537307128e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-request-validation-422",
+          "bm25": -1.2523525119584898e-06
+        },
+        {
+          "source_id": "builtin:rust-e0499",
+          "bm25": -1.1777048113773368e-06
+        },
+        {
+          "source_id": "builtin:git-merge-conflict",
+          "bm25": -1.1487669684379617e-06
+        },
+        {
+          "source_id": "builtin:rust-e0382",
+          "bm25": -1.136795831657034e-06
+        },
+        {
+          "source_id": "builtin:rust-e0308",
+          "bm25": -1.130903340426778e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-file-upload",
+          "bm25": -9.530594448740518e-07
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-body-vs-query",
+          "bm25": -9.530594448740518e-07
+        }
+      ],
+      "answer_status": "retrieved_guidance",
+      "cited_sources": [
+        "package:retrieval-benchmark:go-unused"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 13.86189499999091,
+      "median_in_process_fts_rerank_ms": 0.15917000018816907
+    },
+    {
+      "id": "R26",
+      "query": "TypeScript กำหนดชนิดข้อมูลไม่ตรงกัน",
+      "kind": "thai",
+      "expected_sources": [
+        "package:retrieval-benchmark:ts2322"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "measurable": true,
+      "lexical": [
+        "package:retrieval-benchmark:ts2322"
+      ],
+      "bm25_rerank": [
+        "package:retrieval-benchmark:ts2322"
+      ],
+      "fts_broad_top3": [
+        "package:retrieval-benchmark:ts2322",
+        "package:retrieval-benchmark:ts2307"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "package:retrieval-benchmark:ts2322",
+          "bm25": -13.796610723762171
+        },
+        {
+          "source_id": "package:retrieval-benchmark:ts2307",
+          "bm25": -6.697926927867921
+        }
+      ],
+      "answer_status": "retrieved_guidance",
+      "cited_sources": [
+        "package:retrieval-benchmark:ts2322"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 14.386084999841842,
+      "median_in_process_fts_rerank_ms": 0.06905400005052797
+    },
+    {
+      "id": "R27",
+      "query": "Node หาไฟล์ไม่เจอ",
+      "kind": "thai",
+      "expected_sources": [
+        "package:retrieval-benchmark:node-enoent"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "measurable": true,
+      "lexical": [
+        "package:retrieval-benchmark:node-enoent",
+        "builtin:linux-command-not-found",
+        "builtin:git-merge-conflict"
+      ],
+      "bm25_rerank": [
+        "package:retrieval-benchmark:node-enoent",
+        "builtin:linux-command-not-found",
+        "builtin:git-merge-conflict"
+      ],
+      "fts_broad_top3": [
+        "package:retrieval-benchmark:node-enoent",
+        "package:retrieval-benchmark:node-module",
+        "package:retrieval-benchmark:node-port"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "package:retrieval-benchmark:node-enoent",
+          "bm25": -12.571698002246396
+        },
+        {
+          "source_id": "package:retrieval-benchmark:node-module",
+          "bm25": -5.383963151707163
+        },
+        {
+          "source_id": "package:retrieval-benchmark:node-port",
+          "bm25": -5.37840218540682
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pytest-fixture-and-import-errors",
+          "bm25": -3.058511820821026
+        }
+      ],
+      "answer_status": "retrieved_guidance",
+      "cited_sources": [
+        "package:retrieval-benchmark:node-enoent",
+        "builtin:linux-command-not-found",
+        "builtin:git-merge-conflict"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": false,
+      "irrelevant_citations": 2,
+      "median_cli_search_ask_ms": 14.541813000050752,
+      "median_in_process_fts_rerank_ms": 0.10961799989672727
+    },
+    {
+      "id": "R28",
+      "query": "Go ตัวแปรไม่ได้ประกาศ",
+      "kind": "thai",
+      "expected_sources": [
+        "package:retrieval-benchmark:go-undefined"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "measurable": true,
+      "lexical": [
+        "package:retrieval-benchmark:go-undefined"
+      ],
+      "bm25_rerank": [
+        "package:retrieval-benchmark:go-undefined"
+      ],
+      "fts_broad_top3": [
+        "package:retrieval-benchmark:go-undefined",
+        "package:retrieval-benchmark:go-unused"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "package:retrieval-benchmark:go-undefined",
+          "bm25": -14.300630573975917
+        },
+        {
+          "source_id": "package:retrieval-benchmark:go-unused",
+          "bm25": -6.712538786023159
+        }
+      ],
+      "answer_status": "retrieved_guidance",
+      "cited_sources": [
+        "package:retrieval-benchmark:go-undefined"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 12.786641999809945,
+      "median_in_process_fts_rerank_ms": 0.07174600023063249
+    },
+    {
+      "id": "R29",
+      "query": "Go import ไม่ได้ใช้",
+      "kind": "thai",
+      "expected_sources": [
+        "package:retrieval-benchmark:go-unused"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "measurable": true,
+      "lexical": [
+        "package:retrieval-benchmark:go-unused"
+      ],
+      "bm25_rerank": [
+        "package:retrieval-benchmark:go-unused"
+      ],
+      "fts_broad_top3": [
+        "package:retrieval-benchmark:go-unused",
+        "package:retrieval-benchmark:go-undefined",
+        "package:python-fastapi-basics:python-circular-import"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "package:retrieval-benchmark:go-unused",
+          "bm25": -14.275846102788428
+        },
+        {
+          "source_id": "package:retrieval-benchmark:go-undefined",
+          "bm25": -6.735729363262686
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-circular-import",
+          "bm25": -2.1407954468459925e-06
+        },
+        {
+          "source_id": "builtin:rust-e0432",
+          "bm25": -2.110307603073634e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-uvicorn-import-error",
+          "bm25": -2.10174558885958e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pytest-fixture-and-import-errors",
+          "bm25": -2.0713962995946125e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-module-not-found",
+          "bm25": -2.012542343437853e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-body-vs-query",
+          "bm25": -1.8061518793944779e-06
+        },
+        {
+          "source_id": "package:retrieval-benchmark:ts2307",
+          "bm25": -1.775523184085702e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-environment-and-pip",
+          "bm25": -1.7644012866124078e-06
+        },
+        {
+          "source_id": "package:retrieval-benchmark:node-module",
+          "bm25": -1.7564643899480725e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-multiprocessing-errors",
+          "bm25": -1.7560783362638696e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-cors",
+          "bm25": -1.64319754907523e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-name-errors",
+          "bm25": -1.6380571295258767e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-arithmetic-errors",
+          "bm25": -1.634988286432019e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-response-validation-error",
+          "bm25": -1.6309143380023931e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-lifespan",
+          "bm25": -1.598063321390022e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-minimal-app",
+          "bm25": -1.4101980451109516e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-attribute-error",
+          "bm25": -1.3326738140155524e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-file-upload",
+          "bm25": -1.3299659047859578e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-coroutine-not-awaited",
+          "bm25": -1.3299659047859578e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-json-decode-error",
+          "bm25": -1.3232440335117045e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-dataclass-errors",
+          "bm25": -1.3100020918964457e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-externally-managed",
+          "bm25": -1.3060810353768801e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-blocking-async",
+          "bm25": -1.2995978439499912e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-unicode-errors",
+          "bm25": -1.2995978439499912e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-sqlite-database-locked",
+          "bm25": -1.2970225533606133e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-request-validation-422",
+          "bm25": -1.2523525119584898e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-wheel-build-error",
+          "bm25": -1.2523525119584898e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-task-exception-not-retrieved",
+          "bm25": -1.2499608888217557e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-file-and-os-errors",
+          "bm25": -1.1811628926521416e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-type-and-value-errors",
+          "bm25": -1.1726979178265229e-06
+        }
+      ],
+      "answer_status": "retrieved_guidance",
+      "cited_sources": [
+        "package:retrieval-benchmark:go-unused"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 13.498898000307236,
+      "median_in_process_fts_rerank_ms": 0.13701299985768856
+    },
+    {
+      "id": "R30",
+      "query": "Node port occupied",
+      "kind": "paraphrase",
+      "expected_sources": [
+        "package:retrieval-benchmark:node-port"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "measurable": true,
+      "lexical": [
+        "package:retrieval-benchmark:node-port"
+      ],
+      "bm25_rerank": [
+        "package:retrieval-benchmark:node-port"
+      ],
+      "fts_broad_top3": [
+        "package:retrieval-benchmark:node-port",
+        "package:retrieval-benchmark:node-enoent",
+        "package:retrieval-benchmark:node-module"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "package:retrieval-benchmark:node-port",
+          "bm25": -16.254717701494616
+        },
+        {
+          "source_id": "package:retrieval-benchmark:node-enoent",
+          "bm25": -5.388606082171729
+        },
+        {
+          "source_id": "package:retrieval-benchmark:node-module",
+          "bm25": -5.383963151707163
+        },
+        {
+          "source_id": "builtin:docker-port-in-use",
+          "bm25": -4.097843338072827
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-port-in-use",
+          "bm25": -4.011130768612994
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-type-and-value-errors",
+          "bm25": -3.511885416785481
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pytest-fixture-and-import-errors",
+          "bm25": -3.058511820821026
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-network-errors",
+          "bm25": -3.0482869102143337
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-cors",
+          "bm25": -2.5516998979983265
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-file-and-os-errors",
+          "bm25": -2.2984368604993337
+        }
+      ],
+      "answer_status": "retrieved_guidance",
+      "cited_sources": [
+        "package:retrieval-benchmark:node-port"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 16.82295700038594,
+      "median_in_process_fts_rerank_ms": 0.07120899999790709
+    },
+    {
+      "id": "R31",
+      "query": "module resolution",
+      "kind": "ambiguous",
+      "expected_sources": [
+        "package:retrieval-benchmark:ts2307",
+        "package:retrieval-benchmark:node-module"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "measurable": true,
+      "lexical": [
+        "package:retrieval-benchmark:ts2307",
+        "package:retrieval-benchmark:node-module"
+      ],
+      "bm25_rerank": [
+        "package:retrieval-benchmark:ts2307",
+        "package:retrieval-benchmark:node-module"
+      ],
+      "fts_broad_top3": [
+        "package:retrieval-benchmark:ts2307",
+        "package:retrieval-benchmark:node-module",
+        "builtin:rust-e0433"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "package:retrieval-benchmark:ts2307",
+          "bm25": -7.3969241791122124
+        },
+        {
+          "source_id": "package:retrieval-benchmark:node-module",
+          "bm25": -7.381731529191662
+        },
+        {
+          "source_id": "builtin:rust-e0433",
+          "bm25": -6.89781298842586
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-resolution-impossible",
+          "bm25": -3.9528026806317014
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-network-errors",
+          "bm25": -3.8122639290949594
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-module-not-found",
+          "bm25": -2.9557442362724666
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-circular-import",
+          "bm25": -2.9237079446904213
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-uvicorn-import-error",
+          "bm25": -2.895549086506402
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-attribute-error",
+          "bm25": -2.85644042310954
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pytest-fixture-and-import-errors",
+          "bm25": -2.572946779044917
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-multiprocessing-errors",
+          "bm25": -2.527377377944432
+        },
+        {
+          "source_id": "builtin:rust-e0432",
+          "bm25": -2.2555533210828917
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-traceback-playbook",
+          "bm25": -1.4467093011639718
+        }
+      ],
+      "answer_status": "retrieved_guidance",
+      "cited_sources": [
+        "package:retrieval-benchmark:ts2307",
+        "package:retrieval-benchmark:node-module"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 13.403726999968057,
+      "median_in_process_fts_rerank_ms": 0.08133800020004855
+    },
+    {
+      "id": "R32",
+      "query": "unused import Go",
+      "kind": "paraphrase",
+      "expected_sources": [
+        "package:retrieval-benchmark:go-unused"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "measurable": true,
+      "lexical": [
+        "package:retrieval-benchmark:go-unused"
+      ],
+      "bm25_rerank": [
+        "package:retrieval-benchmark:go-unused"
+      ],
+      "fts_broad_top3": [
+        "package:retrieval-benchmark:go-unused",
+        "package:retrieval-benchmark:go-undefined",
+        "package:python-fastapi-basics:python-circular-import"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "package:retrieval-benchmark:go-unused",
+          "bm25": -14.20986374317454
+        },
+        {
+          "source_id": "package:retrieval-benchmark:go-undefined",
+          "bm25": -6.735729363262686
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-circular-import",
+          "bm25": -2.1407954468459925e-06
+        },
+        {
+          "source_id": "builtin:rust-e0432",
+          "bm25": -2.110307603073634e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-uvicorn-import-error",
+          "bm25": -2.10174558885958e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pytest-fixture-and-import-errors",
+          "bm25": -2.0713962995946125e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-module-not-found",
+          "bm25": -2.012542343437853e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-body-vs-query",
+          "bm25": -1.8061518793944779e-06
+        },
+        {
+          "source_id": "package:retrieval-benchmark:ts2307",
+          "bm25": -1.775523184085702e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-environment-and-pip",
+          "bm25": -1.7644012866124078e-06
+        },
+        {
+          "source_id": "package:retrieval-benchmark:node-module",
+          "bm25": -1.7564643899480725e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-multiprocessing-errors",
+          "bm25": -1.7560783362638696e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-cors",
+          "bm25": -1.64319754907523e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-name-errors",
+          "bm25": -1.6380571295258767e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-arithmetic-errors",
+          "bm25": -1.634988286432019e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-response-validation-error",
+          "bm25": -1.6309143380023931e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-lifespan",
+          "bm25": -1.598063321390022e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-minimal-app",
+          "bm25": -1.4101980451109516e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-attribute-error",
+          "bm25": -1.3326738140155524e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-file-upload",
+          "bm25": -1.3299659047859578e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-coroutine-not-awaited",
+          "bm25": -1.3299659047859578e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-json-decode-error",
+          "bm25": -1.3232440335117045e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-dataclass-errors",
+          "bm25": -1.3100020918964457e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-externally-managed",
+          "bm25": -1.3060810353768801e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-blocking-async",
+          "bm25": -1.2995978439499912e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-unicode-errors",
+          "bm25": -1.2995978439499912e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-sqlite-database-locked",
+          "bm25": -1.2970225533606133e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-request-validation-422",
+          "bm25": -1.2523525119584898e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-wheel-build-error",
+          "bm25": -1.2523525119584898e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-task-exception-not-retrieved",
+          "bm25": -1.2499608888217557e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-file-and-os-errors",
+          "bm25": -1.1811628926521416e-06
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-type-and-value-errors",
+          "bm25": -1.1726979178265229e-06
+        }
+      ],
+      "answer_status": "retrieved_guidance",
+      "cited_sources": [
+        "package:retrieval-benchmark:go-unused"
+      ],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 11.519879999923432,
+      "median_in_process_fts_rerank_ms": 0.11113199980172794
+    },
+    {
+      "id": "R33",
+      "query": "E9999 quantumflux",
+      "kind": "insufficient",
+      "expected_sources": [],
+      "acceptable_statuses": [
+        "no_adequate_match"
+      ],
+      "measurable": false,
+      "lexical": [],
+      "bm25_rerank": [],
+      "fts_broad_top3": [],
+      "fts_all_hits": [],
+      "answer_status": "no_adequate_match",
+      "cited_sources": [],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 12.990227000045707,
+      "median_in_process_fts_rerank_ms": 0.029712000014114892
+    },
+    {
+      "id": "R34",
+      "query": "TS9999 unknown compiler incident",
+      "kind": "insufficient",
+      "expected_sources": [],
+      "acceptable_statuses": [
+        "no_adequate_match"
+      ],
+      "measurable": false,
+      "lexical": [],
+      "bm25_rerank": [],
+      "fts_broad_top3": [
+        "package:retrieval-benchmark:go-undefined",
+        "package:python-fastapi-basics:python-traceback-playbook",
+        "package:python-fastapi-basics:python-pip-wheel-build-error"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "package:retrieval-benchmark:go-undefined",
+          "bm25": -6.408900500248306
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-traceback-playbook",
+          "bm25": -6.375772785678267
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-pip-wheel-build-error",
+          "bm25": -5.671844420389162
+        }
+      ],
+      "answer_status": "no_adequate_match",
+      "cited_sources": [],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 12.30248699994263,
+      "median_in_process_fts_rerank_ms": 0.06370799974320107
+    },
+    {
+      "id": "R35",
+      "query": "ERR_QUANTUM_FLUX",
+      "kind": "insufficient",
+      "expected_sources": [],
+      "acceptable_statuses": [
+        "no_adequate_match"
+      ],
+      "measurable": false,
+      "lexical": [],
+      "bm25_rerank": [],
+      "fts_broad_top3": [],
+      "fts_all_hits": [],
+      "answer_status": "no_adequate_match",
+      "cited_sources": [],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 12.102160000267759,
+      "median_in_process_fts_rerank_ms": 0.028280000151426066
+    },
+    {
+      "id": "R36",
+      "query": "Go hyperwarp quantumflux",
+      "kind": "insufficient",
+      "expected_sources": [],
+      "acceptable_statuses": [
+        "no_adequate_match"
+      ],
+      "measurable": false,
+      "lexical": [],
+      "bm25_rerank": [],
+      "fts_broad_top3": [
+        "package:retrieval-benchmark:go-undefined",
+        "package:retrieval-benchmark:go-unused"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "package:retrieval-benchmark:go-undefined",
+          "bm25": -6.735729363262686
+        },
+        {
+          "source_id": "package:retrieval-benchmark:go-unused",
+          "bm25": -6.712538786023159
+        }
+      ],
+      "answer_status": "no_adequate_match",
+      "cited_sources": [],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 11.762266000005184,
+      "median_in_process_fts_rerank_ms": 0.04775400020662346
+    },
+    {
+      "id": "R37",
+      "query": "best sourdough hydration recipe",
+      "kind": "unrelated",
+      "expected_sources": [],
+      "acceptable_statuses": [
+        "no_adequate_match"
+      ],
+      "measurable": false,
+      "lexical": [],
+      "bm25_rerank": [],
+      "fts_broad_top3": [],
+      "fts_all_hits": [],
+      "answer_status": "no_adequate_match",
+      "cited_sources": [],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 12.543200999971305,
+      "median_in_process_fts_rerank_ms": 0.04641400028049247
+    },
+    {
+      "id": "R38",
+      "query": "สูตรอาหารขนมปังอร่อย",
+      "kind": "unrelated",
+      "expected_sources": [],
+      "acceptable_statuses": [
+        "no_adequate_match"
+      ],
+      "measurable": false,
+      "lexical": [],
+      "bm25_rerank": [],
+      "fts_broad_top3": [],
+      "fts_all_hits": [],
+      "answer_status": "no_adequate_match",
+      "cited_sources": [],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 17.688048999843886,
+      "median_in_process_fts_rerank_ms": 0.0314819999402971
+    },
+    {
+      "id": "R39",
+      "query": "pipeline astrophysics quaternion",
+      "kind": "unrelated",
+      "expected_sources": [],
+      "acceptable_statuses": [
+        "no_adequate_match"
+      ],
+      "measurable": false,
+      "lexical": [],
+      "bm25_rerank": [],
+      "fts_broad_top3": [],
+      "fts_all_hits": [],
+      "answer_status": "no_adequate_match",
+      "cited_sources": [],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 12.846960999922885,
+      "median_in_process_fts_rerank_ms": 0.03092399992965511
+    },
+    {
+      "id": "R40",
+      "query": "database quorum split brain incident",
+      "kind": "unrelated",
+      "expected_sources": [],
+      "acceptable_statuses": [
+        "no_adequate_match"
+      ],
+      "measurable": false,
+      "lexical": [],
+      "bm25_rerank": [],
+      "fts_broad_top3": [
+        "package:python-fastapi-basics:python-sqlite-database-locked",
+        "package:python-fastapi-basics:fastapi-lifespan",
+        "package:python-fastapi-basics:python-name-errors"
+      ],
+      "fts_all_hits": [
+        {
+          "source_id": "package:python-fastapi-basics:python-sqlite-database-locked",
+          "bm25": -5.847836204295251
+        },
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-lifespan",
+          "bm25": -5.035434461695866
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-name-errors",
+          "bm25": -3.6292142851443114
+        }
+      ],
+      "answer_status": "no_adequate_match",
+      "cited_sources": [],
+      "status_correct": true,
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "irrelevant_citations": 0,
+      "median_cli_search_ask_ms": 15.098220999789191,
+      "median_in_process_fts_rerank_ms": 0.08006000007299008
+    }
+  ]
+}

@@ -1,0 +1,2332 @@
+{
+  "source_sha": "21a8ea21362b0f5502d357cd045cd972428037fb+worktree",
+  "binary_sha256": "0d44c92f69913370d54b6f6ab3c8a51447e7c16cc78aa9fbbb16427864d0eef4",
+  "implementation_sha256": {
+    "src/ai/connectivity.rs": "00d4d80ec2d6973dfd30cdf827b6ac48ad0cb4fe102502cdd25b7646a064df43",
+    "src/ai/context.rs": "8f92a5f5849ba73119b340445bbcbfb3740bf2aacdfa0ed85091235c85496654",
+    "src/ai/enhance.rs": "1836d50eaaf2cfe1902077a14436df06941e77c98adbe8d4c2e1b7fb8ee81604",
+    "src/ai/mod.rs": "305d423441522759495ef87cc6ed45e8fb15a09a9c62b2dfeabd2b543825e750",
+    "src/ai/openai_compat.rs": "c706de82b899c2600ee2a70b612815f6aa58c9db3b5b033f87289a18962c23b3",
+    "src/ai/openrouter.rs": "f268b16098c6911750086e5874a8ea3766521032e3642912e0659192d46dde81",
+    "src/ai/prompt.rs": "b40028ac092ff22f470265cf3b8d1436a16495a6efdcdea43e5d270bca4c8359",
+    "src/ai/provider.rs": "93f693d6589da403acf7e2a96c617c1ee3182dc081dc7abae14005548dee9f5a",
+    "src/answer.rs": "f8171150387a766f24cad0018eb6350661a18d66f634ee87ac90b3f4b41b86e0",
+    "src/cli/args.rs": "50a02c852207080fdf897ad3b754a910ad1171d6540769e3ffcb86bc87ca8ea5",
+    "src/cli/commands/ask.rs": "54dc0b5285bad0fa38bfc88e8097901305775fae6f3543da3f6f7fefced9565d",
+    "src/cli/commands/chat.rs": "6bae6e2153e6826113c9364d4a717eb938c1de81ac28eeabcbc7b61b84622744",
+    "src/cli/commands/config.rs": "141d4412cd459cf64340a5bdbabe555d6548ae0f862da85641ac73d21b601398",
+    "src/cli/commands/doctor.rs": "1514b82ce60c3d5078046b00f9f78ea3edbc29e11566aada02b5fd468c3ed677",
+    "src/cli/commands/entries.rs": "e8864e7f6da6fcc1e9262b557cb796e811d63a9942f321517574c220fc64024d",
+    "src/cli/commands/explain.rs": "43419985f6c4709b31660c4b93446af57190e5cf3cbbd0642db3cfb003fc294f",
+    "src/cli/commands/fix.rs": "db4d9c56b5b1826cc9bed0329035a03b6ae329103bbe51cccdb2c760d59f3b49",
+    "src/cli/commands/history.rs": "719baac8d257348b1df5ea27df532e1e1e2d9c495d853a08faafb75a0d0960ea",
+    "src/cli/commands/knowledge.rs": "b60a8c5399d9388ff9f0b73cadfe8dd3b0beaee4e1fc8e07c7c23f9162235665",
+    "src/cli/commands/learn.rs": "6234ea9f9fef013337f7e717c7c9d386a995e5ac632336a0e6a19aabee276068",
+    "src/cli/commands/mod.rs": "b4c26d6c4aae1897a41f97cfb174690b39945613fe765049874523b94e664f3b",
+    "src/cli/commands/scan.rs": "0a4bfd1145ef49514bcf39518791bfd8d83c757e4f10b264d5b3d4380459b966",
+    "src/cli/commands/search.rs": "6f4cde68556deb32caf1c92cf82579b88ea4533fd4b5b351ec45d61777d96ab7",
+    "src/cli/commands/setup.rs": "49024e92ce5911be337212ab49c951cadd230c92c77649020d5f7a1399c7d2aa",
+    "src/cli/dispatch.rs": "3059127e6a3b5286582d28c34cce9de0ae598edc2024d51f24664c1ae6cb61eb",
+    "src/cli/mod.rs": "f75521833b80143a8161bd36bf0b3a124b30e6ad73059aad9b1189cefb1db0aa",
+    "src/config/mod.rs": "0ab1fdc86b7a9e7af0c4d7bf1ca3d24da6656a68b7242c7cd1f71b03d218d9d3",
+    "src/config/settings.rs": "43730c6f3f4d1fc25eefc6426c00f325e72c8b3f0cda73e0bc1492df4f91a4c2",
+    "src/diagnostics/diagnostic.rs": "dc66781a5b532f42059de13c647cee80f761dbfab6c968e8febb9b8351cabb50",
+    "src/diagnostics/explanation.rs": "e3e8e0ad55e9f82b9c6b9ed107b4d63ac637ef2d10bef387aa0c35e747424388",
+    "src/diagnostics/mod.rs": "757024c582100e6eb775e5581f77799e10b165f00bd10c18248d03c9b6ffce54",
+    "src/diagnostics/parser.rs": "46a491687d5a234cc9d64709f947a0cf9d1999a966cb44931d192aad3204d117",
+    "src/diagnostics/rules.rs": "9778d7854683d3310d25cb494d67fac422f4bde833822d63f641adf89246c985",
+    "src/fixer/proposal.rs": "1ee93c9e9b744c102ae57b0b9905bb1e3dde944f33d90a9830feed9904289b35",
+    "src/fixer/rollback.rs": "847dd64ded6ccb31868295276dbfae879a12ea873fafe61921bb256334bdb4cb",
+    "src/fixer/verification.rs": "4310067202eae5420f2fbb29d67ca7c81f1e0be4365bcbb816d9134f9794ac69",
+    "src/fixer.rs": "e985c21305fc228eec616c5b0ee439a9ea43ed2804ce53222d56d542fbf6e9d2",
+    "src/history.rs": "37123a59ff53377851e1e8c0dec96902b9a2e00d01cd994b7098c976823fb1f0",
+    "src/knowledge/document.rs": "0203503e57a58365be971bd647180398425e81cab50612511cccf127117c058e",
+    "src/knowledge/index.rs": "a8fbf8106cac0efc71bb548d1620d1ee483e95c8ba5b141f5a2b3220f48110a4",
+    "src/knowledge/loader.rs": "68afbef58c99482a90ac4ca472276bbabd1f73f202bea8990fec1b22b5bc4d4a",
+    "src/knowledge/mod.rs": "c79f9fc41e14d197b5b03d65596b0a9460e6446bf93b00ff1adfa17144042e14",
+    "src/knowledge/packages.rs": "0e0bd938c1947790b5b4b9738dc0ef0686391c08e0f3ea5068f933a6b91c083e",
+    "src/knowledge/retrieval.rs": "0cbfbeb01e8aa613b709ed71dfe2d0be45d9c4a60fed46db9c278b68a76d79fc",
+    "src/knowledge/search.rs": "d2bcdca967a71f2a855f47f59e1e2031cc5a324168d496462601a855d15e6c5e",
+    "src/knowledge/storage.rs": "992c7db7a383e00858123630c0079f1eca2235b07a387a164bd8fc1674846513",
+    "src/lib.rs": "b326a37621709a07533ab6a924eea9c77925bb17f30b5ac5d7d6b5069d486981",
+    "src/main.rs": "3c61d59da4f475ff021832598abb925615a312f9b56d9a78a487ae81a760c110",
+    "src/output/diagnostic.rs": "5716a9a96edac60efa18d0b4c6ecf33b1e4e96a492eac16c1f23b7fa4d76f50c",
+    "src/output/mod.rs": "ab39456af2ce5ed5b80198fd279d1b8d3b4437d37cf1a8b6210a4d42c8a0c862",
+    "src/output/terminal.rs": "fd6fc855b56e73df2121431a650e9eceb95553e822518d3bbf3e78dd0c0a641f",
+    "src/scanner/context.rs": "c787fe72e3095473654da30d044e74af5483eef4a034f4217756f0ea3bc4aaeb",
+    "src/scanner/detector.rs": "2d462c118dc39c2d65f424fb0531c83ee2052caf9488925b946b366e04358998",
+    "src/scanner/files.rs": "54909a305f367b4046d22363f9cb775cfe5534065fae1f295e6e7617eb75288c",
+    "src/scanner/ignore.rs": "2a063d93c1aa4670cd6ebbd45a48a6860b6fbaffd01d73f32b08c8d8e4486800",
+    "src/scanner/mod.rs": "a5b239c0e49a283878f47ddf60bcb690ecd30288939a08aa5ff86423e6b9e0b1",
+    "src/scanner/project.rs": "24146440ca047578d942b196638ed7b8036130781a1c31a916c6a0787211d982",
+    "src/security/files.rs": "475e670d8e79049616dbd34a01acf37aaf03f2512baee436469e667ade4d4a95",
+    "src/security/mod.rs": "da7e4869a78830ac74dca4b8230b1dbf8e16e8f7653c0cd815f1b96e327c1592",
+    "src/security/permissions.rs": "546927ab59228082df989b1696fd53296651215ac8d756de83e7cdd27666302c",
+    "src/security/redact.rs": "685de99ee7af4a218e48a0af1ba7edd2b0f086877bce8dd2eceb0261bea1e2de",
+    "src/security/storage.rs": "2c2dd74bcc700ed131c73ac0fbb4b52e6ffd10662720642d90b5ca11a5835d23"
+  },
+  "implementation_snapshot_origin": {
+    "kind": "receipt",
+    "path": "docs/evidence/retrieval-v2-after.json",
+    "sha256": "c25442291303d4ef294949dce158d952ba506faf4217e2f67be0d799d5d58688"
+  },
+  "checked_at": "2026-11-09T13:33:26.497414+00:00",
+  "runner_sha256": "210dce26c85d33c69cf23264f074062f2fde35a6c60c8b8547ccf4e53dbdbe82",
+  "dataset_sha256": "40f05e4bcc6b757d4b868237c1996b58d274d803b3c5a74b15adec32d3473512",
+  "dataset": {
+    "split": "evaluation",
+    "provenance": {
+      "kind": "synthetic",
+      "id": "retrieval-reliability-fresh-2026-11-09-v1",
+      "selection": "Independently selected before the next ranking implementation; no predictions or ranking implementation inspected. Includes wrappers, path/identifier noise, single-line free queries, qualified IDs, multiple relevant sources, mixed diagnostics and supported/unsupported boundaries. Frozen labels must not be tuned to observed outcomes.",
+      "source_exclusions": [
+        {
+          "path": "benchmarks/retrieval/cases.json",
+          "sha256": "6ba824757fca6994397873de76a7f71d3f57a8a0b2f0a56f0f00bf42e4b7a794",
+          "cases": 40
+        },
+        {
+          "path": "benchmarks/retrieval/holdout.json",
+          "sha256": "f0970ca06b061fce20baae07a40f44541866514a2ee192f9334c56509a9a8aac",
+          "cases": 12
+        }
+      ],
+      "limits": "24 deliberately varied synthetic cases sharing the existing small corpus; zero authentic incident logs. Shared source IDs and diagnostic families are intentional; normalized queries are disjoint from both exposed regression sets. Semantic overlap with known diagnostic families does not establish real-world generalization."
+    },
+    "description": "Frozen independent synthetic reliability evaluation using only the unchanged supplied builtin, Python package and seven fixture references. Measures evidence retrieval, not authentic incidents or fix resolution.",
+    "tuning_dataset_sha256": "6ba824757fca6994397873de76a7f71d3f57a8a0b2f0a56f0f00bf42e4b7a794",
+    "excluded_tuning_datasets": [
+      {
+        "path": "/home/tsuna/project/libraryCU/benchmarks/retrieval/cases.json",
+        "sha256": "6ba824757fca6994397873de76a7f71d3f57a8a0b2f0a56f0f00bf42e4b7a794"
+      }
+    ]
+  },
+  "real_incidents": {
+    "available": false,
+    "verified_logs": 0,
+    "required_logs": 50,
+    "complete": false,
+    "scope": "Local source existence, SHA-256 and query inclusion checked; authenticity is asserted by the supplied provenance, not independently established"
+  },
+  "corpus_sha256": {
+    "knowledge/docker/daemon-not-running.md": "d46184d38fff0c8740760ef0470f4046d8d0b3ea89fe0f9db9cb52b8a1be1042",
+    "knowledge/docker/port-in-use.md": "d2d7b5f965b12551a6e3475aa961bcd552c528c1d89504e6c4a01fe814c7925c",
+    "knowledge/git/detached-head.md": "577423c7dc08772c2f3d9796af9823f9d37f79f1f6a6ee10d6412dbbbbbc7d47",
+    "knowledge/git/merge-conflict.md": "53ccdb8344d2501dc916278ce8f8634409406538e455679e485fb3ce7876a65b",
+    "knowledge/linux/command-not-found.md": "1808c05c8695e3177e67630400456edccfb04deb40911971411b6be97254e675",
+    "knowledge/linux/permission-denied.md": "b45eee9f49fd831ca6b88ff4d153c8145dabe67e4cf5b6a00c24ac36bd3b4bda",
+    "knowledge/rust/E0308.md": "91167413e641690c0fcf3252d2861011abe6464f8b5a80367c7a5f49a793d80a",
+    "knowledge/rust/E0382.md": "1a2a37f8914397597de2132080701e7e9aa34c730c15f1db43418b2aef9f9ce2",
+    "knowledge/rust/E0432.md": "b303c351e0e1cd06f5568a79b5e53c03c56f28eca900c452d4e18ca928c1b63d",
+    "knowledge/rust/E0433.md": "d194ae798b7677a7ff0e3407acb4d73e5e51c46c345fd8eddee7366c437ee62e",
+    "knowledge/rust/E0499.md": "3ebedaa386e83a5ded6d448002332de4d86db0437af4a171845ceffcfdee9051",
+    "knowledge/rust/ownership.md": "3300ab9125aaed1da4db183ca9b40c973b06811bb671e2d647b0dac9d548911e",
+    "packages/python-fastapi-basics/fastapi/blocking-async.md": "582f3583694704de64a573512dff37c1bf6d7690912987c93f23f80c182e57ce",
+    "packages/python-fastapi-basics/fastapi/body-vs-query.md": "0d72f57e22941cb5364b8aa7842e4a39fb30d422a8fbf152e3bd019abb0cab71",
+    "packages/python-fastapi-basics/fastapi/cors.md": "d71c58ec1a9b2b6204b278a40eede161701a2938a614f7b04f22d3594ed471ff",
+    "packages/python-fastapi-basics/fastapi/file-upload.md": "a8826e09279e687a0e2c8bc0e4ce36c42b42a766f413ef6dcb9f3f25106d676b",
+    "packages/python-fastapi-basics/fastapi/lifespan.md": "a285e6efd5e9337bedd71d6c6f5e8410396b434c140aea39f051bad011e66d5d",
+    "packages/python-fastapi-basics/fastapi/minimal-app.md": "6fa34ca9173d906838f75850c0d02c7c64e72647a2110a81d60caf968d807b7b",
+    "packages/python-fastapi-basics/fastapi/port-in-use.md": "f768ddc26c121fdadaef30bb3c99478569f58c7918b6745874f058e59baf67d9",
+    "packages/python-fastapi-basics/fastapi/request-validation-422.md": "ef82d8a5ed2373929be5eac5e6bc9552eaf215e8d4a257231c162723729d07dc",
+    "packages/python-fastapi-basics/fastapi/response-validation-error.md": "b6f6480e07e0e5cdc9a52853699bc55451a510d5e9fb855a61ca5633778e5350",
+    "packages/python-fastapi-basics/fastapi/uvicorn-import-error.md": "9e1b9dc4bca8406bcfbb9b12ba1e3ae7648382dd78e8d12a8159eedfa7667d23",
+    "packages/python-fastapi-basics/package.toml": "7f74ea088febea1041652af8de3e992537d9dff0cacfbaf2e8c0d321a7a7dbd3",
+    "packages/python-fastapi-basics/python/arithmetic-errors.md": "bcc825149cc986bc9a81fd91bfd699cba3ecba6a29f1beb50f68e19befbd8191",
+    "packages/python-fastapi-basics/python/assertion-error.md": "de579168bbbd2cf4b6cdebd08a8d99e96fd01ccecb71976d62d7bca3a33f102c",
+    "packages/python-fastapi-basics/python/async-event-loop-errors.md": "1c89c7f453de64ab3c2ba174fb5a0f44234645172ba9892cc87e8b6393208b45",
+    "packages/python-fastapi-basics/python/attribute-error.md": "6d111e0ac65bc506d1128aee0a1f6f93fe2be56e88dd6269a89a7b246e3749d2",
+    "packages/python-fastapi-basics/python/circular-import.md": "90dc937d772944099ca2ea1d895c3ab20e560cd83d37c405bdb5d71319359cd0",
+    "packages/python-fastapi-basics/python/collection-access-errors.md": "53c747449ad041593c7cfe1a7fdee8517310c165453bd1a7d45eb2692020ed0e",
+    "packages/python-fastapi-basics/python/coroutine-not-awaited.md": "ae0fdc0f26e70a26f810e31706cfac9c41d146b7295383df008100e46e11022e",
+    "packages/python-fastapi-basics/python/dataclass-errors.md": "99e216efe4905fc2d17ca43eb6b5bc4cbe46d2d04b4260097b9b9d76403573cf",
+    "packages/python-fastapi-basics/python/environment-and-pip.md": "a1f1d8a341d93919d807f5c0e18f39828313abb6dab4d94590bb9e2eec202bd1",
+    "packages/python-fastapi-basics/python/file-and-os-errors.md": "103cc2a1f3d27ab36d24096f2e58921aab9822371b544d8fc402f58ba68d1d57",
+    "packages/python-fastapi-basics/python/indentation-error.md": "be0491d59b2473d326895fcdc20d55d65e85255e787f5b28dd0b494603a33f6a",
+    "packages/python-fastapi-basics/python/iteration-errors.md": "67d0e50322cec89431c19ffed3f4d455e96a04ac123595e377f01b9cbb073a15",
+    "packages/python-fastapi-basics/python/json-decode-error.md": "c4546899ea95525db93a227bb5968c837a8fb8f553dae727ec124f9ac1a2dcc8",
+    "packages/python-fastapi-basics/python/module-not-found.md": "ebc8dc0defa3a75176d3161656587f7fa817c6a337550a375864195c28e00ae2",
+    "packages/python-fastapi-basics/python/multiprocessing-errors.md": "27fdeb509d7e98f73fe2bd9563ce622e373c3ead31e6613b9f427b49c4874394",
+    "packages/python-fastapi-basics/python/name-errors.md": "7a2e723192e691b4e6a18cdd6fb447384200726b2fabec5d67534e95efdff7eb",
+    "packages/python-fastapi-basics/python/network-errors.md": "346c797c924feb10215260548416d5c770fe2616c790f71a256388336390fb7b",
+    "packages/python-fastapi-basics/python/none-type-error.md": "9898fbf31540e890a8bb693dcbd8a9a732c632a269fa403a1c977c5f047da1d9",
+    "packages/python-fastapi-basics/python/pip-externally-managed.md": "0e3231d9bc4a17f28a69aae24ae8575ccc2eb562fb5ab13cb0be9b662cdebb5c",
+    "packages/python-fastapi-basics/python/pip-resolution-impossible.md": "347384cfa3c01ac437674b581b93885345070ef3892d3e185d021af14cd98b12",
+    "packages/python-fastapi-basics/python/pip-ssl-certificate-error.md": "9f256f524c0eae60a4c0cb3b50a21cb58fc16890fabc59834fcd6e716f3fabba",
+    "packages/python-fastapi-basics/python/pip-wheel-build-error.md": "41d857d05cf2ac75d8780d8bafbe414fd36e67a5dc3b90cb9374656fe9c8554b",
+    "packages/python-fastapi-basics/python/pytest-fixture-and-import-errors.md": "f2110b353bedfe3eb260bdecb88640008592fcb145f3e31366eaffe863483139",
+    "packages/python-fastapi-basics/python/recursion-and-memory-errors.md": "a9a5adfea412d2862da60ea1322097bceece4657c08b43a1b50560c1271bcdf1",
+    "packages/python-fastapi-basics/python/sqlite-database-locked.md": "bd8e93d0bdfbb732a54b9ba509a416f2f3a440913577a630b92b4078357dff0e",
+    "packages/python-fastapi-basics/python/syntax-error.md": "2159d07a2c0cfa86bcd83da173cfeeffc1c5bafa77e4c319f9887a635cb57333",
+    "packages/python-fastapi-basics/python/task-exception-not-retrieved.md": "7e2337bb85871fd19055b6ecb11862e2f21411f7c3edcacdff4f13d8e2c6c8f0",
+    "packages/python-fastapi-basics/python/traceback-playbook.md": "1e11136dffcc5e59ea06b6299897aa913dcb752b39724653fb323d3f9c65460d",
+    "packages/python-fastapi-basics/python/type-and-value-errors.md": "6bb909aba62f9f1b2476d8aaca5b676b005e3f12a9fe4be1fe0264a3e183f1ad",
+    "packages/python-fastapi-basics/python/unicode-errors.md": "17439b272b57ce3c349109ba4b49e8129e53edcf63850a89491ccfa81c5e5d72",
+    "benchmarks/retrieval/corpus/go-undefined.md": "267cdbdbff2a27a3d002d1d9ba3705fe44fa11b859c2547e7a613d3edff2b407",
+    "benchmarks/retrieval/corpus/go-unused.md": "3e9508f344908c7e67edd66777fcc7414efa37374d7c6990fd368fb1bb6a1399",
+    "benchmarks/retrieval/corpus/node-enoent.md": "3ade6d74e7c22e72af4d52e03339f78e041bf99fbe043a14d4e3af1fcd3d11da",
+    "benchmarks/retrieval/corpus/node-module.md": "629948bc8771571177d1a53036d3581e5b1d9e169d3aa85dba4b98f94a5a9f81",
+    "benchmarks/retrieval/corpus/node-port.md": "b1f90b8984bce2d660efb363664324a4871d398397ffcb4b6630d30ad521dfc6",
+    "benchmarks/retrieval/corpus/package.toml": "24fba93ecfd03a0d2eb4a54a5cbb5f76b85a5caf5848ee7d0f45b4408d185afe",
+    "benchmarks/retrieval/corpus/ts2307.md": "d9b7a58063e38ba87b1735b7fc745f6f4a37ef5e3e1adde3e88a9954f56382c8",
+    "benchmarks/retrieval/corpus/ts2322.md": "01138eeb88e31062e98e25eb7e1d014ad6fcda3f57baabfa8f242b33b7070304"
+  },
+  "metrics": {
+    "top1_relevant": {
+      "passed": 13,
+      "total": 20,
+      "percent": 65.0
+    },
+    "top3_relevant": {
+      "passed": 13,
+      "total": 20,
+      "percent": 65.0
+    },
+    "status_correct": {
+      "passed": 17,
+      "total": 24,
+      "percent": 70.83
+    },
+    "citation_identity_correct": {
+      "passed": 24,
+      "total": 24,
+      "percent": 100.0
+    },
+    "citation_relevance_correct": {
+      "passed": 20,
+      "total": 24,
+      "percent": 83.33
+    }
+  },
+  "insufficient_behavior": {
+    "passed": 4,
+    "total": 4
+  },
+  "result_precision": {
+    "numerator": 16,
+    "denominator": 16,
+    "percent": 100.0
+  },
+  "emitted_citation_identity": {
+    "numerator": 21,
+    "denominator": 21,
+    "percent": 100.0
+  },
+  "irrelevant_citation_rate": {
+    "numerator": 4,
+    "denominator": 21,
+    "percent": 19.05
+  },
+  "no_match_correctness": {
+    "numerator": 3,
+    "denominator": 3,
+    "percent": 100.0
+  },
+  "project_memory": {
+    "dataset_sha256": "83b3ef77a43109939eb80fcb29230300beeb00a966a77aa2dc07b1f85b4beddb",
+    "passed": 6,
+    "total": 6,
+    "cases": [
+      {
+        "id": "P01",
+        "project": "backend",
+        "query": "Rust E0308 mismatched types",
+        "expected_top1": "project:backend-db-borrow",
+        "rationale": "Previous exact-code project solution precedes generic personal/builtin guidance despite generic wording.",
+        "observed_top1": "project:backend-db-borrow",
+        "passed": true,
+        "median_search_ask_ms": 12.495897999542649
+      },
+      {
+        "id": "P02",
+        "project": "other",
+        "query": "Rust E0308 mismatched types",
+        "expected_top1": "user:personal-db-borrow",
+        "rationale": "Project scope is isolated; the user's comparable exact-code note precedes builtin guidance.",
+        "observed_top1": "user:personal-db-borrow",
+        "passed": true,
+        "median_search_ask_ms": 15.136482999878353
+      },
+      {
+        "id": "P03",
+        "project": "backend",
+        "query": "POOLCACHE-8134",
+        "expected_top1": "project:backend-pool-cache",
+        "rationale": "A previously captured project incident is retrievable without AI.",
+        "observed_top1": "project:backend-pool-cache",
+        "passed": true,
+        "median_search_ask_ms": 13.905795000027865
+      },
+      {
+        "id": "P04",
+        "project": "other",
+        "query": "POOLCACHE-8134",
+        "expected_top1": null,
+        "rationale": "Another project cannot retrieve this project's private knowledge.",
+        "observed_top1": null,
+        "passed": true,
+        "median_search_ask_ms": 13.468789999933506
+      },
+      {
+        "id": "P05",
+        "project": "backend",
+        "query": "user:personal-db-borrow",
+        "expected_top1": "user:personal-db-borrow",
+        "rationale": "An explicit source-qualified identifier wins over project preference.",
+        "observed_top1": "user:personal-db-borrow",
+        "passed": true,
+        "median_search_ask_ms": 12.301728999773331
+      },
+      {
+        "id": "P06",
+        "project": "backend",
+        "query": "E03080",
+        "expected_top1": null,
+        "rationale": "A near error code must not match E0308.",
+        "observed_top1": null,
+        "passed": true,
+        "median_search_ask_ms": 16.150121000464424
+      }
+    ]
+  },
+  "latency": {
+    "unit": "milliseconds",
+    "scope": "three repetitions, median of separate search + ask subprocesses; includes startup/store reads",
+    "median": 16.773301500052185,
+    "p95": 20.746778000102495
+  },
+  "cases": [
+    {
+      "id": "F01",
+      "query": "error[E0308]: mismatched types\n --> crates/port_bridge/src/unused_import.rs:61:12\n  | expected `u64`, found `String`",
+      "expected_sources": [
+        "builtin:rust-e0308"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The rustc type diagnostic is decisive despite unrelated words inside the source path.",
+      "source": null,
+      "retrieved_sources": [
+        "builtin:rust-e0308"
+      ],
+      "results": [
+        {
+          "source_id": "builtin:rust-e0308",
+          "title": "Rust E0308 - Mismatched types",
+          "kind": "troubleshooting",
+          "verification_status": "unverified",
+          "source_locator": "embedded:rust/E0308.md",
+          "score": 1735,
+          "match_reason": "exact error code",
+          "ranking_reasons": [
+            "exact error code"
+          ],
+          "excerpt": "E0308 means an expression has a different type from what Rust expects. Read the `expected ... found ...` pair, then convert the value with an appropriate method such as `.to_string()`, or change the function signature so both sides agree.",
+          "matched_terms": 6,
+          "query_terms": 17
+        }
+      ],
+      "relevant_results": 1,
+      "result_count": 1,
+      "irrelevant_citations": 0,
+      "citation_count": 1,
+      "top3": [
+        "builtin:rust-e0308"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "no_match_correct": null,
+      "answer": {
+        "question": "error[E0308]: mismatched types\n --> crates/port_bridge/src/unused_import.rs:61:12\n  | expected `u64`, found `String`",
+        "language": "en",
+        "answer_status": "retrieved_guidance",
+        "passages": [
+          {
+            "source_id": "builtin:rust-e0308",
+            "title": "Rust E0308 - Mismatched types",
+            "source_locator": "embedded:rust/E0308.md",
+            "excerpt": "E0308 means an expression has a different type from what Rust expects. Read the `expected ... found ...` pair, then convert the value with an appropriate method such as `.to_string()`, or change the function signature so both sides agree.",
+            "match_reason": "exact error code",
+            "ranking_reasons": [
+              "exact error code"
+            ],
+            "score": 1735,
+            "verification_status": "retrieved guidance; not verified against this project"
+          }
+        ],
+        "offline_answer": "Retrieved guidance:\n\n[builtin:rust-e0308] Rust E0308 - Mismatched types\nMatch: exact error code\nE0308 means an expression has a different type from what Rust expects. Read the `expected ... found ...` pair, then convert the value with an appropriate method such as `.to_string()`, or change the function signature so both sides agree.\nStatus: retrieved guidance; not verified against this project",
+        "project_evidence": [],
+        "warnings": [
+          "evidence file crates/port_bridge/src/unused_import.rs is unavailable"
+        ]
+      },
+      "valid_citation_identities": 1,
+      "citations": [
+        {
+          "source_id": "builtin:rust-e0308",
+          "title": "Rust E0308 - Mismatched types",
+          "source_locator": "embedded:rust/E0308.md",
+          "excerpt": "E0308 means an expression has a different type from what Rust expects. Read the `expected ... found ...` pair, then convert the value with an appropriate method such as `.to_string()`, or change the function signature so both sides agree.",
+          "match_reason": "exact error code",
+          "ranking_reasons": [
+            "exact error code"
+          ],
+          "score": 1735,
+          "verification_status": "retrieved guidance; not verified against this project"
+        }
+      ],
+      "cited_sources": [
+        "builtin:rust-e0308"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "search_ask_ms": [
+        14.983768000092823,
+        18.053230000077747,
+        14.135859000816708
+      ],
+      "median_search_ask_ms": 14.983768000092823
+    },
+    {
+      "id": "F02",
+      "query": "Checking telemetry v0.2.0 (/work/node_module)\nerror[E0433]: failed to resolve: use of unresolved module or unlinked crate `codec`\n --> src/network.rs:7:5",
+      "expected_sources": [
+        "builtin:rust-e0433"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The missing crate diagnostic has its own supplied Rust reference; directory names do not change the language.",
+      "source": null,
+      "retrieved_sources": [
+        "builtin:rust-e0433"
+      ],
+      "results": [
+        {
+          "source_id": "builtin:rust-e0433",
+          "title": "Rust E0433 - Failed to resolve a crate or module",
+          "kind": "troubleshooting",
+          "verification_status": "unverified",
+          "source_locator": "embedded:rust/E0433.md",
+          "score": 1676,
+          "match_reason": "exact error code",
+          "ranking_reasons": [
+            "exact error code"
+          ],
+          "excerpt": "E0433 means a crate or module path cannot be resolved. Check the path spelling and module declaration; for an external crate, add it to `Cargo.toml` with any required features.",
+          "matched_terms": 5,
+          "query_terms": 17
+        }
+      ],
+      "relevant_results": 1,
+      "result_count": 1,
+      "irrelevant_citations": 0,
+      "citation_count": 1,
+      "top3": [
+        "builtin:rust-e0433"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "no_match_correct": null,
+      "answer": {
+        "question": "Checking telemetry v0.2.0 (/work/node_module)\nerror[E0433]: failed to resolve: use of unresolved module or unlinked crate `codec`\n --> src/network.rs:7:5",
+        "language": "en",
+        "answer_status": "retrieved_guidance",
+        "passages": [
+          {
+            "source_id": "builtin:rust-e0433",
+            "title": "Rust E0433 - Failed to resolve a crate or module",
+            "source_locator": "embedded:rust/E0433.md",
+            "excerpt": "E0433 means a crate or module path cannot be resolved. Check the path spelling and module declaration; for an external crate, add it to `Cargo.toml` with any required features.",
+            "match_reason": "exact error code",
+            "ranking_reasons": [
+              "exact error code"
+            ],
+            "score": 1676,
+            "verification_status": "retrieved guidance; not verified against this project"
+          }
+        ],
+        "offline_answer": "Retrieved guidance:\n\n[builtin:rust-e0433] Rust E0433 - Failed to resolve a crate or module\nMatch: exact error code\nE0433 means a crate or module path cannot be resolved. Check the path spelling and module declaration; for an external crate, add it to `Cargo.toml` with any required features.\nStatus: retrieved guidance; not verified against this project",
+        "project_evidence": [],
+        "warnings": [
+          "evidence file src/network.rs is unavailable"
+        ]
+      },
+      "valid_citation_identities": 1,
+      "citations": [
+        {
+          "source_id": "builtin:rust-e0433",
+          "title": "Rust E0433 - Failed to resolve a crate or module",
+          "source_locator": "embedded:rust/E0433.md",
+          "excerpt": "E0433 means a crate or module path cannot be resolved. Check the path spelling and module declaration; for an external crate, add it to `Cargo.toml` with any required features.",
+          "match_reason": "exact error code",
+          "ranking_reasons": [
+            "exact error code"
+          ],
+          "score": 1676,
+          "verification_status": "retrieved guidance; not verified against this project"
+        }
+      ],
+      "cited_sources": [
+        "builtin:rust-e0433"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "search_ask_ms": [
+        15.651510999305174,
+        13.070056999822555,
+        15.002188999460486
+      ],
+      "median_search_ask_ms": 15.002188999460486
+    },
+    {
+      "id": "F03",
+      "query": "Traceback (most recent call last):\n  File \"/srv/port/ownership_bridge.py\", line 29, in summarize\n    return missing_total\nNameError: name 'missing_total' is not defined",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-name-errors"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "A concrete NameError is supported by the names-and-scope note rather than generic traceback guidance.",
+      "source": null,
+      "retrieved_sources": [],
+      "results": [],
+      "relevant_results": 0,
+      "result_count": 0,
+      "irrelevant_citations": 1,
+      "citation_count": 1,
+      "top3": [],
+      "top1_relevant": false,
+      "top3_relevant": false,
+      "answer_status": "general_guidance",
+      "status_correct": false,
+      "no_match_correct": null,
+      "answer": {
+        "question": "Traceback (most recent call last):\n  File \"/srv/port/ownership_bridge.py\", line 29, in summarize\n    return missing_total\nNameError: name 'missing_total' is not defined",
+        "language": "en",
+        "answer_status": "general_guidance",
+        "passages": [
+          {
+            "source_id": "package:python-fastapi-basics:python-traceback-playbook",
+            "title": "Python - Troubleshoot any traceback or unknown exception",
+            "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/python-fastapi-basics/python/traceback-playbook.md",
+            "excerpt": "For any Python traceback, read the final `ExceptionType: message` first, then move upward to the lowest frame that belongs to your code. Inspect the values used on that exact line; do not start by changing the library frame at the top.",
+            "match_reason": "python error fallback",
+            "ranking_reasons": [
+              "python error fallback",
+              "source preference: package:python-fastapi-basics"
+            ],
+            "score": 409,
+            "verification_status": "retrieved guidance; not verified against this project"
+          }
+        ],
+        "offline_answer": "General Python investigation guidance; insufficient evidence for a specific fix:\n\n[package:python-fastapi-basics:python-traceback-playbook] Python - Troubleshoot any traceback or unknown exception\nMatch: python error fallback + source preference: package:python-fastapi-basics\nFor any Python traceback, read the final `ExceptionType: message` first, then move upward to the lowest frame that belongs to your code. Inspect the values used on that exact line; do not start by changing the library frame at the top.\nStatus: retrieved guidance; not verified against this project",
+        "project_evidence": [],
+        "warnings": [
+          "excluded .gitignore evidence /srv/port/ownership_bridge.py"
+        ]
+      },
+      "valid_citation_identities": 1,
+      "citations": [
+        {
+          "source_id": "package:python-fastapi-basics:python-traceback-playbook",
+          "title": "Python - Troubleshoot any traceback or unknown exception",
+          "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/python-fastapi-basics/python/traceback-playbook.md",
+          "excerpt": "For any Python traceback, read the final `ExceptionType: message` first, then move upward to the lowest frame that belongs to your code. Inspect the values used on that exact line; do not start by changing the library frame at the top.",
+          "match_reason": "python error fallback",
+          "ranking_reasons": [
+            "python error fallback",
+            "source preference: package:python-fastapi-basics"
+          ],
+          "score": 409,
+          "verification_status": "retrieved guidance; not verified against this project"
+        }
+      ],
+      "cited_sources": [
+        "package:python-fastapi-basics:python-traceback-playbook"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": false,
+      "search_ask_ms": [
+        19.899898000403482,
+        16.08516100077395,
+        19.0079149997473
+      ],
+      "median_search_ask_ms": 19.0079149997473
+    },
+    {
+      "id": "F04",
+      "query": "File \"/opt/worker/queue.py\", line 44, in run_sync\n    asyncio.run(refresh())\nRuntimeError: asyncio.run() cannot be called from a running event loop",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-async-event-loop-errors"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The running-loop diagnostic has dedicated asyncio guidance.",
+      "source": null,
+      "retrieved_sources": [],
+      "results": [],
+      "relevant_results": 0,
+      "result_count": 0,
+      "irrelevant_citations": 1,
+      "citation_count": 1,
+      "top3": [],
+      "top1_relevant": false,
+      "top3_relevant": false,
+      "answer_status": "general_guidance",
+      "status_correct": false,
+      "no_match_correct": null,
+      "answer": {
+        "question": "File \"/opt/worker/queue.py\", line 44, in run_sync\n    asyncio.run(refresh())\nRuntimeError: asyncio.run() cannot be called from a running event loop",
+        "language": "en",
+        "answer_status": "general_guidance",
+        "passages": [
+          {
+            "source_id": "package:python-fastapi-basics:python-traceback-playbook",
+            "title": "Python - Troubleshoot any traceback or unknown exception",
+            "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/python-fastapi-basics/python/traceback-playbook.md",
+            "excerpt": "For `EOFError: EOF when reading a line`, the input stream ended before `input()` received data; pass the expected stdin in automation or catch EOF and choose an explicit no-input result. For `NotImplementedError`, implement the required subclass method or instantiate a concrete class. For `SystemError`, reproduce on a supported Python and dependency version because the failure commonly comes from interpreter or extension-module internals.",
+            "match_reason": "python error fallback",
+            "ranking_reasons": [
+              "python error fallback",
+              "source preference: package:python-fastapi-basics"
+            ],
+            "score": 146,
+            "verification_status": "retrieved guidance; not verified against this project"
+          }
+        ],
+        "offline_answer": "General Python investigation guidance; insufficient evidence for a specific fix:\n\n[package:python-fastapi-basics:python-traceback-playbook] Python - Troubleshoot any traceback or unknown exception\nMatch: python error fallback + source preference: package:python-fastapi-basics\nFor `EOFError: EOF when reading a line`, the input stream ended before `input()` received data; pass the expected stdin in automation or catch EOF and choose an explicit no-input result. For `NotImplementedError`, implement the required subclass method or instantiate a concrete class. For `SystemError`, reproduce on a supported Python and dependency version because the failure commonly comes from interpreter or extension-module internals.\nStatus: retrieved guidance; not verified against this project",
+        "project_evidence": [],
+        "warnings": [
+          "excluded .gitignore evidence /opt/worker/queue.py"
+        ]
+      },
+      "valid_citation_identities": 1,
+      "citations": [
+        {
+          "source_id": "package:python-fastapi-basics:python-traceback-playbook",
+          "title": "Python - Troubleshoot any traceback or unknown exception",
+          "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/python-fastapi-basics/python/traceback-playbook.md",
+          "excerpt": "For `EOFError: EOF when reading a line`, the input stream ended before `input()` received data; pass the expected stdin in automation or catch EOF and choose an explicit no-input result. For `NotImplementedError`, implement the required subclass method or instantiate a concrete class. For `SystemError`, reproduce on a supported Python and dependency version because the failure commonly comes from interpreter or extension-module internals.",
+          "match_reason": "python error fallback",
+          "ranking_reasons": [
+            "python error fallback",
+            "source preference: package:python-fastapi-basics"
+          ],
+          "score": 146,
+          "verification_status": "retrieved guidance; not verified against this project"
+        }
+      ],
+      "cited_sources": [
+        "package:python-fastapi-basics:python-traceback-playbook"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": false,
+      "search_ask_ms": [
+        15.576423999846156,
+        18.443807999574346,
+        14.808064000135346
+      ],
+      "median_search_ask_ms": 15.576423999846156
+    },
+    {
+      "id": "F05",
+      "query": "node:internal/modules/esm/resolve:879\nError [ERR_MODULE_NOT_FOUND]: Cannot find package 'renderer' imported from /work/unused-import/ownership/main.mjs",
+      "expected_sources": [
+        "package:retrieval-benchmark:node-module"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "A Node ESM diagnostic remains specific despite misleading project and identifier words.",
+      "source": null,
+      "retrieved_sources": [
+        "package:retrieval-benchmark:node-module"
+      ],
+      "results": [
+        {
+          "source_id": "package:retrieval-benchmark:node-module",
+          "title": "Node ERR_MODULE_NOT_FOUND cannot find package",
+          "kind": "troubleshooting",
+          "verification_status": "unverified",
+          "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/retrieval-benchmark/node-module.md",
+          "score": 1510,
+          "match_reason": "exact error code",
+          "ranking_reasons": [
+            "exact error code",
+            "source preference: package:retrieval-benchmark",
+            "same language"
+          ],
+          "excerpt": "Check dependency installation and ESM import specifiers, extensions and exports.",
+          "matched_terms": 6,
+          "query_terms": 22
+        }
+      ],
+      "relevant_results": 1,
+      "result_count": 1,
+      "irrelevant_citations": 0,
+      "citation_count": 1,
+      "top3": [
+        "package:retrieval-benchmark:node-module"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "no_match_correct": null,
+      "answer": {
+        "question": "node:internal/modules/esm/resolve:879\nError [ERR_MODULE_NOT_FOUND]: Cannot find package 'renderer' imported from /work/unused-import/ownership/main.mjs",
+        "language": "en",
+        "answer_status": "retrieved_guidance",
+        "passages": [
+          {
+            "source_id": "package:retrieval-benchmark:node-module",
+            "title": "Node ERR_MODULE_NOT_FOUND cannot find package",
+            "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/retrieval-benchmark/node-module.md",
+            "excerpt": "Check dependency installation and ESM import specifiers, extensions and exports.",
+            "match_reason": "exact error code",
+            "ranking_reasons": [
+              "exact error code",
+              "source preference: package:retrieval-benchmark",
+              "same language"
+            ],
+            "score": 1510,
+            "verification_status": "retrieved guidance; not verified against this project"
+          }
+        ],
+        "offline_answer": "Retrieved guidance:\n\n[package:retrieval-benchmark:node-module] Node ERR_MODULE_NOT_FOUND cannot find package\nMatch: exact error code + source preference: package:retrieval-benchmark + same language\nCheck dependency installation and ESM import specifiers, extensions and exports.\nStatus: retrieved guidance; not verified against this project",
+        "project_evidence": [],
+        "warnings": []
+      },
+      "valid_citation_identities": 1,
+      "citations": [
+        {
+          "source_id": "package:retrieval-benchmark:node-module",
+          "title": "Node ERR_MODULE_NOT_FOUND cannot find package",
+          "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/retrieval-benchmark/node-module.md",
+          "excerpt": "Check dependency installation and ESM import specifiers, extensions and exports.",
+          "match_reason": "exact error code",
+          "ranking_reasons": [
+            "exact error code",
+            "source preference: package:retrieval-benchmark",
+            "same language"
+          ],
+          "score": 1510,
+          "verification_status": "retrieved guidance; not verified against this project"
+        }
+      ],
+      "cited_sources": [
+        "package:retrieval-benchmark:node-module"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "search_ask_ms": [
+        16.899701000511413,
+        14.46867899994686,
+        17.88737900005799
+      ],
+      "median_search_ask_ms": 16.899701000511413
+    },
+    {
+      "id": "F06",
+      "query": "# example.invalid/portbridge/cmd/check\ncmd/check/ownership.go:34:17: undefined: manifestIndex",
+      "expected_sources": [
+        "package:retrieval-benchmark:go-undefined"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The Go compiler location and unknown symbol identify the undefined-identifier reference.",
+      "source": null,
+      "retrieved_sources": [],
+      "results": [],
+      "relevant_results": 0,
+      "result_count": 0,
+      "irrelevant_citations": 0,
+      "citation_count": 0,
+      "top3": [],
+      "top1_relevant": false,
+      "top3_relevant": false,
+      "answer_status": "no_adequate_match",
+      "status_correct": false,
+      "no_match_correct": null,
+      "answer": {
+        "question": "# example.invalid/portbridge/cmd/check\ncmd/check/ownership.go:34:17: undefined: manifestIndex",
+        "language": "en",
+        "answer_status": "no_adequate_match",
+        "passages": [],
+        "offline_answer": "No sufficiently relevant local knowledge was found for: # example.invalid/portbridge/cmd/check\ncmd/check/ownership.go:34:17: undefined: manifestIndex\n\nNext steps: include the complete error or distinctive keywords, then add a source-checked note if needed.",
+        "project_evidence": [],
+        "warnings": [
+          "evidence file cmd/check/ownership.go is unavailable"
+        ]
+      },
+      "valid_citation_identities": 0,
+      "citations": [],
+      "cited_sources": [],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "search_ask_ms": [
+        14.911180999661156,
+        18.213544999525766,
+        16.646901999592956
+      ],
+      "median_search_ask_ms": 16.646901999592956
+    },
+    {
+      "id": "F07",
+      "query": "Auto-merging config/worker.yaml\nCONFLICT (content): Merge conflict in config/worker.yaml\nAutomatic merge failed; fix conflicts and then commit the result.",
+      "expected_sources": [
+        "builtin:git-merge-conflict"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The supplied Git note directly covers a content merge conflict and continuation.",
+      "source": null,
+      "retrieved_sources": [],
+      "results": [],
+      "relevant_results": 0,
+      "result_count": 0,
+      "irrelevant_citations": 0,
+      "citation_count": 0,
+      "top3": [],
+      "top1_relevant": false,
+      "top3_relevant": false,
+      "answer_status": "no_adequate_match",
+      "status_correct": false,
+      "no_match_correct": null,
+      "answer": {
+        "question": "Auto-merging config/worker.yaml\nCONFLICT (content): Merge conflict in config/worker.yaml\nAutomatic merge failed; fix conflicts and then commit the result.",
+        "language": "en",
+        "answer_status": "no_adequate_match",
+        "passages": [],
+        "offline_answer": "No sufficiently relevant local knowledge was found for: Auto-merging config/worker.yaml\nCONFLICT (content): Merge conflict in config/worker.yaml\nAutomatic merge failed; fix conflicts and then commit the result.\n\nNext steps: include the complete error or distinctive keywords, then add a source-checked note if needed.",
+        "project_evidence": [],
+        "warnings": []
+      },
+      "valid_citation_identities": 0,
+      "citations": [],
+      "cited_sources": [],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "search_ask_ms": [
+        18.84704199983389,
+        17.69982899986644,
+        18.725662999713677
+      ],
+      "median_search_ask_ms": 18.725662999713677
+    },
+    {
+      "id": "F08",
+      "query": "docker version\nClient: Docker Engine\nCannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?",
+      "expected_sources": [
+        "builtin:docker-daemon-not-running"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The daemon socket failure is covered by the Docker daemon note.",
+      "source": null,
+      "retrieved_sources": [
+        "builtin:docker-daemon-not-running"
+      ],
+      "results": [
+        {
+          "source_id": "builtin:docker-daemon-not-running",
+          "title": "Docker - Cannot connect to the Docker daemon",
+          "kind": "troubleshooting",
+          "verification_status": "unverified",
+          "source_locator": "embedded:docker/daemon-not-running.md",
+          "score": 777,
+          "match_reason": "metadata match",
+          "ranking_reasons": [
+            "metadata match"
+          ],
+          "excerpt": "The Docker client cannot reach the daemon when the service is stopped or the current user cannot access its socket. Check the service first, then inspect socket permissions if the daemon is already running.",
+          "matched_terms": 9,
+          "query_terms": 13
+        }
+      ],
+      "relevant_results": 1,
+      "result_count": 1,
+      "irrelevant_citations": 0,
+      "citation_count": 1,
+      "top3": [
+        "builtin:docker-daemon-not-running"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "no_match_correct": null,
+      "answer": {
+        "question": "docker version\nClient: Docker Engine\nCannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?",
+        "language": "en",
+        "answer_status": "retrieved_guidance",
+        "passages": [
+          {
+            "source_id": "builtin:docker-daemon-not-running",
+            "title": "Docker - Cannot connect to the Docker daemon",
+            "source_locator": "embedded:docker/daemon-not-running.md",
+            "excerpt": "The Docker client cannot reach the daemon when the service is stopped or the current user cannot access its socket. Check the service first, then inspect socket permissions if the daemon is already running.",
+            "match_reason": "metadata match",
+            "ranking_reasons": [
+              "metadata match"
+            ],
+            "score": 777,
+            "verification_status": "retrieved guidance; not verified against this project"
+          }
+        ],
+        "offline_answer": "Retrieved guidance:\n\n[builtin:docker-daemon-not-running] Docker - Cannot connect to the Docker daemon\nMatch: metadata match\nThe Docker client cannot reach the daemon when the service is stopped or the current user cannot access its socket. Check the service first, then inspect socket permissions if the daemon is already running.\nStatus: retrieved guidance; not verified against this project",
+        "project_evidence": [],
+        "warnings": []
+      },
+      "valid_citation_identities": 1,
+      "citations": [
+        {
+          "source_id": "builtin:docker-daemon-not-running",
+          "title": "Docker - Cannot connect to the Docker daemon",
+          "source_locator": "embedded:docker/daemon-not-running.md",
+          "excerpt": "The Docker client cannot reach the daemon when the service is stopped or the current user cannot access its socket. Check the service first, then inspect socket permissions if the daemon is already running.",
+          "match_reason": "metadata match",
+          "ranking_reasons": [
+            "metadata match"
+          ],
+          "score": 777,
+          "verification_status": "retrieved guidance; not verified against this project"
+        }
+      ],
+      "cited_sources": [
+        "builtin:docker-daemon-not-running"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "search_ask_ms": [
+        18.063894999613694,
+        21.355406000111543,
+        22.080931999880704
+      ],
+      "median_search_ask_ms": 21.355406000111543
+    },
+    {
+      "id": "F09",
+      "query": "Traceback (most recent call last):\n  File \"listen.py\", line 8, in read_config\n    retries = int(raw_retries)\nValueError: invalid literal for int() with base 10: 'several'",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-type-and-value-errors"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The conversion failure is a ValueError with a dedicated type/value troubleshooting note.",
+      "source": null,
+      "retrieved_sources": [],
+      "results": [],
+      "relevant_results": 0,
+      "result_count": 0,
+      "irrelevant_citations": 1,
+      "citation_count": 1,
+      "top3": [],
+      "top1_relevant": false,
+      "top3_relevant": false,
+      "answer_status": "general_guidance",
+      "status_correct": false,
+      "no_match_correct": null,
+      "answer": {
+        "question": "Traceback (most recent call last):\n  File \"listen.py\", line 8, in read_config\n    retries = int(raw_retries)\nValueError: invalid literal for int() with base 10: 'several'",
+        "language": "en",
+        "answer_status": "general_guidance",
+        "passages": [
+          {
+            "source_id": "package:python-fastapi-basics:python-traceback-playbook",
+            "title": "Python - Troubleshoot any traceback or unknown exception",
+            "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/python-fastapi-basics/python/traceback-playbook.md",
+            "excerpt": "For `EOFError: EOF when reading a line`, the input stream ended before `input()` received data; pass the expected stdin in automation or catch EOF and choose an explicit no-input result. For `NotImplementedError`, implement the required subclass method or instantiate a concrete class. For `SystemError`, reproduce on a supported Python and dependency version because the failure commonly comes from interpreter or extension-module internals.",
+            "match_reason": "python error fallback",
+            "ranking_reasons": [
+              "python error fallback",
+              "source preference: package:python-fastapi-basics"
+            ],
+            "score": 437,
+            "verification_status": "retrieved guidance; not verified against this project"
+          }
+        ],
+        "offline_answer": "General Python investigation guidance; insufficient evidence for a specific fix:\n\n[package:python-fastapi-basics:python-traceback-playbook] Python - Troubleshoot any traceback or unknown exception\nMatch: python error fallback + source preference: package:python-fastapi-basics\nFor `EOFError: EOF when reading a line`, the input stream ended before `input()` received data; pass the expected stdin in automation or catch EOF and choose an explicit no-input result. For `NotImplementedError`, implement the required subclass method or instantiate a concrete class. For `SystemError`, reproduce on a supported Python and dependency version because the failure commonly comes from interpreter or extension-module internals.\nStatus: retrieved guidance; not verified against this project",
+        "project_evidence": [],
+        "warnings": [
+          "evidence file listen.py is unavailable"
+        ]
+      },
+      "valid_citation_identities": 1,
+      "citations": [
+        {
+          "source_id": "package:python-fastapi-basics:python-traceback-playbook",
+          "title": "Python - Troubleshoot any traceback or unknown exception",
+          "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/python-fastapi-basics/python/traceback-playbook.md",
+          "excerpt": "For `EOFError: EOF when reading a line`, the input stream ended before `input()` received data; pass the expected stdin in automation or catch EOF and choose an explicit no-input result. For `NotImplementedError`, implement the required subclass method or instantiate a concrete class. For `SystemError`, reproduce on a supported Python and dependency version because the failure commonly comes from interpreter or extension-module internals.",
+          "match_reason": "python error fallback",
+          "ranking_reasons": [
+            "python error fallback",
+            "source preference: package:python-fastapi-basics"
+          ],
+          "score": 437,
+          "verification_status": "retrieved guidance; not verified against this project"
+        }
+      ],
+      "cited_sources": [
+        "package:python-fastapi-basics:python-traceback-playbook"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": false,
+      "search_ask_ms": [
+        19.10651100024552,
+        18.773972000417416,
+        20.226446999913605
+      ],
+      "median_search_ask_ms": 19.10651100024552
+    },
+    {
+      "id": "F10",
+      "query": "Rust pass a reference to read a value without taking ownership",
+      "expected_sources": [
+        "builtin:rust-ownership-basics",
+        "builtin:rust-e0382"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "Both the ownership concept and moved-value note explain borrowing for read-only use.",
+      "source": null,
+      "retrieved_sources": [
+        "builtin:rust-ownership-basics"
+      ],
+      "results": [
+        {
+          "source_id": "builtin:rust-ownership-basics",
+          "title": "Rust Ownership and Borrowing Basics",
+          "kind": "concept",
+          "verification_status": "unverified",
+          "source_locator": "embedded:rust/ownership.md",
+          "score": 540,
+          "match_reason": "metadata match",
+          "ranking_reasons": [
+            "metadata match",
+            "same language"
+          ],
+          "excerpt": "Every Rust value has one owner. Passing a non-`Copy` value transfers ownership; pass `&T` to read without taking ownership and `&mut T` to modify through an exclusive borrow.",
+          "matched_terms": 8,
+          "query_terms": 8
+        }
+      ],
+      "relevant_results": 1,
+      "result_count": 1,
+      "irrelevant_citations": 0,
+      "citation_count": 1,
+      "top3": [
+        "builtin:rust-ownership-basics"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "no_match_correct": null,
+      "answer": {
+        "question": "Rust pass a reference to read a value without taking ownership",
+        "language": "en",
+        "answer_status": "retrieved_guidance",
+        "passages": [
+          {
+            "source_id": "builtin:rust-ownership-basics",
+            "title": "Rust Ownership and Borrowing Basics",
+            "source_locator": "embedded:rust/ownership.md",
+            "excerpt": "Every Rust value has one owner. Passing a non-`Copy` value transfers ownership; pass `&T` to read without taking ownership and `&mut T` to modify through an exclusive borrow.",
+            "match_reason": "metadata match",
+            "ranking_reasons": [
+              "metadata match",
+              "same language"
+            ],
+            "score": 540,
+            "verification_status": "retrieved guidance; not verified against this project"
+          }
+        ],
+        "offline_answer": "Retrieved guidance:\n\n[builtin:rust-ownership-basics] Rust Ownership and Borrowing Basics\nMatch: metadata match + same language\nEvery Rust value has one owner. Passing a non-`Copy` value transfers ownership; pass `&T` to read without taking ownership and `&mut T` to modify through an exclusive borrow.\nStatus: retrieved guidance; not verified against this project",
+        "project_evidence": [],
+        "warnings": []
+      },
+      "valid_citation_identities": 1,
+      "citations": [
+        {
+          "source_id": "builtin:rust-ownership-basics",
+          "title": "Rust Ownership and Borrowing Basics",
+          "source_locator": "embedded:rust/ownership.md",
+          "excerpt": "Every Rust value has one owner. Passing a non-`Copy` value transfers ownership; pass `&T` to read without taking ownership and `&mut T` to modify through an exclusive borrow.",
+          "match_reason": "metadata match",
+          "ranking_reasons": [
+            "metadata match",
+            "same language"
+          ],
+          "score": 540,
+          "verification_status": "retrieved guidance; not verified against this project"
+        }
+      ],
+      "cited_sources": [
+        "builtin:rust-ownership-basics"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "search_ask_ms": [
+        15.31042599981447,
+        20.746778000102495,
+        20.817022000301222
+      ],
+      "median_search_ask_ms": 20.746778000102495
+    },
+    {
+      "id": "F11",
+      "query": "Python package installed but not found; check which interpreter pip is using",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-environment-and-pip",
+        "package:python-fastapi-basics:python-module-not-found"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "Interpreter alignment and missing-package investigation are both directly relevant.",
+      "source": null,
+      "retrieved_sources": [
+        "package:python-fastapi-basics:python-environment-and-pip"
+      ],
+      "results": [
+        {
+          "source_id": "package:python-fastapi-basics:python-environment-and-pip",
+          "title": "Python - Create a virtual environment and use the correct pip",
+          "kind": "troubleshooting",
+          "verification_status": "unverified",
+          "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/python-fastapi-basics/python/environment-and-pip.md",
+          "score": 686,
+          "match_reason": "metadata match",
+          "ranking_reasons": [
+            "metadata match",
+            "source preference: package:python-fastapi-basics",
+            "same language"
+          ],
+          "excerpt": "Create one environment per project, activate it, and install packages through the same Python interpreter that runs the application.",
+          "matched_terms": 8,
+          "query_terms": 11
+        }
+      ],
+      "relevant_results": 1,
+      "result_count": 1,
+      "irrelevant_citations": 0,
+      "citation_count": 1,
+      "top3": [
+        "package:python-fastapi-basics:python-environment-and-pip"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "no_match_correct": null,
+      "answer": {
+        "question": "Python package installed but not found; check which interpreter pip is using",
+        "language": "en",
+        "answer_status": "retrieved_guidance",
+        "passages": [
+          {
+            "source_id": "package:python-fastapi-basics:python-environment-and-pip",
+            "title": "Python - Create a virtual environment and use the correct pip",
+            "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/python-fastapi-basics/python/environment-and-pip.md",
+            "excerpt": "Create one environment per project, activate it, and install packages through the same Python interpreter that runs the application.",
+            "match_reason": "metadata match",
+            "ranking_reasons": [
+              "metadata match",
+              "source preference: package:python-fastapi-basics",
+              "same language"
+            ],
+            "score": 686,
+            "verification_status": "retrieved guidance; not verified against this project"
+          }
+        ],
+        "offline_answer": "Retrieved guidance:\n\n[package:python-fastapi-basics:python-environment-and-pip] Python - Create a virtual environment and use the correct pip\nMatch: metadata match + source preference: package:python-fastapi-basics + same language\nCreate one environment per project, activate it, and install packages through the same Python interpreter that runs the application.\nStatus: retrieved guidance; not verified against this project",
+        "project_evidence": [],
+        "warnings": []
+      },
+      "valid_citation_identities": 1,
+      "citations": [
+        {
+          "source_id": "package:python-fastapi-basics:python-environment-and-pip",
+          "title": "Python - Create a virtual environment and use the correct pip",
+          "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/python-fastapi-basics/python/environment-and-pip.md",
+          "excerpt": "Create one environment per project, activate it, and install packages through the same Python interpreter that runs the application.",
+          "match_reason": "metadata match",
+          "ranking_reasons": [
+            "metadata match",
+            "source preference: package:python-fastapi-basics",
+            "same language"
+          ],
+          "score": 686,
+          "verification_status": "retrieved guidance; not verified against this project"
+        }
+      ],
+      "cited_sources": [
+        "package:python-fastapi-basics:python-environment-and-pip"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "search_ask_ms": [
+        20.31504800015682,
+        24.54872099951899,
+        14.92970100025559
+      ],
+      "median_search_ask_ms": 20.31504800015682
+    },
+    {
+      "id": "F12",
+      "query": "Go identifier spelling declaration scope and package qualification",
+      "expected_sources": [
+        "package:retrieval-benchmark:go-undefined"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The supplied undefined-identifier reference explicitly covers these three checks.",
+      "source": null,
+      "retrieved_sources": [
+        "package:retrieval-benchmark:go-undefined"
+      ],
+      "results": [
+        {
+          "source_id": "package:retrieval-benchmark:go-undefined",
+          "title": "Go compiler undefined identifier",
+          "kind": "troubleshooting",
+          "verification_status": "unverified",
+          "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/retrieval-benchmark/go-undefined.md",
+          "score": 335,
+          "match_reason": "metadata match",
+          "ranking_reasons": [
+            "metadata match",
+            "source preference: package:retrieval-benchmark",
+            "same language"
+          ],
+          "excerpt": "Check identifier spelling, declaration scope and package qualification.",
+          "matched_terms": 7,
+          "query_terms": 7
+        }
+      ],
+      "relevant_results": 1,
+      "result_count": 1,
+      "irrelevant_citations": 0,
+      "citation_count": 1,
+      "top3": [
+        "package:retrieval-benchmark:go-undefined"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "no_match_correct": null,
+      "answer": {
+        "question": "Go identifier spelling declaration scope and package qualification",
+        "language": "en",
+        "answer_status": "retrieved_guidance",
+        "passages": [
+          {
+            "source_id": "package:retrieval-benchmark:go-undefined",
+            "title": "Go compiler undefined identifier",
+            "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/retrieval-benchmark/go-undefined.md",
+            "excerpt": "Check identifier spelling, declaration scope and package qualification.",
+            "match_reason": "metadata match",
+            "ranking_reasons": [
+              "metadata match",
+              "source preference: package:retrieval-benchmark",
+              "same language"
+            ],
+            "score": 335,
+            "verification_status": "retrieved guidance; not verified against this project"
+          }
+        ],
+        "offline_answer": "Retrieved guidance:\n\n[package:retrieval-benchmark:go-undefined] Go compiler undefined identifier\nMatch: metadata match + source preference: package:retrieval-benchmark + same language\nCheck identifier spelling, declaration scope and package qualification.\nStatus: retrieved guidance; not verified against this project",
+        "project_evidence": [],
+        "warnings": []
+      },
+      "valid_citation_identities": 1,
+      "citations": [
+        {
+          "source_id": "package:retrieval-benchmark:go-undefined",
+          "title": "Go compiler undefined identifier",
+          "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/retrieval-benchmark/go-undefined.md",
+          "excerpt": "Check identifier spelling, declaration scope and package qualification.",
+          "match_reason": "metadata match",
+          "ranking_reasons": [
+            "metadata match",
+            "source preference: package:retrieval-benchmark",
+            "same language"
+          ],
+          "score": 335,
+          "verification_status": "retrieved guidance; not verified against this project"
+        }
+      ],
+      "cited_sources": [
+        "package:retrieval-benchmark:go-undefined"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "search_ask_ms": [
+        14.474577999862959,
+        14.515484999719774,
+        18.221857000753516
+      ],
+      "median_search_ask_ms": 14.515484999719774
+    },
+    {
+      "id": "F13",
+      "query": "Uvicorn Error loading ASGI app: Could not import module \"billing.main\"",
+      "expected_sources": [
+        "package:python-fastapi-basics:fastapi-uvicorn-import-error",
+        "package:python-fastapi-basics:python-module-not-found"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "Uvicorn target resolution and general Python module-path checks both support this startup import failure.",
+      "source": null,
+      "retrieved_sources": [
+        "package:python-fastapi-basics:fastapi-uvicorn-import-error"
+      ],
+      "results": [
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-uvicorn-import-error",
+          "title": "FastAPI - Uvicorn could not import module or app",
+          "kind": "troubleshooting",
+          "verification_status": "unverified",
+          "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/python-fastapi-basics/fastapi/uvicorn-import-error.md",
+          "score": 1104,
+          "match_reason": "metadata match",
+          "ranking_reasons": [
+            "metadata match",
+            "source preference: package:python-fastapi-basics"
+          ],
+          "excerpt": "The target format is `module.path:variable_name`. If the file is `app/main.py` and it contains `app = FastAPI()`, run from the project root:",
+          "matched_terms": 10,
+          "query_terms": 11
+        }
+      ],
+      "relevant_results": 1,
+      "result_count": 1,
+      "irrelevant_citations": 0,
+      "citation_count": 1,
+      "top3": [
+        "package:python-fastapi-basics:fastapi-uvicorn-import-error"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "no_match_correct": null,
+      "answer": {
+        "question": "Uvicorn Error loading ASGI app: Could not import module \"billing.main\"",
+        "language": "en",
+        "answer_status": "retrieved_guidance",
+        "passages": [
+          {
+            "source_id": "package:python-fastapi-basics:fastapi-uvicorn-import-error",
+            "title": "FastAPI - Uvicorn could not import module or app",
+            "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/python-fastapi-basics/fastapi/uvicorn-import-error.md",
+            "excerpt": "The target format is `module.path:variable_name`. If the file is `app/main.py` and it contains `app = FastAPI()`, run from the project root:",
+            "match_reason": "metadata match",
+            "ranking_reasons": [
+              "metadata match",
+              "source preference: package:python-fastapi-basics"
+            ],
+            "score": 1104,
+            "verification_status": "retrieved guidance; not verified against this project"
+          }
+        ],
+        "offline_answer": "Retrieved guidance:\n\n[package:python-fastapi-basics:fastapi-uvicorn-import-error] FastAPI - Uvicorn could not import module or app\nMatch: metadata match + source preference: package:python-fastapi-basics\nThe target format is `module.path:variable_name`. If the file is `app/main.py` and it contains `app = FastAPI()`, run from the project root:\nStatus: retrieved guidance; not verified against this project",
+        "project_evidence": [],
+        "warnings": []
+      },
+      "valid_citation_identities": 1,
+      "citations": [
+        {
+          "source_id": "package:python-fastapi-basics:fastapi-uvicorn-import-error",
+          "title": "FastAPI - Uvicorn could not import module or app",
+          "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/python-fastapi-basics/fastapi/uvicorn-import-error.md",
+          "excerpt": "The target format is `module.path:variable_name`. If the file is `app/main.py` and it contains `app = FastAPI()`, run from the project root:",
+          "match_reason": "metadata match",
+          "ranking_reasons": [
+            "metadata match",
+            "source preference: package:python-fastapi-basics"
+          ],
+          "score": 1104,
+          "verification_status": "retrieved guidance; not verified against this project"
+        }
+      ],
+      "cited_sources": [
+        "package:python-fastapi-basics:fastapi-uvicorn-import-error"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "search_ask_ms": [
+        24.918467000134115,
+        19.964535999861255,
+        14.838138000413892
+      ],
+      "median_search_ask_ms": 19.964535999861255
+    },
+    {
+      "id": "F14",
+      "query": "Python TypeError: 'NoneType' object is not iterable",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-none-type-error",
+        "package:python-fastapi-basics:python-type-and-value-errors"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The dedicated NoneType note is most specific, while the general TypeError note supplies applicable type inspection guidance.",
+      "source": null,
+      "retrieved_sources": [
+        "package:python-fastapi-basics:python-none-type-error",
+        "package:python-fastapi-basics:python-type-and-value-errors"
+      ],
+      "results": [
+        {
+          "source_id": "package:python-fastapi-basics:python-none-type-error",
+          "title": "Python - NoneType is not subscriptable or iterable",
+          "kind": "troubleshooting",
+          "verification_status": "unverified",
+          "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/python-fastapi-basics/python/none-type-error.md",
+          "score": 598,
+          "match_reason": "metadata match",
+          "ranking_reasons": [
+            "metadata match",
+            "source preference: package:python-fastapi-basics",
+            "same language"
+          ],
+          "excerpt": "`NoneType is not subscriptable` or `NoneType is not iterable` means the value is `None` at the last traceback frame. Check it immediately before indexing or iterating, then handle the missing value deliberately:",
+          "matched_terms": 5,
+          "query_terms": 6
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-type-and-value-errors",
+          "title": "Python - TypeError and ValueError",
+          "kind": "troubleshooting",
+          "verification_status": "unverified",
+          "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/python-fastapi-basics/python/type-and-value-errors.md",
+          "score": 426,
+          "match_reason": "metadata match",
+          "ranking_reasons": [
+            "metadata match",
+            "source preference: package:python-fastapi-basics",
+            "same language"
+          ],
+          "excerpt": "`TypeError: unsupported operand type` means an operation received incompatible objects, such as `int` and `str`, while other TypeError messages can indicate a wrong call signature. Inspect `type(value)`, then convert at the input boundary or correct the function arguments:",
+          "matched_terms": 4,
+          "query_terms": 6
+        }
+      ],
+      "relevant_results": 2,
+      "result_count": 2,
+      "irrelevant_citations": 0,
+      "citation_count": 2,
+      "top3": [
+        "package:python-fastapi-basics:python-none-type-error",
+        "package:python-fastapi-basics:python-type-and-value-errors"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "no_match_correct": null,
+      "answer": {
+        "question": "Python TypeError: 'NoneType' object is not iterable",
+        "language": "en",
+        "answer_status": "retrieved_guidance",
+        "passages": [
+          {
+            "source_id": "package:python-fastapi-basics:python-none-type-error",
+            "title": "Python - NoneType is not subscriptable or iterable",
+            "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/python-fastapi-basics/python/none-type-error.md",
+            "excerpt": "`NoneType is not subscriptable` or `NoneType is not iterable` means the value is `None` at the last traceback frame. Check it immediately before indexing or iterating, then handle the missing value deliberately:",
+            "match_reason": "metadata match",
+            "ranking_reasons": [
+              "metadata match",
+              "source preference: package:python-fastapi-basics",
+              "same language"
+            ],
+            "score": 598,
+            "verification_status": "retrieved guidance; not verified against this project"
+          },
+          {
+            "source_id": "package:python-fastapi-basics:python-type-and-value-errors",
+            "title": "Python - TypeError and ValueError",
+            "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/python-fastapi-basics/python/type-and-value-errors.md",
+            "excerpt": "`TypeError: unsupported operand type` means an operation received incompatible objects, such as `int` and `str`, while other TypeError messages can indicate a wrong call signature. Inspect `type(value)`, then convert at the input boundary or correct the function arguments:",
+            "match_reason": "metadata match",
+            "ranking_reasons": [
+              "metadata match",
+              "source preference: package:python-fastapi-basics",
+              "same language"
+            ],
+            "score": 426,
+            "verification_status": "retrieved guidance; not verified against this project"
+          }
+        ],
+        "offline_answer": "Retrieved guidance:\n\n[package:python-fastapi-basics:python-none-type-error] Python - NoneType is not subscriptable or iterable\nMatch: metadata match + source preference: package:python-fastapi-basics + same language\n`NoneType is not subscriptable` or `NoneType is not iterable` means the value is `None` at the last traceback frame. Check it immediately before indexing or iterating, then handle the missing value deliberately:\nStatus: retrieved guidance; not verified against this project\n\n[package:python-fastapi-basics:python-type-and-value-errors] Python - TypeError and ValueError\nMatch: metadata match + source preference: package:python-fastapi-basics + same language\n`TypeError: unsupported operand type` means an operation received incompatible objects, such as `int` and `str`, while other TypeError messages can indicate a wrong call signature. Inspect `type(value)`, then convert at the input boundary or correct the function arguments:\nStatus: retrieved guidance; not verified against this project",
+        "project_evidence": [],
+        "warnings": []
+      },
+      "valid_citation_identities": 2,
+      "citations": [
+        {
+          "source_id": "package:python-fastapi-basics:python-none-type-error",
+          "title": "Python - NoneType is not subscriptable or iterable",
+          "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/python-fastapi-basics/python/none-type-error.md",
+          "excerpt": "`NoneType is not subscriptable` or `NoneType is not iterable` means the value is `None` at the last traceback frame. Check it immediately before indexing or iterating, then handle the missing value deliberately:",
+          "match_reason": "metadata match",
+          "ranking_reasons": [
+            "metadata match",
+            "source preference: package:python-fastapi-basics",
+            "same language"
+          ],
+          "score": 598,
+          "verification_status": "retrieved guidance; not verified against this project"
+        },
+        {
+          "source_id": "package:python-fastapi-basics:python-type-and-value-errors",
+          "title": "Python - TypeError and ValueError",
+          "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/python-fastapi-basics/python/type-and-value-errors.md",
+          "excerpt": "`TypeError: unsupported operand type` means an operation received incompatible objects, such as `int` and `str`, while other TypeError messages can indicate a wrong call signature. Inspect `type(value)`, then convert at the input boundary or correct the function arguments:",
+          "match_reason": "metadata match",
+          "ranking_reasons": [
+            "metadata match",
+            "source preference: package:python-fastapi-basics",
+            "same language"
+          ],
+          "score": 426,
+          "verification_status": "retrieved guidance; not verified against this project"
+        }
+      ],
+      "cited_sources": [
+        "package:python-fastapi-basics:python-none-type-error",
+        "package:python-fastapi-basics:python-type-and-value-errors"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "search_ask_ms": [
+        15.961475000040082,
+        14.390104000085557,
+        13.677676000042993
+      ],
+      "median_search_ask_ms": 14.390104000085557
+    },
+    {
+      "id": "F15",
+      "query": "# example.invalid/checker\n./main.go:4:2: \"strings\" imported and not used\n./main.go:18:9: undefined: requestCount",
+      "expected_sources": [
+        "package:retrieval-benchmark:go-unused",
+        "package:retrieval-benchmark:go-undefined"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The same synthetic build contains two independent diagnostics, so either or both corresponding notes are relevant.",
+      "source": null,
+      "retrieved_sources": [],
+      "results": [],
+      "relevant_results": 0,
+      "result_count": 0,
+      "irrelevant_citations": 0,
+      "citation_count": 0,
+      "top3": [],
+      "top1_relevant": false,
+      "top3_relevant": false,
+      "answer_status": "no_adequate_match",
+      "status_correct": false,
+      "no_match_correct": null,
+      "answer": {
+        "question": "# example.invalid/checker\n./main.go:4:2: \"strings\" imported and not used\n./main.go:18:9: undefined: requestCount",
+        "language": "en",
+        "answer_status": "no_adequate_match",
+        "passages": [],
+        "offline_answer": "No sufficiently relevant local knowledge was found for: # example.invalid/checker\n./main.go:4:2: \"strings\" imported and not used\n./main.go:18:9: undefined: requestCount\n\nNext steps: include the complete error or distinctive keywords, then add a source-checked note if needed.",
+        "project_evidence": [],
+        "warnings": [
+          "evidence file main.go is unavailable"
+        ]
+      },
+      "valid_citation_identities": 0,
+      "citations": [],
+      "cited_sources": [],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "search_ask_ms": [
+        14.999207999608188,
+        16.141767999215517,
+        17.954279000150564
+      ],
+      "median_search_ask_ms": 16.141767999215517
+    },
+    {
+      "id": "F16",
+      "query": "error[E0432]: unresolved import `codec::Reader`\nerror[E0433]: failed to resolve: use of unresolved module `transport`",
+      "expected_sources": [
+        "builtin:rust-e0432",
+        "builtin:rust-e0433"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "Both explicitly present Rust import/resolution diagnostics have dedicated supporting evidence.",
+      "source": null,
+      "retrieved_sources": [
+        "builtin:rust-e0433",
+        "builtin:rust-e0432"
+      ],
+      "results": [
+        {
+          "source_id": "builtin:rust-e0433",
+          "title": "Rust E0433 - Failed to resolve a crate or module",
+          "kind": "troubleshooting",
+          "verification_status": "unverified",
+          "source_locator": "embedded:rust/E0433.md",
+          "score": 1456,
+          "match_reason": "exact error code",
+          "ranking_reasons": [
+            "exact error code"
+          ],
+          "excerpt": "E0433 means a crate or module path cannot be resolved. Check the path spelling and module declaration; for an external crate, add it to `Cargo.toml` with any required features.",
+          "matched_terms": 4,
+          "query_terms": 12
+        },
+        {
+          "source_id": "builtin:rust-e0432",
+          "title": "Rust E0432 - Unresolved import",
+          "kind": "troubleshooting",
+          "verification_status": "unverified",
+          "source_locator": "embedded:rust/E0432.md",
+          "score": 1387,
+          "match_reason": "exact error code",
+          "ranking_reasons": [
+            "exact error code"
+          ],
+          "excerpt": "E0432 means Rust cannot find the crate, module, or item named in a `use` path. Check the spelling and visibility; for an external crate, add the dependency and required features to `Cargo.toml`.",
+          "matched_terms": 5,
+          "query_terms": 12
+        }
+      ],
+      "relevant_results": 2,
+      "result_count": 2,
+      "irrelevant_citations": 0,
+      "citation_count": 2,
+      "top3": [
+        "builtin:rust-e0433",
+        "builtin:rust-e0432"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "no_match_correct": null,
+      "answer": {
+        "question": "error[E0432]: unresolved import `codec::Reader`\nerror[E0433]: failed to resolve: use of unresolved module `transport`",
+        "language": "en",
+        "answer_status": "retrieved_guidance",
+        "passages": [
+          {
+            "source_id": "builtin:rust-e0433",
+            "title": "Rust E0433 - Failed to resolve a crate or module",
+            "source_locator": "embedded:rust/E0433.md",
+            "excerpt": "E0433 means a crate or module path cannot be resolved. Check the path spelling and module declaration; for an external crate, add it to `Cargo.toml` with any required features.",
+            "match_reason": "exact error code",
+            "ranking_reasons": [
+              "exact error code"
+            ],
+            "score": 1456,
+            "verification_status": "retrieved guidance; not verified against this project"
+          },
+          {
+            "source_id": "builtin:rust-e0432",
+            "title": "Rust E0432 - Unresolved import",
+            "source_locator": "embedded:rust/E0432.md",
+            "excerpt": "E0432 means Rust cannot find the crate, module, or item named in a `use` path. Check the spelling and visibility; for an external crate, add the dependency and required features to `Cargo.toml`.",
+            "match_reason": "exact error code",
+            "ranking_reasons": [
+              "exact error code"
+            ],
+            "score": 1387,
+            "verification_status": "retrieved guidance; not verified against this project"
+          }
+        ],
+        "offline_answer": "Retrieved guidance:\n\n[builtin:rust-e0433] Rust E0433 - Failed to resolve a crate or module\nMatch: exact error code\nE0433 means a crate or module path cannot be resolved. Check the path spelling and module declaration; for an external crate, add it to `Cargo.toml` with any required features.\nStatus: retrieved guidance; not verified against this project\n\n[builtin:rust-e0432] Rust E0432 - Unresolved import\nMatch: exact error code\nE0432 means Rust cannot find the crate, module, or item named in a `use` path. Check the spelling and visibility; for an external crate, add the dependency and required features to `Cargo.toml`.\nStatus: retrieved guidance; not verified against this project",
+        "project_evidence": [],
+        "warnings": []
+      },
+      "valid_citation_identities": 2,
+      "citations": [
+        {
+          "source_id": "builtin:rust-e0433",
+          "title": "Rust E0433 - Failed to resolve a crate or module",
+          "source_locator": "embedded:rust/E0433.md",
+          "excerpt": "E0433 means a crate or module path cannot be resolved. Check the path spelling and module declaration; for an external crate, add it to `Cargo.toml` with any required features.",
+          "match_reason": "exact error code",
+          "ranking_reasons": [
+            "exact error code"
+          ],
+          "score": 1456,
+          "verification_status": "retrieved guidance; not verified against this project"
+        },
+        {
+          "source_id": "builtin:rust-e0432",
+          "title": "Rust E0432 - Unresolved import",
+          "source_locator": "embedded:rust/E0432.md",
+          "excerpt": "E0432 means Rust cannot find the crate, module, or item named in a `use` path. Check the spelling and visibility; for an external crate, add the dependency and required features to `Cargo.toml`.",
+          "match_reason": "exact error code",
+          "ranking_reasons": [
+            "exact error code"
+          ],
+          "score": 1387,
+          "verification_status": "retrieved guidance; not verified against this project"
+        }
+      ],
+      "cited_sources": [
+        "builtin:rust-e0433",
+        "builtin:rust-e0432"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "search_ask_ms": [
+        18.008082000051218,
+        18.503221000173653,
+        14.427645000068878
+      ],
+      "median_search_ask_ms": 18.008082000051218
+    },
+    {
+      "id": "F17",
+      "query": "Traceback (most recent call last):\n  File \"launcher.py\", line 3, in <module>\n    import shipping_client\nModuleNotFoundError: No module named 'shipping_client'\nThe above exception was the direct cause of the following exception:\nRuntimeError: startup aborted",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-module-not-found",
+        "package:python-fastapi-basics:python-traceback-playbook"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The missing-module note covers the underlying failure and the playbook explicitly explains chained exception wrappers.",
+      "source": null,
+      "retrieved_sources": [
+        "package:python-fastapi-basics:python-module-not-found"
+      ],
+      "results": [
+        {
+          "source_id": "package:python-fastapi-basics:python-module-not-found",
+          "title": "Python - ModuleNotFoundError or ImportError",
+          "kind": "troubleshooting",
+          "verification_status": "unverified",
+          "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/python-fastapi-basics/python/module-not-found.md",
+          "score": 1708,
+          "match_reason": "exact error code",
+          "ranking_reasons": [
+            "exact error code",
+            "source preference: package:python-fastapi-basics"
+          ],
+          "excerpt": "Avoid naming local files after standard or installed modules, such as `fastapi.py`, `json.py`, or `typing.py`.",
+          "matched_terms": 6,
+          "query_terms": 25
+        }
+      ],
+      "relevant_results": 1,
+      "result_count": 1,
+      "irrelevant_citations": 0,
+      "citation_count": 1,
+      "top3": [
+        "package:python-fastapi-basics:python-module-not-found"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "no_match_correct": null,
+      "answer": {
+        "question": "Traceback (most recent call last):\n  File \"launcher.py\", line 3, in <module>\n    import shipping_client\nModuleNotFoundError: No module named 'shipping_client'\nThe above exception was the direct cause of the following exception:\nRuntimeError: startup aborted",
+        "language": "en",
+        "answer_status": "retrieved_guidance",
+        "passages": [
+          {
+            "source_id": "package:python-fastapi-basics:python-module-not-found",
+            "title": "Python - ModuleNotFoundError or ImportError",
+            "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/python-fastapi-basics/python/module-not-found.md",
+            "excerpt": "Avoid naming local files after standard or installed modules, such as `fastapi.py`, `json.py`, or `typing.py`.",
+            "match_reason": "exact error code",
+            "ranking_reasons": [
+              "exact error code",
+              "source preference: package:python-fastapi-basics"
+            ],
+            "score": 1708,
+            "verification_status": "retrieved guidance; not verified against this project"
+          }
+        ],
+        "offline_answer": "Retrieved guidance:\n\n[package:python-fastapi-basics:python-module-not-found] Python - ModuleNotFoundError or ImportError\nMatch: exact error code + source preference: package:python-fastapi-basics\nAvoid naming local files after standard or installed modules, such as `fastapi.py`, `json.py`, or `typing.py`.\nStatus: retrieved guidance; not verified against this project",
+        "project_evidence": [],
+        "warnings": [
+          "evidence file launcher.py is unavailable"
+        ]
+      },
+      "valid_citation_identities": 1,
+      "citations": [
+        {
+          "source_id": "package:python-fastapi-basics:python-module-not-found",
+          "title": "Python - ModuleNotFoundError or ImportError",
+          "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/python-fastapi-basics/python/module-not-found.md",
+          "excerpt": "Avoid naming local files after standard or installed modules, such as `fastapi.py`, `json.py`, or `typing.py`.",
+          "match_reason": "exact error code",
+          "ranking_reasons": [
+            "exact error code",
+            "source preference: package:python-fastapi-basics"
+          ],
+          "score": 1708,
+          "verification_status": "retrieved guidance; not verified against this project"
+        }
+      ],
+      "cited_sources": [
+        "package:python-fastapi-basics:python-module-not-found"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "search_ask_ms": [
+        18.14501199987717,
+        19.627890000265324,
+        19.02497500032041
+      ],
+      "median_search_ask_ms": 19.02497500032041
+    },
+    {
+      "id": "F18",
+      "query": "bind: address already in use; how do I find the listener or choose another port?",
+      "expected_sources": [
+        "builtin:docker-port-in-use",
+        "package:retrieval-benchmark:node-port",
+        "package:python-fastapi-basics:fastapi-port-in-use"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "No runtime is specified. All three supplied port-conflict notes explain locating a listener and changing ports.",
+      "source": null,
+      "retrieved_sources": [
+        "builtin:docker-port-in-use",
+        "package:retrieval-benchmark:node-port"
+      ],
+      "results": [
+        {
+          "source_id": "builtin:docker-port-in-use",
+          "title": "Docker - Port already in use",
+          "kind": "troubleshooting",
+          "verification_status": "unverified",
+          "source_locator": "embedded:docker/port-in-use.md",
+          "score": 486,
+          "match_reason": "metadata match",
+          "ranking_reasons": [
+            "metadata match"
+          ],
+          "excerpt": "`bind: address already in use` means another process or container already owns the requested host port. Find and stop that listener, or map the container to a different host port.",
+          "matched_terms": 8,
+          "query_terms": 9
+        },
+        {
+          "source_id": "package:retrieval-benchmark:node-port",
+          "title": "Node EADDRINUSE address already in use",
+          "kind": "troubleshooting",
+          "verification_status": "unverified",
+          "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/retrieval-benchmark/node-port.md",
+          "score": 321,
+          "match_reason": "metadata match",
+          "ranking_reasons": [
+            "metadata match",
+            "source preference: package:retrieval-benchmark"
+          ],
+          "excerpt": "Find the process listening on the configured port. Stop the intended process or choose a free port.",
+          "matched_terms": 6,
+          "query_terms": 9
+        }
+      ],
+      "relevant_results": 2,
+      "result_count": 2,
+      "irrelevant_citations": 0,
+      "citation_count": 2,
+      "top3": [
+        "builtin:docker-port-in-use",
+        "package:retrieval-benchmark:node-port"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "no_match_correct": null,
+      "answer": {
+        "question": "bind: address already in use; how do I find the listener or choose another port?",
+        "language": "en",
+        "answer_status": "retrieved_guidance",
+        "passages": [
+          {
+            "source_id": "builtin:docker-port-in-use",
+            "title": "Docker - Port already in use",
+            "source_locator": "embedded:docker/port-in-use.md",
+            "excerpt": "`bind: address already in use` means another process or container already owns the requested host port. Find and stop that listener, or map the container to a different host port.",
+            "match_reason": "metadata match",
+            "ranking_reasons": [
+              "metadata match"
+            ],
+            "score": 486,
+            "verification_status": "retrieved guidance; not verified against this project"
+          },
+          {
+            "source_id": "package:retrieval-benchmark:node-port",
+            "title": "Node EADDRINUSE address already in use",
+            "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/retrieval-benchmark/node-port.md",
+            "excerpt": "Find the process listening on the configured port. Stop the intended process or choose a free port.",
+            "match_reason": "metadata match",
+            "ranking_reasons": [
+              "metadata match",
+              "source preference: package:retrieval-benchmark"
+            ],
+            "score": 321,
+            "verification_status": "retrieved guidance; not verified against this project"
+          }
+        ],
+        "offline_answer": "Retrieved guidance:\n\n[builtin:docker-port-in-use] Docker - Port already in use\nMatch: metadata match\n`bind: address already in use` means another process or container already owns the requested host port. Find and stop that listener, or map the container to a different host port.\nStatus: retrieved guidance; not verified against this project\n\n[package:retrieval-benchmark:node-port] Node EADDRINUSE address already in use\nMatch: metadata match + source preference: package:retrieval-benchmark\nFind the process listening on the configured port. Stop the intended process or choose a free port.\nStatus: retrieved guidance; not verified against this project",
+        "project_evidence": [],
+        "warnings": []
+      },
+      "valid_citation_identities": 2,
+      "citations": [
+        {
+          "source_id": "builtin:docker-port-in-use",
+          "title": "Docker - Port already in use",
+          "source_locator": "embedded:docker/port-in-use.md",
+          "excerpt": "`bind: address already in use` means another process or container already owns the requested host port. Find and stop that listener, or map the container to a different host port.",
+          "match_reason": "metadata match",
+          "ranking_reasons": [
+            "metadata match"
+          ],
+          "score": 486,
+          "verification_status": "retrieved guidance; not verified against this project"
+        },
+        {
+          "source_id": "package:retrieval-benchmark:node-port",
+          "title": "Node EADDRINUSE address already in use",
+          "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/retrieval-benchmark/node-port.md",
+          "excerpt": "Find the process listening on the configured port. Stop the intended process or choose a free port.",
+          "match_reason": "metadata match",
+          "ranking_reasons": [
+            "metadata match",
+            "source preference: package:retrieval-benchmark"
+          ],
+          "score": 321,
+          "verification_status": "retrieved guidance; not verified against this project"
+        }
+      ],
+      "cited_sources": [
+        "builtin:docker-port-in-use",
+        "package:retrieval-benchmark:node-port"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "search_ask_ms": [
+        15.752231999613286,
+        15.901640999800293,
+        14.281065999966813
+      ],
+      "median_search_ask_ms": 15.752231999613286
+    },
+    {
+      "id": "F19",
+      "query": "Python traceback: ShipmentLedgerError: ledger revision is stale\n  File \"reconcile.py\", line 77, in commit_batch",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-traceback-playbook"
+      ],
+      "acceptable_statuses": [
+        "general_guidance"
+      ],
+      "rationale": "This invented application exception has no dedicated note, so only explicitly general traceback investigation is justified.",
+      "source": null,
+      "retrieved_sources": [],
+      "results": [],
+      "relevant_results": 0,
+      "result_count": 0,
+      "irrelevant_citations": 0,
+      "citation_count": 1,
+      "top3": [],
+      "top1_relevant": null,
+      "top3_relevant": null,
+      "answer_status": "general_guidance",
+      "status_correct": true,
+      "no_match_correct": null,
+      "answer": {
+        "question": "Python traceback: ShipmentLedgerError: ledger revision is stale\n  File \"reconcile.py\", line 77, in commit_batch",
+        "language": "en",
+        "answer_status": "general_guidance",
+        "passages": [
+          {
+            "source_id": "package:python-fastapi-basics:python-traceback-playbook",
+            "title": "Python - Troubleshoot any traceback or unknown exception",
+            "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/python-fastapi-basics/python/traceback-playbook.md",
+            "excerpt": "For any Python traceback, read the final `ExceptionType: message` first, then move upward to the lowest frame that belongs to your code. Inspect the values used on that exact line; do not start by changing the library frame at the top.",
+            "match_reason": "python error fallback",
+            "ranking_reasons": [
+              "python error fallback",
+              "source preference: package:python-fastapi-basics",
+              "same language"
+            ],
+            "score": 681,
+            "verification_status": "retrieved guidance; not verified against this project"
+          }
+        ],
+        "offline_answer": "General Python investigation guidance; insufficient evidence for a specific fix:\n\n[package:python-fastapi-basics:python-traceback-playbook] Python - Troubleshoot any traceback or unknown exception\nMatch: python error fallback + source preference: package:python-fastapi-basics + same language\nFor any Python traceback, read the final `ExceptionType: message` first, then move upward to the lowest frame that belongs to your code. Inspect the values used on that exact line; do not start by changing the library frame at the top.\nStatus: retrieved guidance; not verified against this project",
+        "project_evidence": [],
+        "warnings": []
+      },
+      "valid_citation_identities": 1,
+      "citations": [
+        {
+          "source_id": "package:python-fastapi-basics:python-traceback-playbook",
+          "title": "Python - Troubleshoot any traceback or unknown exception",
+          "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/python-fastapi-basics/python/traceback-playbook.md",
+          "excerpt": "For any Python traceback, read the final `ExceptionType: message` first, then move upward to the lowest frame that belongs to your code. Inspect the values used on that exact line; do not start by changing the library frame at the top.",
+          "match_reason": "python error fallback",
+          "ranking_reasons": [
+            "python error fallback",
+            "source preference: package:python-fastapi-basics",
+            "same language"
+          ],
+          "score": 681,
+          "verification_status": "retrieved guidance; not verified against this project"
+        }
+      ],
+      "cited_sources": [
+        "package:python-fastapi-basics:python-traceback-playbook"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "search_ask_ms": [
+        15.158143999542517,
+        18.043255999145913,
+        15.124683000067307
+      ],
+      "median_search_ask_ms": 15.158143999542517
+    },
+    {
+      "id": "F20",
+      "query": "src/feature.ts(9,3): error TS7027: Unreachable code detected.",
+      "expected_sources": [],
+      "acceptable_statuses": [
+        "no_adequate_match"
+      ],
+      "rationale": "The supplied TypeScript references cover TS2307 and TS2322, not unreachable-code diagnostics.",
+      "source": null,
+      "retrieved_sources": [],
+      "results": [],
+      "relevant_results": 0,
+      "result_count": 0,
+      "irrelevant_citations": 0,
+      "citation_count": 0,
+      "top3": [],
+      "top1_relevant": null,
+      "top3_relevant": null,
+      "answer_status": "no_adequate_match",
+      "status_correct": true,
+      "no_match_correct": true,
+      "answer": {
+        "question": "src/feature.ts(9,3): error TS7027: Unreachable code detected.",
+        "language": "en",
+        "answer_status": "no_adequate_match",
+        "passages": [],
+        "offline_answer": "No sufficiently relevant local knowledge was found for: src/feature.ts(9,3): error TS7027: Unreachable code detected.\n\nNext steps: include the complete error or distinctive keywords, then add a source-checked note if needed.",
+        "project_evidence": [],
+        "warnings": [
+          "evidence file src/feature.ts is unavailable"
+        ]
+      },
+      "valid_citation_identities": 0,
+      "citations": [],
+      "cited_sources": [],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "search_ask_ms": [
+        12.860817000728275,
+        13.284980000207725,
+        13.534182000512374
+      ],
+      "median_search_ask_ms": 13.284980000207725
+    },
+    {
+      "id": "F21",
+      "query": "error[E0123]: synthetic unsupported diagnostic\n --> src/replay.rs:5:2",
+      "expected_sources": [],
+      "acceptable_statuses": [
+        "no_adequate_match"
+      ],
+      "rationale": "The absent exact code must not borrow evidence from a different rustc error.",
+      "source": null,
+      "retrieved_sources": [],
+      "results": [],
+      "relevant_results": 0,
+      "result_count": 0,
+      "irrelevant_citations": 0,
+      "citation_count": 0,
+      "top3": [],
+      "top1_relevant": null,
+      "top3_relevant": null,
+      "answer_status": "no_adequate_match",
+      "status_correct": true,
+      "no_match_correct": true,
+      "answer": {
+        "question": "error[E0123]: synthetic unsupported diagnostic\n --> src/replay.rs:5:2",
+        "language": "en",
+        "answer_status": "no_adequate_match",
+        "passages": [],
+        "offline_answer": "No sufficiently relevant local knowledge was found for: error[E0123]: synthetic unsupported diagnostic\n --> src/replay.rs:5:2\n\nNext steps: include the complete error or distinctive keywords, then add a source-checked note if needed.",
+        "project_evidence": [],
+        "warnings": [
+          "evidence file src/replay.rs is unavailable"
+        ]
+      },
+      "valid_citation_identities": 0,
+      "citations": [],
+      "cited_sources": [],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "search_ask_ms": [
+        13.377133999711077,
+        12.991793999390211,
+        13.624881999930949
+      ],
+      "median_search_ask_ms": 13.377133999711077
+    },
+    {
+      "id": "F22",
+      "query": "Calculate shipping insurance for pottery stored at /tmp/port_ownership/manifest.json",
+      "expected_sources": [],
+      "acceptable_statuses": [
+        "no_adequate_match"
+      ],
+      "rationale": "A developer-shaped path does not supply evidence for an unrelated insurance question.",
+      "source": null,
+      "retrieved_sources": [],
+      "results": [],
+      "relevant_results": 0,
+      "result_count": 0,
+      "irrelevant_citations": 0,
+      "citation_count": 0,
+      "top3": [],
+      "top1_relevant": null,
+      "top3_relevant": null,
+      "answer_status": "no_adequate_match",
+      "status_correct": true,
+      "no_match_correct": true,
+      "answer": {
+        "question": "Calculate shipping insurance for pottery stored at /tmp/port_ownership/manifest.json",
+        "language": "en",
+        "answer_status": "no_adequate_match",
+        "passages": [],
+        "offline_answer": "No sufficiently relevant local knowledge was found for: Calculate shipping insurance for pottery stored at /tmp/port_ownership/manifest.json\n\nNext steps: include the complete error or distinctive keywords, then add a source-checked note if needed.",
+        "project_evidence": [],
+        "warnings": []
+      },
+      "valid_citation_identities": 0,
+      "citations": [],
+      "cited_sources": [],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "search_ask_ms": [
+        15.23189499948785,
+        18.700853000154893,
+        19.087403999947128
+      ],
+      "median_search_ask_ms": 18.700853000154893
+    },
+    {
+      "id": "F23",
+      "query": "Show package:python-fastapi-basics:python-network-errors",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-network-errors"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "A source-qualified note ID identifies the supplied network troubleshooting reference independently of diagnostic text.",
+      "source": null,
+      "retrieved_sources": [
+        "package:python-fastapi-basics:python-network-errors"
+      ],
+      "results": [
+        {
+          "source_id": "package:python-fastapi-basics:python-network-errors",
+          "title": "Python - ConnectionError TimeoutError and DNS errors",
+          "kind": "troubleshooting",
+          "verification_status": "unverified",
+          "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/python-fastapi-basics/python/network-errors.md",
+          "score": 961,
+          "match_reason": "exact identifier",
+          "ranking_reasons": [
+            "exact identifier",
+            "source preference: package:python-fastapi-basics",
+            "same language"
+          ],
+          "excerpt": "Test the exact URL from the same runtime environment, then retry the application call with network debug logging and secrets redacted.",
+          "matched_terms": 6,
+          "query_terms": 7
+        }
+      ],
+      "relevant_results": 1,
+      "result_count": 1,
+      "irrelevant_citations": 0,
+      "citation_count": 1,
+      "top3": [
+        "package:python-fastapi-basics:python-network-errors"
+      ],
+      "top1_relevant": true,
+      "top3_relevant": true,
+      "answer_status": "retrieved_guidance",
+      "status_correct": true,
+      "no_match_correct": null,
+      "answer": {
+        "question": "Show package:python-fastapi-basics:python-network-errors",
+        "language": "en",
+        "answer_status": "retrieved_guidance",
+        "passages": [
+          {
+            "source_id": "package:python-fastapi-basics:python-network-errors",
+            "title": "Python - ConnectionError TimeoutError and DNS errors",
+            "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/python-fastapi-basics/python/network-errors.md",
+            "excerpt": "Test the exact URL from the same runtime environment, then retry the application call with network debug logging and secrets redacted.",
+            "match_reason": "exact identifier",
+            "ranking_reasons": [
+              "exact identifier",
+              "source preference: package:python-fastapi-basics",
+              "same language"
+            ],
+            "score": 961,
+            "verification_status": "retrieved guidance; not verified against this project"
+          }
+        ],
+        "offline_answer": "Retrieved guidance:\n\n[package:python-fastapi-basics:python-network-errors] Python - ConnectionError TimeoutError and DNS errors\nMatch: exact identifier + source preference: package:python-fastapi-basics + same language\nTest the exact URL from the same runtime environment, then retry the application call with network debug logging and secrets redacted.\nStatus: retrieved guidance; not verified against this project",
+        "project_evidence": [],
+        "warnings": []
+      },
+      "valid_citation_identities": 1,
+      "citations": [
+        {
+          "source_id": "package:python-fastapi-basics:python-network-errors",
+          "title": "Python - ConnectionError TimeoutError and DNS errors",
+          "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/python-fastapi-basics/python/network-errors.md",
+          "excerpt": "Test the exact URL from the same runtime environment, then retry the application call with network debug logging and secrets redacted.",
+          "match_reason": "exact identifier",
+          "ranking_reasons": [
+            "exact identifier",
+            "source preference: package:python-fastapi-basics",
+            "same language"
+          ],
+          "score": 961,
+          "verification_status": "retrieved guidance; not verified against this project"
+        }
+      ],
+      "cited_sources": [
+        "package:python-fastapi-basics:python-network-errors"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": true,
+      "search_ask_ms": [
+        22.29785199961043,
+        15.861268000662676,
+        15.515561000029265
+      ],
+      "median_search_ask_ms": 15.861268000662676
+    },
+    {
+      "id": "F24",
+      "query": "Traceback (most recent call last):\n  File \"/srv/asgi_client.py\", line 20, in connect\n    sock.connect(target)\nConnectionRefusedError: [Errno 111] Connection refused",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-network-errors"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "Connection refusal has dedicated network guidance and must not be confused with a local address-in-use server error.",
+      "source": null,
+      "retrieved_sources": [],
+      "results": [],
+      "relevant_results": 0,
+      "result_count": 0,
+      "irrelevant_citations": 1,
+      "citation_count": 1,
+      "top3": [],
+      "top1_relevant": false,
+      "top3_relevant": false,
+      "answer_status": "general_guidance",
+      "status_correct": false,
+      "no_match_correct": null,
+      "answer": {
+        "question": "Traceback (most recent call last):\n  File \"/srv/asgi_client.py\", line 20, in connect\n    sock.connect(target)\nConnectionRefusedError: [Errno 111] Connection refused",
+        "language": "en",
+        "answer_status": "general_guidance",
+        "passages": [
+          {
+            "source_id": "package:python-fastapi-basics:python-traceback-playbook",
+            "title": "Python - Troubleshoot any traceback or unknown exception",
+            "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/python-fastapi-basics/python/traceback-playbook.md",
+            "excerpt": "For any Python traceback, read the final `ExceptionType: message` first, then move upward to the lowest frame that belongs to your code. Inspect the values used on that exact line; do not start by changing the library frame at the top.",
+            "match_reason": "python error fallback",
+            "ranking_reasons": [
+              "python error fallback",
+              "source preference: package:python-fastapi-basics"
+            ],
+            "score": 381,
+            "verification_status": "retrieved guidance; not verified against this project"
+          }
+        ],
+        "offline_answer": "General Python investigation guidance; insufficient evidence for a specific fix:\n\n[package:python-fastapi-basics:python-traceback-playbook] Python - Troubleshoot any traceback or unknown exception\nMatch: python error fallback + source preference: package:python-fastapi-basics\nFor any Python traceback, read the final `ExceptionType: message` first, then move upward to the lowest frame that belongs to your code. Inspect the values used on that exact line; do not start by changing the library frame at the top.\nStatus: retrieved guidance; not verified against this project",
+        "project_evidence": [],
+        "warnings": [
+          "excluded .gitignore evidence /srv/asgi_client.py"
+        ]
+      },
+      "valid_citation_identities": 1,
+      "citations": [
+        {
+          "source_id": "package:python-fastapi-basics:python-traceback-playbook",
+          "title": "Python - Troubleshoot any traceback or unknown exception",
+          "source_locator": "/tmp/lbc-retrieval-calrrosw/data/lbc/knowledge/python-fastapi-basics/python/traceback-playbook.md",
+          "excerpt": "For any Python traceback, read the final `ExceptionType: message` first, then move upward to the lowest frame that belongs to your code. Inspect the values used on that exact line; do not start by changing the library frame at the top.",
+          "match_reason": "python error fallback",
+          "ranking_reasons": [
+            "python error fallback",
+            "source preference: package:python-fastapi-basics"
+          ],
+          "score": 381,
+          "verification_status": "retrieved guidance; not verified against this project"
+        }
+      ],
+      "cited_sources": [
+        "package:python-fastapi-basics:python-traceback-playbook"
+      ],
+      "citation_identity_correct": true,
+      "citation_relevance_correct": false,
+      "search_ask_ms": [
+        17.181399999572022,
+        16.31357200039929,
+        16.95580300020083
+      ],
+      "median_search_ask_ms": 16.95580300020083
+    }
+  ]
+}
