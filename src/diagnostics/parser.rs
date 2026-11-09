@@ -9,6 +9,9 @@ pub fn parse_primary(input: &str) -> Option<Diagnostic> {
 pub fn parse_diagnostics(input: &str) -> Vec<Diagnostic> {
     let clean = strip_ansi(input);
     let lines: Vec<_> = clean.lines().collect();
+    let has_python_frame = lines
+        .iter()
+        .any(|line| parse_python_location(line.trim()).is_some());
     let mut diagnostics = Vec::new();
     let mut index = 0;
     let mut python_traceback = false;
@@ -37,7 +40,9 @@ pub fn parse_diagnostics(input: &str) -> Vec<Diagnostic> {
             index += 1;
             continue;
         }
-        if python_traceback && let Some((code, message)) = parse_python_exception(text) {
+        if (python_traceback || has_python_frame)
+            && let Some((code, message)) = parse_python_exception(text)
+        {
             let (file, line) = python_location
                 .take()
                 .map_or((None, None), |(file, line)| (Some(file), Some(line)));
@@ -367,6 +372,18 @@ mod tests {
         assert_eq!(diagnostic.code.as_deref(), Some("IndexError"));
         assert_eq!(diagnostic.file, Some("src/งาน.py".into()));
         assert_eq!(diagnostic.line, Some(3));
+    }
+
+    #[test]
+    fn python_exception_before_its_frame_is_recognized_without_inventing_a_location() {
+        let diagnostic = parse_primary("driver.StorageError: transaction is busy\n  File \"dispatch.py\", line 324, in dispatch").unwrap();
+        assert_eq!(diagnostic.code.as_deref(), Some("driver.StorageError"));
+        assert_eq!(diagnostic.source.as_deref(), Some("python"));
+        assert_eq!(diagnostic.file, None);
+        assert_eq!(
+            parse_primary("TypeError: bad argument").unwrap().source,
+            None
+        );
     }
 
     #[test]

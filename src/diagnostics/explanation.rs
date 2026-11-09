@@ -62,18 +62,8 @@ pub fn explain(
         .cloned()
         .context("no error input was provided")?;
     let scan = scan_project(project_path, scanner_config)?;
-    let query = diagnostic
-        .code
-        .as_ref()
-        .map(|code| {
-            format!(
-                "{code} {} {}",
-                diagnostic.source.as_deref().unwrap_or_default(),
-                diagnostic.message
-            )
-        })
-        .unwrap_or_else(|| diagnostic.message.clone());
-    let retrieved = knowledge::retrieve(&scan.project.root, &query)?;
+    let retrieved =
+        knowledge::retrieval::retrieve_diagnostic(&scan.project.root, input, &diagnostic)?;
     let matches: Vec<_> = retrieved
         .results
         .into_iter()

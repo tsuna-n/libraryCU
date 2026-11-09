@@ -127,6 +127,14 @@ impl KnowledgeIndex {
         self.search_with_language(query, language)
     }
 
+    pub(super) fn has_explicit_identifier(&self, query: &str) -> bool {
+        let query = query.trim().to_lowercase();
+        self.documents.iter().any(|document| {
+            contains_identifier(&query, &document.source_id.to_lowercase())
+                || query == document.metadata.id.to_lowercase()
+        })
+    }
+
     pub fn search_with_language(&self, query: &str, language: &str) -> Vec<SearchResult> {
         let normalized = query.trim().to_lowercase();
         if normalized.is_empty() {
@@ -139,6 +147,7 @@ impl KnowledgeIndex {
         let mut reasons = vec!["keyword match"; self.documents.len()];
         let mut best_signal = vec![0u32; self.documents.len()];
         let mut phrase_lengths = vec![0usize; self.documents.len()];
+        let mut query_phrases = Vec::new();
 
         // `signal` orders which match is reported: the strongest signal seen wins.
         let mut credit = |position: usize, score: u32, signal: u32, reason: &'static str| {
@@ -222,7 +231,10 @@ impl KnowledgeIndex {
                 .chain(&document.metadata.tags)
             {
                 let phrase = phrase.to_lowercase();
-                if phrase.contains(' ') && contains_term(&normalized, &phrase) {
+                if (phrase.contains(' ') || phrase.chars().any(is_thai))
+                    && contains_term(&normalized, &phrase)
+                {
+                    query_phrases.push(phrase.clone());
                     phrase_lengths[position] = phrase_lengths[position].max(phrase.chars().count());
                     credit(position, METADATA_WEIGHT, METADATA_WEIGHT, "metadata match");
                     for (index, term) in terms.iter().enumerate() {
@@ -234,8 +246,18 @@ impl KnowledgeIndex {
             }
         }
 
+        query_phrases.sort();
+        query_phrases.dedup();
         for (position, hits) in matched_terms.iter().enumerate() {
             scores[position] += hits.iter().filter(|hit| **hit).count() as u32 * 25;
+            // The same symptom in ordinary Markdown carries the same phrase signal.
+            for phrase in &query_phrases {
+                if contains_term(&self.titles[position], phrase)
+                    || contains_term(&self.bodies[position], phrase)
+                {
+                    phrase_lengths[position] = phrase_lengths[position].max(phrase.chars().count());
+                }
+            }
         }
 
         if looks_like_python_failure(&normalized) {
@@ -356,16 +378,16 @@ impl KnowledgeIndex {
 // complete metadata phrases still take priority for lexical matches. Among exact
 // code matches, source preference wins before generic message overlap.
 // Source alone cannot create a hit.
-fn source_weight(source: &str) -> u32 {
+pub(super) fn source_weight(source: &str) -> u32 {
     match source {
-        "project" => 160,
-        "user" => 80,
-        source if source.starts_with("package:") => 40,
+        "project" => 30,
+        "user" => 20,
+        source if source.starts_with("package:") => 10,
         _ => 0,
     }
 }
 
-fn contains_identifier(query: &str, id: &str) -> bool {
+pub(super) fn contains_identifier(query: &str, id: &str) -> bool {
     if id.is_empty() {
         return false;
     }
@@ -420,7 +442,10 @@ fn add_lookup_value(map: &mut HashMap<String, Vec<usize>>, value: &str, position
 
 fn query_terms(normalized: &str) -> Vec<String> {
     let mut terms = Vec::new();
-    for raw_term in normalized.split(|character: char| !character.is_alphanumeric()) {
+    for raw_term in normalized.split(|character: char| {
+        !character.is_alphanumeric()
+            && !matches!(character, '\u{0e31}' | '\u{0e34}'..='\u{0e3a}' | '\u{0e47}'..='\u{0e4e}')
+    }) {
         let term = trim_thai_question_words(raw_term);
         if term.chars().count() <= 1 || is_stopword(term) {
             continue;
@@ -728,6 +753,41 @@ mod tests {
             "project:note"
         ));
         assert!(contains_identifier("inspect note", "note"));
+    }
+
+    #[test]
+    fn weak_project_overlap_does_not_displace_specific_generic_knowledge() {
+        let mut local = document(
+            "local",
+            "Recovery",
+            "cedar recovery",
+            KnowledgeMetadata::default(),
+        );
+        local.source = "project".into();
+        let generic = document(
+            "generic",
+            "Cedar recovery",
+            "cedar recovery",
+            KnowledgeMetadata {
+                keywords: vec!["cedar".into()],
+                ..Default::default()
+            },
+        );
+        let results = KnowledgeIndex::build(vec![local, generic]).search("cedar recovery guide");
+        assert_eq!(results[0].document.metadata.id, "generic");
+    }
+
+    #[test]
+    fn thai_combining_marks_stay_in_words_and_punctuation_still_separates_them() {
+        let terms = query_terms("หาไฟล์ไม่เจอ");
+        assert!(terms.iter().any(|term| term.contains('\u{0e4c}')));
+        assert!(terms.iter().any(|term| term.contains('\u{0e48}')));
+        assert_eq!(query_terms("ช่วยแก้หาไฟล์ไม่เจออย่างไร"), terms);
+        assert!(
+            query_terms("ไฟล์๚หาย")
+                .iter()
+                .all(|term| !term.contains('๚'))
+        );
     }
 
     #[test]
