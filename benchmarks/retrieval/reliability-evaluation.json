@@ -1,0 +1,340 @@
+{
+  "schema": 1,
+  "description": "Frozen independent synthetic reliability evaluation using only the unchanged supplied builtin, Python package and seven fixture references. Measures evidence retrieval, not authentic incidents or fix resolution.",
+  "split": "evaluation",
+  "provenance": {
+    "kind": "synthetic",
+    "id": "retrieval-reliability-fresh-2026-11-09-v1",
+    "selection": "Independently selected before the next ranking implementation; no predictions or ranking implementation inspected. Includes wrappers, path/identifier noise, single-line free queries, qualified IDs, multiple relevant sources, mixed diagnostics and supported/unsupported boundaries. Frozen labels must not be tuned to observed outcomes.",
+    "source_exclusions": [
+      {
+        "path": "benchmarks/retrieval/cases.json",
+        "sha256": "6ba824757fca6994397873de76a7f71d3f57a8a0b2f0a56f0f00bf42e4b7a794",
+        "cases": 40
+      },
+      {
+        "path": "benchmarks/retrieval/holdout.json",
+        "sha256": "f0970ca06b061fce20baae07a40f44541866514a2ee192f9334c56509a9a8aac",
+        "cases": 12
+      }
+    ],
+    "limits": "24 deliberately varied synthetic cases sharing the existing small corpus; zero authentic incident logs. Shared source IDs and diagnostic families are intentional; normalized queries are disjoint from both exposed regression sets. Semantic overlap with known diagnostic families does not establish real-world generalization."
+  },
+  "cases": [
+    {
+      "id": "F01",
+      "language": "rust",
+      "kind": "exact",
+      "query": "error[E0308]: mismatched types\n --> crates/port_bridge/src/unused_import.rs:61:12\n  | expected `u64`, found `String`",
+      "expected_sources": [
+        "builtin:rust-e0308"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The rustc type diagnostic is decisive despite unrelated words inside the source path."
+    },
+    {
+      "id": "F02",
+      "language": "rust",
+      "kind": "exact",
+      "query": "Checking telemetry v0.2.0 (/work/node_module)\nerror[E0433]: failed to resolve: use of unresolved module or unlinked crate `codec`\n --> src/network.rs:7:5",
+      "expected_sources": [
+        "builtin:rust-e0433"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The missing crate diagnostic has its own supplied Rust reference; directory names do not change the language."
+    },
+    {
+      "id": "F03",
+      "language": "python",
+      "kind": "exact",
+      "query": "Traceback (most recent call last):\n  File \"/srv/port/ownership_bridge.py\", line 29, in summarize\n    return missing_total\nNameError: name 'missing_total' is not defined",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-name-errors"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "A concrete NameError is supported by the names-and-scope note rather than generic traceback guidance."
+    },
+    {
+      "id": "F04",
+      "language": "python",
+      "kind": "exact",
+      "query": "File \"/opt/worker/queue.py\", line 44, in run_sync\n    asyncio.run(refresh())\nRuntimeError: asyncio.run() cannot be called from a running event loop",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-async-event-loop-errors"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The running-loop diagnostic has dedicated asyncio guidance."
+    },
+    {
+      "id": "F05",
+      "language": "node",
+      "kind": "exact",
+      "query": "node:internal/modules/esm/resolve:879\nError [ERR_MODULE_NOT_FOUND]: Cannot find package 'renderer' imported from /work/unused-import/ownership/main.mjs",
+      "expected_sources": [
+        "package:retrieval-benchmark:node-module"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "A Node ESM diagnostic remains specific despite misleading project and identifier words."
+    },
+    {
+      "id": "F06",
+      "language": "go",
+      "kind": "exact",
+      "query": "# example.invalid/portbridge/cmd/check\ncmd/check/ownership.go:34:17: undefined: manifestIndex",
+      "expected_sources": [
+        "package:retrieval-benchmark:go-undefined"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The Go compiler location and unknown symbol identify the undefined-identifier reference."
+    },
+    {
+      "id": "F07",
+      "language": "git",
+      "kind": "exact",
+      "query": "Auto-merging config/worker.yaml\nCONFLICT (content): Merge conflict in config/worker.yaml\nAutomatic merge failed; fix conflicts and then commit the result.",
+      "expected_sources": [
+        "builtin:git-merge-conflict"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The supplied Git note directly covers a content merge conflict and continuation."
+    },
+    {
+      "id": "F08",
+      "language": "docker",
+      "kind": "exact",
+      "query": "docker version\nClient: Docker Engine\nCannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?",
+      "expected_sources": [
+        "builtin:docker-daemon-not-running"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The daemon socket failure is covered by the Docker daemon note."
+    },
+    {
+      "id": "F09",
+      "language": "python",
+      "kind": "exact",
+      "query": "Traceback (most recent call last):\n  File \"listen.py\", line 8, in read_config\n    retries = int(raw_retries)\nValueError: invalid literal for int() with base 10: 'several'",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-type-and-value-errors"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The conversion failure is a ValueError with a dedicated type/value troubleshooting note."
+    },
+    {
+      "id": "F10",
+      "language": "rust",
+      "kind": "paraphrase",
+      "query": "Rust pass a reference to read a value without taking ownership",
+      "expected_sources": [
+        "builtin:rust-ownership-basics",
+        "builtin:rust-e0382"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "Both the ownership concept and moved-value note explain borrowing for read-only use."
+    },
+    {
+      "id": "F11",
+      "language": "python",
+      "kind": "ambiguous",
+      "query": "Python package installed but not found; check which interpreter pip is using",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-environment-and-pip",
+        "package:python-fastapi-basics:python-module-not-found"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "Interpreter alignment and missing-package investigation are both directly relevant."
+    },
+    {
+      "id": "F12",
+      "language": "go",
+      "kind": "paraphrase",
+      "query": "Go identifier spelling declaration scope and package qualification",
+      "expected_sources": [
+        "package:retrieval-benchmark:go-undefined"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The supplied undefined-identifier reference explicitly covers these three checks."
+    },
+    {
+      "id": "F13",
+      "language": "python",
+      "kind": "ambiguous",
+      "query": "Uvicorn Error loading ASGI app: Could not import module \"billing.main\"",
+      "expected_sources": [
+        "package:python-fastapi-basics:fastapi-uvicorn-import-error",
+        "package:python-fastapi-basics:python-module-not-found"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "Uvicorn target resolution and general Python module-path checks both support this startup import failure."
+    },
+    {
+      "id": "F14",
+      "language": "python",
+      "kind": "ambiguous",
+      "query": "Python TypeError: 'NoneType' object is not iterable",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-none-type-error",
+        "package:python-fastapi-basics:python-type-and-value-errors"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The dedicated NoneType note is most specific, while the general TypeError note supplies applicable type inspection guidance."
+    },
+    {
+      "id": "F15",
+      "language": "go",
+      "kind": "ambiguous",
+      "query": "# example.invalid/checker\n./main.go:4:2: \"strings\" imported and not used\n./main.go:18:9: undefined: requestCount",
+      "expected_sources": [
+        "package:retrieval-benchmark:go-unused",
+        "package:retrieval-benchmark:go-undefined"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The same synthetic build contains two independent diagnostics, so either or both corresponding notes are relevant."
+    },
+    {
+      "id": "F16",
+      "language": "rust",
+      "kind": "ambiguous",
+      "query": "error[E0432]: unresolved import `codec::Reader`\nerror[E0433]: failed to resolve: use of unresolved module `transport`",
+      "expected_sources": [
+        "builtin:rust-e0432",
+        "builtin:rust-e0433"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "Both explicitly present Rust import/resolution diagnostics have dedicated supporting evidence."
+    },
+    {
+      "id": "F17",
+      "language": "python",
+      "kind": "ambiguous",
+      "query": "Traceback (most recent call last):\n  File \"launcher.py\", line 3, in <module>\n    import shipping_client\nModuleNotFoundError: No module named 'shipping_client'\nThe above exception was the direct cause of the following exception:\nRuntimeError: startup aborted",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-module-not-found",
+        "package:python-fastapi-basics:python-traceback-playbook"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The missing-module note covers the underlying failure and the playbook explicitly explains chained exception wrappers."
+    },
+    {
+      "id": "F18",
+      "language": "english",
+      "kind": "ambiguous",
+      "query": "bind: address already in use; how do I find the listener or choose another port?",
+      "expected_sources": [
+        "builtin:docker-port-in-use",
+        "package:retrieval-benchmark:node-port",
+        "package:python-fastapi-basics:fastapi-port-in-use"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "No runtime is specified. All three supplied port-conflict notes explain locating a listener and changing ports."
+    },
+    {
+      "id": "F19",
+      "language": "python",
+      "kind": "insufficient",
+      "query": "Python traceback: ShipmentLedgerError: ledger revision is stale\n  File \"reconcile.py\", line 77, in commit_batch",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-traceback-playbook"
+      ],
+      "acceptable_statuses": [
+        "general_guidance"
+      ],
+      "rationale": "This invented application exception has no dedicated note, so only explicitly general traceback investigation is justified."
+    },
+    {
+      "id": "F20",
+      "language": "typescript",
+      "kind": "insufficient",
+      "query": "src/feature.ts(9,3): error TS7027: Unreachable code detected.",
+      "expected_sources": [],
+      "acceptable_statuses": [
+        "no_adequate_match"
+      ],
+      "rationale": "The supplied TypeScript references cover TS2307 and TS2322, not unreachable-code diagnostics."
+    },
+    {
+      "id": "F21",
+      "language": "rust",
+      "kind": "insufficient",
+      "query": "error[E0123]: synthetic unsupported diagnostic\n --> src/replay.rs:5:2",
+      "expected_sources": [],
+      "acceptable_statuses": [
+        "no_adequate_match"
+      ],
+      "rationale": "The absent exact code must not borrow evidence from a different rustc error."
+    },
+    {
+      "id": "F22",
+      "language": "english",
+      "kind": "unrelated",
+      "query": "Calculate shipping insurance for pottery stored at /tmp/port_ownership/manifest.json",
+      "expected_sources": [],
+      "acceptable_statuses": [
+        "no_adequate_match"
+      ],
+      "rationale": "A developer-shaped path does not supply evidence for an unrelated insurance question."
+    },
+    {
+      "id": "F23",
+      "language": "python",
+      "kind": "exact",
+      "query": "Show package:python-fastapi-basics:python-network-errors",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-network-errors"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "A source-qualified note ID identifies the supplied network troubleshooting reference independently of diagnostic text."
+    },
+    {
+      "id": "F24",
+      "language": "python",
+      "kind": "exact",
+      "query": "Traceback (most recent call last):\n  File \"/srv/asgi_client.py\", line 20, in connect\n    sock.connect(target)\nConnectionRefusedError: [Errno 111] Connection refused",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-network-errors"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "Connection refusal has dedicated network guidance and must not be confused with a local address-in-use server error."
+    }
+  ]
+}

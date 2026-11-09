@@ -1,0 +1,162 @@
+{
+  "schema": 1,
+  "description": "Frozen synthetic evaluation-only log-shaped and boundary cases, independently selected before ranking changes. No field incidents or fix-resolution claims.",
+  "split": "evaluation",
+  "provenance": {
+    "kind": "synthetic",
+    "id": "retrieval-holdout-2026-11-09",
+    "selection": "Selected from existing supplied notes and exact-code boundary failure modes before ranking implementation; do not use for tuning."
+  },
+  "cases": [
+    {
+      "id": "H01",
+      "language": "rust",
+      "kind": "exact",
+      "query": "error[E0382]: borrow of moved value: `payload`\n  --> src/worker.rs:42:9\n   | consume(payload);\n   | println!(\"{:?}\", payload);",
+      "expected_sources": [
+        "builtin:rust-e0382"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "A multiline synthetic rustc-shaped diagnostic retains its exact code."
+    },
+    {
+      "id": "H02",
+      "language": "rust",
+      "kind": "exact",
+      "query": "error[E0499]: cannot borrow `queue` as mutable more than once at a time\n --> src/main.rs:18:7",
+      "expected_sources": [
+        "builtin:rust-e0499"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "Separate mutable-borrow diagnostic with a synthetic source location."
+    },
+    {
+      "id": "H03",
+      "language": "python",
+      "kind": "exact",
+      "query": "sqlite3.OperationalError: database is locked\n  File \"worker.py\", line 87, in save_job",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-sqlite-database-locked"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The dedicated SQLite lock note supports this error, unlike generic database guidance."
+    },
+    {
+      "id": "H04",
+      "language": "python",
+      "kind": "exact",
+      "query": "UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte",
+      "expected_sources": [
+        "package:python-fastapi-basics:python-unicode-errors"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "The decoding failure is covered by the Unicode troubleshooting note."
+    },
+    {
+      "id": "H05",
+      "language": "python",
+      "kind": "exact",
+      "query": "fastapi.exceptions.ResponseValidationError: 1 validation error:\n  {'type': 'missing', 'loc': ('response', 'name')}",
+      "expected_sources": [
+        "package:python-fastapi-basics:fastapi-response-validation-error"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "Response validation must use response rather than request validation evidence."
+    },
+    {
+      "id": "H06",
+      "language": "typescript",
+      "kind": "exact",
+      "query": "src/view.ts(17,5): error TS2322: Type 'string' is not assignable to type 'number'.",
+      "expected_sources": [
+        "package:retrieval-benchmark:ts2322"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "A synthetic compiler wrapper must preserve the exact TypeScript diagnostic."
+    },
+    {
+      "id": "H07",
+      "language": "node",
+      "kind": "exact",
+      "query": "Error: ENOENT: no such file or directory, open '/tmp/example/config.json'\n    at Object.openSync (node:fs:596:3)",
+      "expected_sources": [
+        "package:retrieval-benchmark:node-enoent"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "A Node-shaped stack trace identifies its absent-file reference."
+    },
+    {
+      "id": "H08",
+      "language": "go",
+      "kind": "exact",
+      "query": "go build ./cmd/server\ncmd/server/main.go:11:2: \"fmt\" imported and not used",
+      "expected_sources": [
+        "package:retrieval-benchmark:go-unused"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "Build command and location noise must not hide the unused import diagnostic."
+    },
+    {
+      "id": "H09",
+      "language": "rust",
+      "kind": "exact",
+      "query": "builtin:rust-e0432",
+      "expected_sources": [
+        "builtin:rust-e0432"
+      ],
+      "acceptable_statuses": [
+        "retrieved_guidance"
+      ],
+      "rationale": "A source-qualified ID identifies one document directly."
+    },
+    {
+      "id": "H10",
+      "language": "rust",
+      "kind": "insufficient",
+      "query": "E03820",
+      "expected_sources": [],
+      "acceptable_statuses": [
+        "no_adequate_match"
+      ],
+      "rationale": "A longer, absent error code must not be treated as E0382."
+    },
+    {
+      "id": "H11",
+      "language": "typescript",
+      "kind": "insufficient",
+      "query": "TS23220",
+      "expected_sources": [],
+      "acceptable_statuses": [
+        "no_adequate_match"
+      ],
+      "rationale": "A longer, absent TypeScript code must not be treated as TS2322."
+    },
+    {
+      "id": "H12",
+      "language": "english",
+      "kind": "unrelated",
+      "query": "Which telescope photographs the rings of Saturn?",
+      "expected_sources": [],
+      "acceptable_statuses": [
+        "no_adequate_match"
+      ],
+      "rationale": "Astronomy has no supporting evidence in the supplied developer corpus."
+    }
+  ]
+}
