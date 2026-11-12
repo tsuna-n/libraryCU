@@ -7,7 +7,13 @@ pub fn run(args: SearchArgs) -> Result<()> {
     let root = scanner::find_project_root(&args.project)?;
     let loaded_config = config::load()?;
     let language = answer::choose_language(&loaded_config.config.output.language, &args.query);
-    let retrieved = knowledge::retrieval::retrieve_with_language(&root, &args.query, &language)?;
+    let scope = if args.project_only {
+        knowledge::retrieval::RetrievalScope::Project
+    } else {
+        knowledge::retrieval::RetrievalScope::All
+    };
+    let retrieved =
+        knowledge::retrieval::retrieve_with_scope(&root, &args.query, &language, scope)?;
     let results: Vec<_> = retrieved
         .results
         .into_iter()

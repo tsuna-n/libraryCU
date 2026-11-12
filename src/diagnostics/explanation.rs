@@ -56,14 +56,39 @@ pub fn explain(
     project_path: &Path,
     scanner_config: &ScannerConfig,
 ) -> Result<ExplanationReport> {
+    explain_with_scope(
+        input,
+        project_path,
+        scanner_config,
+        knowledge::retrieval::RetrievalScope::All,
+    )
+}
+
+pub fn explain_with_scope(
+    input: &str,
+    project_path: &Path,
+    scanner_config: &ScannerConfig,
+    scope: knowledge::retrieval::RetrievalScope,
+) -> Result<ExplanationReport> {
     let diagnostics = super::parser::parse_diagnostics(input);
     let diagnostic = diagnostics
         .first()
         .cloned()
         .context("no error input was provided")?;
     let scan = scan_project(project_path, scanner_config)?;
-    let retrieved =
-        knowledge::retrieval::retrieve_diagnostic(&scan.project.root, input, &diagnostic)?;
+    let retrieved = match scope {
+        knowledge::retrieval::RetrievalScope::All => {
+            knowledge::retrieval::retrieve_diagnostic(&scan.project.root, input, &diagnostic)?
+        }
+        knowledge::retrieval::RetrievalScope::Project => {
+            knowledge::retrieval::retrieve_diagnostic_with_scope(
+                &scan.project.root,
+                input,
+                &diagnostic,
+                scope,
+            )?
+        }
+    };
     let matches: Vec<_> = retrieved
         .results
         .into_iter()

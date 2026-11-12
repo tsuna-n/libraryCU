@@ -15,7 +15,13 @@ pub fn run(args: ExplainArgs) -> Result<()> {
     }
     let loaded = config::load()?;
     let language = crate::answer::choose_language(&loaded.config.output.language, &input);
-    let mut report = diagnostics::explain(&input, &args.project, &loaded.config.scanner)?;
+    let scope = if args.project_only {
+        crate::knowledge::retrieval::RetrievalScope::Project
+    } else {
+        crate::knowledge::retrieval::RetrievalScope::All
+    };
+    let mut report =
+        diagnostics::explain_with_scope(&input, &args.project, &loaded.config.scanner, scope)?;
 
     if args.json {
         if args.ai
@@ -93,6 +99,12 @@ pub fn run(args: ExplainArgs) -> Result<()> {
 }
 
 pub(super) fn read_error_input(args: &ExplainArgs) -> Result<String> {
+    if let Some(text) = &args.text {
+        if text.len() as u64 > MAX_ERROR_INPUT_BYTES {
+            bail!("selected error text is larger than 2 MB");
+        }
+        return Ok(text.clone());
+    }
     if let Some(path) = &args.file {
         return security::files::read_text(path, MAX_ERROR_INPUT_BYTES)
             .with_context(|| format!("failed to read error log {}", path.display()));

@@ -1,0 +1,23 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "lbc: Explain selection",
+      "type": "process",
+      "command": "lbc",
+      "args": ["explain", "--text", "${selectedText}", "--project", "${workspaceFolder}", "--project-only", "--no-color"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "echo": false }
+    },
+    {
+      "label": "lbc: Explain saved log",
+      "type": "process",
+      "command": "lbc",
+      "args": ["explain", "${file}", "--project", "${workspaceFolder}", "--project-only", "--no-color"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "echo": false }
+    }
+  ]
+}

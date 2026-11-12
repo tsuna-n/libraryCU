@@ -30,6 +30,7 @@ pub fn dispatch(cli: Cli) -> Result<()> {
         Command::ApplyProposal(args) => commands::fix::apply_proposal(args),
         Command::Rollback(args) => commands::fix::rollback(args),
         Command::Search(args) => commands::search::run(args),
+        Command::Mcp(args) => crate::mcp::run(args),
         Command::Config { command } => commands::config::run(command),
         Command::Doctor(args) => commands::doctor::run(args),
         Command::Knowledge { command } => commands::knowledge::run(command),

@@ -7,11 +7,17 @@ use crate::{ai, answer, cli::args::AskArgs, config, output};
 pub fn run(args: AskArgs) -> Result<()> {
     let loaded = config::load()?;
     let project = crate::scanner::find_project_root(&args.project)?;
-    let mut report = answer::answer(
+    let scope = if args.project_only {
+        crate::knowledge::retrieval::RetrievalScope::Project
+    } else {
+        crate::knowledge::retrieval::RetrievalScope::All
+    };
+    let mut report = answer::answer_with_scope(
         &args.question,
         &project,
         &loaded.config.output,
         &loaded.config.scanner,
+        scope,
     )?;
     if args.json {
         if args.ai

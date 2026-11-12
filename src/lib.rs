@@ -6,6 +6,7 @@ pub mod diagnostics;
 pub mod fixer;
 pub mod history;
 pub mod knowledge;
+pub mod mcp;
 pub mod output;
 pub mod scanner;
 pub mod security;

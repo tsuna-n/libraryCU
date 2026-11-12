@@ -91,6 +91,20 @@ pub fn load_all_documents(project_root: &Path) -> Result<LoadReport> {
     )
 }
 
+pub fn load_all_documents_with_scope(
+    project_root: &Path,
+    scope: super::retrieval::RetrievalScope,
+) -> Result<LoadReport> {
+    if scope == super::retrieval::RetrievalScope::All {
+        return load_all_documents(project_root);
+    }
+    let project_root = crate::scanner::find_project_root(project_root)?;
+    let mut documents = Vec::new();
+    let mut invalid = Vec::new();
+    collect_project_sources(&project_root, &mut documents, &mut invalid);
+    finish_documents(documents, invalid, true)
+}
+
 /// Compatibility helper retained for package and unit tests.
 pub fn load_documents_with_data_dir(
     project_root: &Path,
@@ -207,27 +221,33 @@ fn load_all_documents_with_roots(
             );
         }
     }
+    collect_project_sources(project_root, &mut documents, &mut invalid);
+    finish_documents(documents, invalid, false)
+}
+
+fn collect_project_sources(
+    project_root: &Path,
+    documents: &mut Vec<KnowledgeDocument>,
+    invalid: &mut Vec<InvalidDocument>,
+) {
     let legacy = project_root.join("knowledge");
-    collect_source(
-        &legacy,
-        "project",
-        &legacy,
-        true,
-        &mut documents,
-        &mut invalid,
-    );
+    collect_source(&legacy, "project", &legacy, true, documents, invalid);
     let explicit = project_root.join(".lbc/knowledge");
-    collect_source(
-        &explicit,
-        "project",
-        &explicit,
-        true,
-        &mut documents,
-        &mut invalid,
-    );
+    collect_source(&explicit, "project", &explicit, true, documents, invalid);
+}
+
+fn finish_documents(
+    mut documents: Vec<KnowledgeDocument>,
+    mut invalid: Vec<InvalidDocument>,
+    project_only: bool,
+) -> Result<LoadReport> {
     mark_repeated_content(&mut documents);
     mark_duplicate_ids(&mut documents, &mut invalid);
-    apply_overrides(&mut documents, &mut invalid);
+    if project_only {
+        apply_overrides_in_scope(&mut documents, &mut invalid, true);
+    } else {
+        apply_overrides(&mut documents, &mut invalid);
+    }
     documents.sort_by(|left, right| {
         left.source_id
             .cmp(&right.source_id)
@@ -371,6 +391,14 @@ fn mark_duplicate_ids(documents: &mut [KnowledgeDocument], invalid: &mut Vec<Inv
 }
 
 fn apply_overrides(documents: &mut [KnowledgeDocument], invalid: &mut Vec<InvalidDocument>) {
+    apply_overrides_in_scope(documents, invalid, false);
+}
+
+fn apply_overrides_in_scope(
+    documents: &mut [KnowledgeDocument],
+    invalid: &mut Vec<InvalidDocument>,
+    project_only: bool,
+) {
     let positions: HashMap<_, _> = documents
         .iter()
         .enumerate()
@@ -452,10 +480,11 @@ fn apply_overrides(documents: &mut [KnowledgeDocument], invalid: &mut Vec<Invali
             }
             continue;
         }
-        let Some(target_position) = documents
+        let target_position = documents
             .iter()
-            .position(|document| document.source_id == target)
-        else {
+            .position(|document| document.source_id == target);
+        // External targets are deliberately unavailable in project-only mode.
+        if target_position.is_none() && !(project_only && !target.starts_with("project:")) {
             for (_, position) in candidates {
                 documents[position].effective = false;
                 invalid.push(InvalidDocument {
@@ -464,7 +493,7 @@ fn apply_overrides(documents: &mut [KnowledgeDocument], invalid: &mut Vec<Invali
                 });
             }
             continue;
-        };
+        }
         let highest = candidates
             .iter()
             .map(|(priority, _)| *priority)
@@ -487,8 +516,10 @@ fn apply_overrides(documents: &mut [KnowledgeDocument], invalid: &mut Vec<Invali
         }
         let winner = highest_positions[0];
         let winner_id = documents[winner].source_id.clone();
-        documents[target_position].effective = false;
-        documents[target_position].overridden_by = Some(winner_id.clone());
+        if let Some(target_position) = target_position {
+            documents[target_position].effective = false;
+            documents[target_position].overridden_by = Some(winner_id.clone());
+        }
         for (_, position) in candidates {
             if position != winner {
                 documents[position].effective = false;

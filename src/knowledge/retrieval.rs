@@ -2,7 +2,14 @@ use std::{collections::HashSet, path::Path};
 
 use anyhow::Result;
 
-use super::{InvalidDocument, KnowledgeIndex, SearchResult, load_all_documents};
+use super::{InvalidDocument, KnowledgeIndex, SearchResult};
+
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+pub enum RetrievalScope {
+    #[default]
+    All,
+    Project,
+}
 
 pub const MAX_QUERY_BYTES: usize = 8 * 1024;
 
@@ -42,8 +49,17 @@ pub fn retrieve_with_language(
     query: &str,
     language: &str,
 ) -> Result<RetrievalReport> {
+    retrieve_with_scope(project, query, language, RetrievalScope::All)
+}
+
+pub fn retrieve_with_scope(
+    project: &Path,
+    query: &str,
+    language: &str,
+    scope: RetrievalScope,
+) -> Result<RetrievalReport> {
     validate_query(query)?;
-    retrieve_documents(project, query, language, None)
+    retrieve_documents(project, query, language, None, scope)
 }
 
 /// Explain's reader already bounds the log; retain its larger input contract.
@@ -51,6 +67,15 @@ pub(crate) fn retrieve_diagnostic(
     project: &Path,
     input: &str,
     diagnostic: &crate::diagnostics::Diagnostic,
+) -> Result<RetrievalReport> {
+    retrieve_diagnostic_with_scope(project, input, diagnostic, RetrievalScope::All)
+}
+
+pub(crate) fn retrieve_diagnostic_with_scope(
+    project: &Path,
+    input: &str,
+    diagnostic: &crate::diagnostics::Diagnostic,
+    scope: RetrievalScope,
 ) -> Result<RetrievalReport> {
     let language = if input
         .chars()
@@ -60,7 +85,7 @@ pub(crate) fn retrieve_diagnostic(
     } else {
         "en"
     };
-    retrieve_documents(project, input, language, Some(diagnostic))
+    retrieve_documents(project, input, language, Some(diagnostic), scope)
 }
 
 fn retrieve_documents(
@@ -68,8 +93,10 @@ fn retrieve_documents(
     query: &str,
     language: &str,
     diagnostic: Option<&crate::diagnostics::Diagnostic>,
+    scope: RetrievalScope,
 ) -> Result<RetrievalReport> {
-    let loaded = load_all_documents(project)?;
+    let project = crate::scanner::detect_project(project)?;
+    let loaded = super::loader::load_all_documents_with_scope(&project.root, scope)?;
     let documents = loaded
         .documents
         .into_iter()
@@ -81,6 +108,7 @@ fn retrieve_documents(
             query,
             language,
             diagnostic,
+            &project,
         )?,
         invalid: loaded.invalid,
     })
@@ -91,6 +119,7 @@ fn search_index(
     query: &str,
     language: &str,
     diagnostic: Option<&crate::diagnostics::Diagnostic>,
+    project: &crate::scanner::ProjectInfo,
 ) -> Result<Vec<SearchResult>> {
     let parsed = if diagnostic.is_none() {
         crate::diagnostics::parse_diagnostics(query)
@@ -113,7 +142,7 @@ fn search_index(
         validate_query(query)?;
         return Ok(select_results(
             query,
-            index.search_with_language(query, language),
+            index.search_with_project(query, language, project),
         ));
     }
     let mut combined = Vec::new();
@@ -130,7 +159,7 @@ fn search_index(
             diagnostic.message
         );
         validate_query(&focused)?;
-        let mut results = index.search_with_language(&focused, language);
+        let mut results = index.search_with_project(&focused, language, project);
         if let Some(code) = &diagnostic.code {
             let code = if diagnostic.source.as_deref() == Some("python") {
                 code.rsplit('.').next().unwrap_or(code)
@@ -282,7 +311,9 @@ fn select_results(query: &str, mut results: Vec<SearchResult>) -> Vec<SearchResu
             .unwrap_or(0);
         phrases.retain(|phrase| phrase.chars().count() == longest_phrase);
         let lexical_score = |result: &SearchResult| {
-            result.score - super::index::source_weight(&result.document.source)
+            result.score
+                - super::index::source_weight(&result.document.source)
+                - super::index::project_context_weight(result)
         };
         let best_score = results
             .iter()
@@ -531,14 +562,16 @@ mod tests {
             "go build ./internal/dispatcher\ninternal/dispatcher/handler.go:242:12: undefined identifier",
         ] {
             assert_eq!(
-                search_index(&notes, query, "en", None).unwrap().len(),
+                search_index(&notes, query, "en", None, &Default::default())
+                    .unwrap()
+                    .len(),
                 1,
                 "{query}"
             );
         }
         let unsupported = "Traceback (most recent call last):\n  File \"task_queue.py\", line 88\nMysteryError: transaction is busy";
         assert!(
-            search_index(&notes, unsupported, "en", None)
+            search_index(&notes, unsupported, "en", None, &Default::default())
                 .unwrap()
                 .is_empty()
         );
@@ -560,7 +593,8 @@ mod tests {
                 "---\nid: other\nlanguage: linux\n---\n# Command lookup\n\nหาไฟล์ executable ที่ใช้ได้ แล้วลองตรวจ log เจอข้อผิดพลาดอื่น.",
             ),
         ]);
-        let results = search_index(&notes, "Node หาไฟล์ไม่เจอ", "th", None).unwrap();
+        let results =
+            search_index(&notes, "Node หาไฟล์ไม่เจอ", "th", None, &Default::default()).unwrap();
         assert!(results.iter().any(|r| r.document.metadata.id == "primary"));
         assert!(results.iter().any(|r| r.document.metadata.id == "support"));
         assert!(!results.iter().any(|r| r.document.metadata.id == "other"));
@@ -587,15 +621,21 @@ mod tests {
             ),
         ]);
         assert_eq!(
-            search_index(&notes, "Node missing file", "en", None)
+            search_index(&notes, "Node missing file", "en", None, &Default::default())
                 .unwrap()
                 .len(),
             2
         );
         assert_eq!(
-            search_index(&notes, "EADDRINUSE address already in use", "en", None)
-                .unwrap()
-                .len(),
+            search_index(
+                &notes,
+                "EADDRINUSE address already in use",
+                "en",
+                None,
+                &Default::default()
+            )
+            .unwrap()
+            .len(),
             2
         );
     }
@@ -607,7 +647,7 @@ mod tests {
             "---\nid: decode\nlanguage: python\nerror_code: DecodeError\n---\n# Decode input\n\nDecodeError means the input cannot be decoded.",
         )]);
         let query = "Traceback (most recent call last):\n  File \"decoder.py\", line 19\ncodec.parser.DecodeError: input cannot be decoded";
-        let results = search_index(&notes, query, "en", None).unwrap();
+        let results = search_index(&notes, query, "en", None, &Default::default()).unwrap();
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].document.metadata.id, "decode");
     }
@@ -619,11 +659,22 @@ mod tests {
             "---\nid: manual\n---\n# Local recipe\n\nRotate the token to recover the widget.",
         )]);
         let query = "error[E9999]: unknown error\nSee unknown:manual";
-        assert_eq!(search_index(&notes, query, "en", None).unwrap().len(), 1);
         assert_eq!(
-            search_index(&notes, "rotate token\nrecover widget", "en", None)
+            search_index(&notes, query, "en", None, &Default::default())
                 .unwrap()
                 .len(),
+            1
+        );
+        assert_eq!(
+            search_index(
+                &notes,
+                "rotate token\nrecover widget",
+                "en",
+                None,
+                &Default::default()
+            )
+            .unwrap()
+            .len(),
             1
         );
     }
@@ -645,7 +696,7 @@ mod tests {
             ),
         ]);
         let input = "Traceback (most recent call last):\n  File \"startup.py\", line 12\nImportError: dependency initialization cycle";
-        let results = search_index(&notes, input, "en", None).unwrap();
+        let results = search_index(&notes, input, "en", None, &Default::default()).unwrap();
         assert!(results.iter().any(|r| r.document.metadata.id == "specific"));
         assert!(
             !results
@@ -657,7 +708,8 @@ mod tests {
                 &notes,
                 &input.replace("ImportError", "UnknownCustomError"),
                 "en",
-                None
+                None,
+                &Default::default(),
             )
             .unwrap()
             .is_empty()
@@ -677,10 +729,15 @@ mod tests {
             ),
         ]);
         let input = "error[E0308]: mismatched types\n --> first.rs:2:3\nerror[E0382]: borrow of moved value\n --> second.rs:8:4";
-        assert_eq!(search_index(&notes, input, "en", None).unwrap().len(), 2);
+        assert_eq!(
+            search_index(&notes, input, "en", None, &Default::default())
+                .unwrap()
+                .len(),
+            2
+        );
         let primary = crate::diagnostics::parse_primary(input).unwrap();
         assert_eq!(
-            search_index(&notes, input, "en", Some(&primary))
+            search_index(&notes, input, "en", Some(&primary), &Default::default())
                 .unwrap()
                 .len(),
             1

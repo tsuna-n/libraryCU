@@ -5,6 +5,25 @@ Detailed behavior, compatibility, and safety limits. Start with the
 [installation guide](installation.md) for binary installation.
 Run `lbc COMMAND --help` for the complete flag list.
 
+## Developer tools and project memory
+
+`lbc mcp --project PATH [--project-only]` starts an optional read-only MCP stdio
+server. Its three tools search, inspect, and explain using existing local cores;
+they do not execute commands, enable AI, or modify source. The project directory
+is required and fixed for the session. See [MCP, Codex CLI, and OpenCode](mcp.md).
+
+`search`, `ask`, and `explain` accept `--project-only` to exclude all shared
+knowledge stores. Default scope remains project plus user/package/built-in
+knowledge. Matching project language/tool/framework metadata helps rank already
+relevant results; historical verification is not verification of a new problem.
+See [project memory](project-memory.md).
+
+`lbc explain --text TEXT [--project PATH]` accepts selected editor text as one
+literal argument. It conflicts with a positional log file and `--stdin`, rejects
+empty input, and retains the 2 MB input bound. For large or sensitive text,
+prefer stdin or a saved log over process arguments. Optional [VS Code and Neovim
+examples](editor-integration.md) send selections and logs without shell evaluation.
+
 ## Output and troubleshooting
 
 `--quiet` (`-q`) hides optional warnings and progress, keeping command results,

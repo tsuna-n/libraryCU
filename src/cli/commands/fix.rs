@@ -48,11 +48,13 @@ pub fn run(args: FixArgs) -> Result<()> {
         .transpose()?;
     let input = super::explain::read_error_input(&ExplainArgs {
         file: args.file,
+        text: None,
         stdin: args.stdin,
         ai: args.ai,
         json: args.json,
         verbose: false,
         project: args.project.clone(),
+        project_only: false,
     })?;
     let diagnostic = diagnostics::parse_primary(&input)
         .ok_or_else(|| anyhow::anyhow!("error input is empty"))?;

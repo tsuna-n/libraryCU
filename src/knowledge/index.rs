@@ -16,6 +16,7 @@ const TERM_TITLE_WEIGHT: u32 = 20;
 const TERM_BODY_WEIGHT: u32 = 3;
 /// Maximum body occurrences counted per term.
 const MAX_BODY_HITS: u32 = 5;
+const PROJECT_CONTEXT_WEIGHT: u32 = 15;
 const ENGLISH_MARKER: &str = "<!-- lbc:en -->";
 const THAI_MARKER: &str = "<!-- lbc:th -->";
 pub const PYTHON_ERROR_FALLBACK_REASON: &str = "python error fallback";
@@ -136,6 +137,24 @@ impl KnowledgeIndex {
     }
 
     pub fn search_with_language(&self, query: &str, language: &str) -> Vec<SearchResult> {
+        self.search_with_context(query, language, None)
+    }
+
+    pub(super) fn search_with_project(
+        &self,
+        query: &str,
+        language: &str,
+        project: &crate::scanner::ProjectInfo,
+    ) -> Vec<SearchResult> {
+        self.search_with_context(query, language, Some(project))
+    }
+
+    fn search_with_context(
+        &self,
+        query: &str,
+        language: &str,
+        project: Option<&crate::scanner::ProjectInfo>,
+    ) -> Vec<SearchResult> {
         let normalized = query.trim().to_lowercase();
         if normalized.is_empty() {
             return Vec::new();
@@ -332,6 +351,48 @@ impl KnowledgeIndex {
                 }
             })
             .collect();
+        if let Some(project) = project {
+            for result in results
+                .iter_mut()
+                .filter(|result| super::retrieval::is_adequate(result))
+            {
+                let metadata = &result.document.metadata;
+                if let Some(language) = &metadata.language
+                    && let Some(detected) = project.languages.iter().find(|detected| {
+                        language.eq_ignore_ascii_case(detected)
+                            || language_family(&language.to_lowercase()).is_some_and(|family| {
+                                language_family(&detected.to_lowercase()) == Some(family)
+                            })
+                    })
+                {
+                    result
+                        .ranking_reasons
+                        .push(format!("project language: {detected}"));
+                }
+                if let Some(tool) = &metadata.tool
+                    && let Some(detected) = project
+                        .build_systems
+                        .iter()
+                        .chain(&project.containers)
+                        .find(|detected| tool.eq_ignore_ascii_case(detected))
+                {
+                    result
+                        .ranking_reasons
+                        .push(format!("project tool: {detected}"));
+                }
+                if let Some(framework) = &metadata.framework
+                    && let Some(detected) = project
+                        .frameworks
+                        .iter()
+                        .find(|detected| framework.eq_ignore_ascii_case(detected))
+                {
+                    result
+                        .ranking_reasons
+                        .push(format!("project framework: {detected}"));
+                }
+                result.score += project_context_weight(result);
+            }
+        }
         let phrase_by_source: HashMap<_, _> = self
             .documents
             .iter()
@@ -385,6 +446,15 @@ pub(super) fn source_weight(source: &str) -> u32 {
         source if source.starts_with("package:") => 10,
         _ => 0,
     }
+}
+
+pub(super) fn project_context_weight(result: &SearchResult) -> u32 {
+    result
+        .ranking_reasons
+        .iter()
+        .filter(|reason| reason.starts_with("project "))
+        .count() as u32
+        * PROJECT_CONTEXT_WEIGHT
 }
 
 pub(super) fn contains_identifier(query: &str, id: &str) -> bool {
@@ -475,7 +545,7 @@ fn language_family(value: &str) -> Option<&'static str> {
     match value {
         "rust" | "rustc" | "cargo" => Some("rust"),
         "python" | "pytest" | "ไพทอน" => Some("python"),
-        "typescript" | "javascript" | "node" | "nodejs" => Some("javascript"),
+        "typescript" | "javascript" | "node" | "nodejs" | "node.js" => Some("javascript"),
         "go" => Some("go"),
         _ => None,
     }

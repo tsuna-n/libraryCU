@@ -109,6 +109,14 @@ Optional `--ai` enhances retrieved evidence and sends bounded, redacted context
 to your configured provider. Review sensitive notes before enabling it.
 `fix`, `apply-proposal`, and `rollback` are experimental source-changing tools.
 
+For coding agents, `lbc mcp --project /absolute/path/to/project --project-only`
+exposes three read-only tools over stdio. See the [Codex CLI and OpenCode
+setup](docs/mcp.md). Optional [VS Code tasks and Neovim Lua](docs/editor-integration.md)
+send selections or error logs through the CLI. `search`, `ask`, and `explain`
+also accept `--project-only`; [project memory](docs/project-memory.md) explains
+scope and context ranking. Historical knowledge remains guidance to check
+against the current problem.
+
 Back up project knowledge with `lbc backup create ./knowledge-backup.json` and
 restore with `lbc backup restore ./knowledge-backup.json`; use `--user` for
 personal notes. `lbc export` and `lbc import` also support sharing bundles and

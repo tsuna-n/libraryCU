@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Optional read-only MCP stdio server with local search, knowledge inspection,
+  and offline error explanation; fixed project scope and Codex/OpenCode setup.
+- Small VS Code tasks and Neovim Lua examples for selected text and error logs,
+  plus `explain --text` for process-based editor tasks.
+- `--project-only` for search, ask, explain, and MCP; project stack metadata
+  improves ranking while retaining historical evidence labels and isolation.
+
 ## 0.7.0 — Knowledge maintenance (2026-11-12)
 
 ### Added

@@ -67,6 +67,8 @@ pub enum Command {
     Rollback(RollbackArgs),
     /// Search local technical knowledge
     Search(SearchArgs),
+    /// Serve read-only knowledge tools over MCP stdio (optional)
+    Mcp(McpArgs),
     /// View or modify LBC configuration
     Config {
         #[command(subcommand)]
@@ -261,6 +263,9 @@ pub struct AskArgs {
     pub question: String,
     #[arg(long, default_value = ".")]
     pub project: PathBuf,
+    /// Retrieve only this project's knowledge, excluding shared stores
+    #[arg(long)]
+    pub project_only: bool,
     #[arg(long)]
     pub ai: bool,
     #[arg(long)]
@@ -307,6 +312,9 @@ pub struct ExplainArgs {
     /// Error log file
     #[arg(value_name = "FILE", conflicts_with = "stdin")]
     pub file: Option<PathBuf>,
+    /// Explain selected text passed as one argument (for editor tasks)
+    #[arg(long, conflicts_with_all = ["file", "stdin"], allow_hyphen_values = true)]
+    pub text: Option<String>,
     /// Read error from stdin
     #[arg(long)]
     pub stdin: bool,
@@ -322,6 +330,9 @@ pub struct ExplainArgs {
     /// Project path used for contextual evidence
     #[arg(long, default_value = ".")]
     pub project: PathBuf,
+    /// Retrieve only this project's knowledge, excluding shared stores
+    #[arg(long)]
+    pub project_only: bool,
 }
 
 #[derive(Debug, Args)]
@@ -388,9 +399,22 @@ pub struct SearchArgs {
     /// Project path containing optional knowledge documents
     #[arg(long, default_value = ".")]
     pub project: PathBuf,
+    /// Retrieve only this project's knowledge, excluding shared stores
+    #[arg(long)]
+    pub project_only: bool,
     /// Output machine-readable JSON
     #[arg(long)]
     pub json: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct McpArgs {
+    /// Explicit project directory, fixed for the lifetime of this server
+    #[arg(long, value_name = "PATH")]
+    pub project: PathBuf,
+    /// Exclude user notes, installed packages and built-in knowledge
+    #[arg(long)]
+    pub project_only: bool,
 }
 
 #[derive(Debug, Subcommand)]
