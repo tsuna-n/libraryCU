@@ -155,7 +155,7 @@ and accept signed primary-pinned source (including signing subkeys).
 ## Canonical production manifest: exactly 25 assets
 
 .circleci/release-common.sh:set_release_assets is authoritative.
-VERSION is 0.6.0 for this candidate:
+VERSION is 0.7.0 for this candidate:
 
 | Unsigned input class | Exact names/count |
 |---|---|
@@ -266,6 +266,6 @@ mutation. The owner must reconcile it explicitly and approve a tag/revision
 recovery plan after reviewing this continuation; no automatic deletion,
 recreation, force-move, or final publication is authorized. See
 [release-completion-0.5.0.md](release-completion-0.5.0.md) for that historical
-v0.5.0 recovery scope. The current v0.6.0 candidate uses a new source revision;
-see its [release notes](release-0.6.0.md). crates.io publication remains out of
+v0.5.0 recovery scope. The current v0.7.0 candidate uses a new source revision;
+see its [release notes](release-0.7.0.md). crates.io publication remains out of
 scope, and production approval still requires every gate above.

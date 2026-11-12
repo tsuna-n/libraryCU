@@ -7,6 +7,9 @@ pub struct KnowledgeMetadata {
     pub kind: Option<String>,
     /// A source-qualified ID intentionally replaced by this document.
     pub overrides: Option<String>,
+    /// Local knowledge IDs or source-qualified IDs; never fetched from the network.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub references: Vec<String>,
     pub language: Option<String>,
     pub tool: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -25,6 +28,9 @@ pub struct KnowledgeMetadata {
     pub created_at_unix: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub updated_at_unix: Option<u64>,
+    /// Keep arbitrary YAML for edits; its map keys may not be JSON-compatible.
+    #[serde(flatten, skip_serializing)]
+    pub extra: std::collections::BTreeMap<String, serde_yaml::Value>,
 }
 
 #[derive(Debug, Clone, Serialize)]

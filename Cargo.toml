@@ -1,6 +1,6 @@
 [package]
 name = "librarycube"
-version = "0.6.0"
+version = "0.7.0"
 edition = "2024"
 description = "A local-first developer knowledge engine with offline retrieval and optional AI"
 license = "MIT"

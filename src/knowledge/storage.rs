@@ -115,6 +115,9 @@ fn add_entry_impl(
         metadata.title = Some(input.title.to_owned());
         metadata.kind = Some(input.kind.to_owned());
         metadata.overrides = input.overrides.map(str::to_owned);
+        let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
+        metadata.created_at_unix = Some(now);
+        metadata.updated_at_unix = Some(now);
         encode_metadata(&metadata, input.body)?
     } else {
         encode(&id, input.title, input.kind, input.overrides, input.body)?
@@ -220,9 +223,18 @@ fn edit_entry_impl(
                 && document.metadata.overrides.as_deref() == Some(&original.source_id)
         })
     });
+    let editing = existing_override.unwrap_or(&original);
+    let original_text = if editing.writable {
+        Some(crate::security::files::read_text(
+            Path::new(&editing.path),
+            MAX_NOTE_BYTES,
+        )?)
+    } else {
+        None
+    };
     let body = match input.replacement {
         Some(body) => body.to_owned(),
-        None => edit_with_editor(&existing_override.unwrap_or(&original).body)?,
+        None => edit_with_editor(&editing.body)?,
     };
     if body.trim().is_empty() {
         bail!("replacement body must not be empty; original entry was preserved");
@@ -237,9 +249,20 @@ fn edit_entry_impl(
             let _lock = crate::security::storage::lock_exclusive(&store_lock_path(parent))?;
             ensure_existing_target_is_safe(&target)?;
             ensure_document_unchanged(existing, input.project)?;
+            ensure_text_unchanged(&target, original_text.as_deref())?;
+            if body.trim() == existing.body.trim() {
+                return inspect_entry(&existing.source_id, input.project);
+            }
             let encoded = encode_existing(existing, &body)?;
             parse_document_for_source("override.md", &encoded, "user", &existing.path, true)
                 .context("replacement is not a valid knowledge document")?;
+            preserve_revision(
+                &existing.metadata.id,
+                original_text.as_deref().context("missing original note")?,
+                input.project,
+                true,
+            )?;
+            ensure_text_unchanged(&target, original_text.as_deref())?;
             atomic_replace(&target, encoded.as_bytes())?;
             return inspect_entry(&existing.source_id, input.project);
         }
@@ -262,6 +285,10 @@ fn edit_entry_impl(
     let _lock = crate::security::storage::lock_exclusive(&store_lock_path(parent))?;
     ensure_existing_target_is_safe(&target)?;
     ensure_document_unchanged(&original, input.project)?;
+    ensure_text_unchanged(&target, original_text.as_deref())?;
+    if body.trim() == original.body.trim() {
+        return inspect_entry(&original.source_id, input.project);
+    }
     let encoded = encode_existing(&original, &body)?;
     parse_document_for_source(
         target
@@ -274,6 +301,13 @@ fn edit_entry_impl(
         true,
     )
     .context("replacement is not a valid knowledge document")?;
+    preserve_revision(
+        &original.metadata.id,
+        original_text.as_deref().context("missing original note")?,
+        input.project,
+        original.source == "user",
+    )?;
+    ensure_text_unchanged(&target, original_text.as_deref())?;
     atomic_replace(&target, encoded.as_bytes())?;
     inspect_entry(&original.source_id, input.project)
 }
@@ -289,6 +323,9 @@ fn encode(
     metadata.insert("id".into(), id.into());
     metadata.insert("title".into(), title.into());
     metadata.insert("kind".into(), kind.into());
+    let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
+    metadata.insert("created_at_unix".into(), now.into());
+    metadata.insert("updated_at_unix".into(), now.into());
     if let Some(target) = overrides {
         metadata.insert("overrides".into(), target.into());
     }
@@ -308,18 +345,67 @@ fn encode_existing(document: &KnowledgeDocument, body: &str) -> Result<String> {
     } else {
         "unverified".to_owned()
     });
-    if metadata.updated_at_unix.is_some() && body.trim() != document.body.trim() {
+    if body.trim() != document.body.trim() {
         metadata.updated_at_unix = Some(SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs());
     }
     encode_metadata(&metadata, body)
 }
 
 fn encode_metadata(metadata: &KnowledgeMetadata, body: &str) -> Result<String> {
-    let frontmatter = serde_yaml::to_string(&metadata)?
+    let mut value = serde_yaml::to_value(metadata)?;
+    let mapping = value
+        .as_mapping_mut()
+        .context("metadata must be a YAML mapping")?;
+    for (key, value) in &metadata.extra {
+        mapping
+            .entry(key.clone().into())
+            .or_insert_with(|| value.clone());
+    }
+    let frontmatter = serde_yaml::to_string(&value)?
         .trim_start_matches("---\n")
         .trim_end()
         .to_owned();
     Ok(format!("---\n{frontmatter}\n---\n{}\n", body.trim()))
+}
+
+fn ensure_text_unchanged(target: &Path, original: Option<&str>) -> Result<()> {
+    if Some(crate::security::files::read_text(target, MAX_NOTE_BYTES)?.as_str()) != original {
+        bail!("knowledge entry changed during editing; the newer content was preserved");
+    }
+    Ok(())
+}
+
+/// Keep exact authored bytes before any replacement; never prune revisions.
+pub(crate) fn preserve_revision(
+    id: &str,
+    markdown: &str,
+    project: &Path,
+    user: bool,
+) -> Result<()> {
+    validate_id(id)?;
+    let root = if user {
+        super::packages::user_data_dir().join("knowledge-history")
+    } else {
+        crate::security::git::ensure_gitignore(project)?;
+        project.join(".lbc/knowledge-history")
+    };
+    let target = root
+        .join(format!("{id}.revisions"))
+        .join(format!("{}.md", super::bundle::digest(markdown)));
+    crate::security::files::reject_symlinks(&target)?;
+    match fs::symlink_metadata(&target) {
+        Ok(_) => {
+            if crate::security::files::read_store_text(&target, MAX_NOTE_BYTES, true)? != markdown {
+                bail!("existing knowledge revision differs; original note was preserved");
+            }
+            Ok(())
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            crate::security::storage::atomic_create(&target, markdown.as_bytes(), true)
+                .context("failed to preserve knowledge revision; original note was preserved")
+        }
+        Err(error) => Err(error).context("failed to inspect knowledge revision"),
+    }
 }
 
 fn slug(title: &str) -> String {
@@ -488,6 +574,87 @@ mod tests {
     use super::*;
 
     #[test]
+    fn ordinary_notes_receive_creation_and_update_dates() -> Result<()> {
+        let project = tempfile::tempdir()?;
+        let note = add_entry(AddEntry {
+            id: Some("dated"),
+            title: "Dated",
+            kind: "note",
+            body: "Original",
+            project: Some(project.path()),
+            overrides: None,
+        })?;
+        assert!(note.metadata.created_at_unix.is_some());
+        assert_eq!(note.metadata.created_at_unix, note.metadata.updated_at_unix);
+        Ok(())
+    }
+
+    #[test]
+    fn editing_legacy_notes_keeps_ids_custom_metadata_and_exact_revision() -> Result<()> {
+        let project = tempfile::tempdir()?;
+        let store = project.path().join(".lbc/knowledge");
+        fs::create_dir_all(&store)?;
+        let path = store.join("legacy.md");
+        let raw = "---\r\nid: stable\r\ncustom_field: {owner: team, values: [one, two]}\r\nreferences: [builtin:rust-e0308]\r\n---\r\n# Original\r\n\r\nOriginal body.  \r\n";
+        fs::write(&path, raw)?;
+        let updated = edit_entry(EditEntry {
+            reference: "project:stable",
+            replacement: Some("Revised body"),
+            project: project.path(),
+            create_override: false,
+        })?;
+        assert_eq!(updated.source_id, "project:stable");
+        assert_eq!(updated.path, path.display().to_string());
+        assert_eq!(updated.metadata.created_at_unix, None);
+        assert!(updated.metadata.updated_at_unix.is_some());
+        assert_eq!(updated.metadata.references, ["builtin:rust-e0308"]);
+        let saved = fs::read_to_string(&path)?;
+        assert!(saved.contains("custom_field:"));
+        assert!(saved.contains("owner: team"));
+        let history = project.path().join(".lbc/knowledge-history");
+        let revisions: Vec<_> = walkdir::WalkDir::new(history)
+            .into_iter()
+            .filter_map(Result::ok)
+            .filter(|entry| entry.file_type().is_file())
+            .collect();
+        assert_eq!(revisions.len(), 1);
+        assert_eq!(fs::read_to_string(revisions[0].path())?, raw);
+        let before_noop = fs::read(&path)?;
+        edit_entry(EditEntry {
+            reference: "project:stable",
+            replacement: Some("Revised body"),
+            project: project.path(),
+            create_override: false,
+        })?;
+        assert_eq!(fs::read(&path)?, before_noop);
+        Ok(())
+    }
+
+    #[test]
+    fn failed_revision_write_preserves_original_note() -> Result<()> {
+        let project = tempfile::tempdir()?;
+        let note = add_entry(AddEntry {
+            id: Some("protected"),
+            title: "Protected",
+            kind: "note",
+            body: "Keep me",
+            project: Some(project.path()),
+            overrides: None,
+        })?;
+        let original = fs::read(&note.path)?;
+        fs::write(project.path().join(".lbc/knowledge-history"), "blocked")?;
+        let result = edit_entry(EditEntry {
+            reference: &note.source_id,
+            replacement: Some("Replacement"),
+            project: project.path(),
+            create_override: false,
+        });
+        assert!(result.is_err());
+        assert_eq!(fs::read(&note.path)?, original);
+        Ok(())
+    }
+
+    #[test]
     fn captured_edit_preserves_changes_made_after_preview() {
         let project = tempfile::tempdir().unwrap();
         let original = add_entry(AddEntry {
@@ -531,6 +698,19 @@ mod tests {
         assert_eq!(reloaded.metadata, original.metadata);
         assert_eq!(reloaded.body, original.body);
         assert!(encoded.starts_with("---\n"));
+        Ok(())
+    }
+
+    #[test]
+    fn arbitrary_custom_yaml_survives_edits_without_breaking_json() -> Result<()> {
+        let raw = "---\nid: custom-yaml\ncustom: {[a, b]: value}\n---\nOriginal body\n";
+        let original = parse_document_for_source("custom.md", raw, "user", "/custom.md", true)?;
+        serde_json::to_string(&original)?;
+        let encoded = encode_existing(&original, "Updated body")?;
+        let reloaded =
+            parse_document_for_source("custom.md", &encoded, "user", "/custom.md", true)?;
+        assert_eq!(original.metadata.extra, reloaded.metadata.extra);
+        serde_json::to_string(&reloaded)?;
         Ok(())
     }
 

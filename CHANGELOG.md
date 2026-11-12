@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.7.0 — Knowledge maintenance (2026-11-12)
+
+### Added
+
+- Read-only `knowledge validate` warnings for malformed Markdown/YAML, IDs,
+  references, overrides, and dates; `knowledge review` finds entries to revisit
+  with a configurable age threshold.
+- Offline installation of the bundled 40-note Python/FastAPI package through
+  `knowledge install --bundled python-fastapi-basics`, with bundled/installed
+  listings and JSON output.
+- Creation/update dates for new notes, stable IDs and custom YAML preservation
+  during edits, and exact private revisions before edits or confirmed imports
+  replace existing notes. Revisions are never automatically pruned.
+
+### Changed
+
+- `knowledge remove NAME` now requires `--yes` to confirm deletion of the entire
+  package directory, including any local modifications.
+- Incoming package checksum manifests are verified before installation;
+  corrupted packages, duplicate IDs/paths (including case collisions), and
+  installed directory/manifest aliases are rejected.
+
+### Fixed
+
+- Duplicate override targets no longer select an arbitrary entry.
+- Arbitrary custom YAML values survive editing without breaking JSON responses.
+
+See [v0.7.0 release notes](docs/release-0.7.0.md). This source version does not
+claim published, signed production assets.
+
 ## 0.6.0 — Release candidate (2026-11-12)
 
 ### Added

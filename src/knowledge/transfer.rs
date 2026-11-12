@@ -171,6 +171,7 @@ fn apply_with_hook(
     }
     for (entry, target, old) in writes {
         let result = if let Some(old) = old {
+            super::storage::preserve_revision(&old.id, &old.markdown, &plan.project, plan.user)?;
             ensure!(
                 crate::security::files::read_store_text(&target, 256 * 1024, false)?
                     == old.markdown,
@@ -203,6 +204,25 @@ fn snapshot(entries: &[Entry]) -> BTreeMap<&str, (&str, Option<&Path>)> {
 mod tests {
     use super::*;
     use std::fs;
+
+    #[test]
+    fn replacement_keeps_exact_previous_markdown_in_revision_history() -> Result<()> {
+        let root = tempfile::tempdir()?;
+        let original = entry("stable", "Original authored text");
+        apply(prepare(root.path(), false, vec![original.clone()])?, false)?;
+        apply(
+            prepare(root.path(), false, vec![entry("stable", "Updated text")])?,
+            true,
+        )?;
+        let revisions: Vec<_> = walkdir::WalkDir::new(root.path().join(".lbc/knowledge-history"))
+            .into_iter()
+            .filter_map(Result::ok)
+            .filter(|entry| entry.file_type().is_file())
+            .collect();
+        assert_eq!(revisions.len(), 1);
+        assert_eq!(fs::read_to_string(revisions[0].path())?, original.markdown);
+        Ok(())
+    }
 
     fn entry(id: &str, body: &str) -> Entry {
         Entry {

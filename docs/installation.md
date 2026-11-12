@@ -3,7 +3,7 @@
 The command is `lbc`. Prebuilt release binaries require no Rust, Cargo, Node,
 Python, or AI provider. Core knowledge workflows work offline after installation.
 
-The current source version is **0.6.0**; see the [release notes](release-0.6.0.md).
+The current source version is **0.7.0**; see the [release notes](release-0.7.0.md).
 
 **Current availability (2026-11-12):** the public `v0.5.0` GitHub Release has zero
 assets. It is not a verified production release. The binary instructions below
@@ -15,13 +15,13 @@ Use the [source fallback](#source-fallback-requires-rust) for now. See the
 
 Download using your browser from
 [GitHub Releases](https://github.com/tsuna-n/libraryCU/releases).
-The release pipeline uses these filenames for version 0.6.0 (pending publication):
+The release pipeline uses these filenames for version 0.7.0 (pending publication):
 
 | Platform | Archive |
 |---|---|
-| Linux x86-64, glibc | `lbc-0.6.0-x86_64-unknown-linux-gnu.tar.gz` |
-| macOS Intel or Apple Silicon | `lbc-0.6.0-universal-apple-darwin.tar.gz` |
-| Windows x86-64 | `lbc-0.6.0-x86_64-pc-windows-msvc.zip` |
+| Linux x86-64, glibc | `lbc-0.7.0-x86_64-unknown-linux-gnu.tar.gz` |
+| macOS Intel or Apple Silicon | `lbc-0.7.0-universal-apple-darwin.tar.gz` |
+| Windows x86-64 | `lbc-0.7.0-x86_64-pc-windows-msvc.zip` |
 
 Do not substitute another CPU architecture. These instructions do not claim
 Linux ARM64, musl, or Windows ARM64 release artifacts exist.
@@ -56,13 +56,13 @@ with the authenticated **64 hexadecimal characters**, not the placeholder text.
 Linux:
 
 ```bash
-bash install.sh --archive ~/Downloads/lbc-0.6.0-x86_64-unknown-linux-gnu.tar.gz --sha256 TRUSTED_SHA256
+bash install.sh --archive ~/Downloads/lbc-0.7.0-x86_64-unknown-linux-gnu.tar.gz --sha256 TRUSTED_SHA256
 ```
 
 macOS:
 
 ```bash
-bash install.sh --archive ~/Downloads/lbc-0.6.0-universal-apple-darwin.tar.gz --sha256 TRUSTED_SHA256
+bash install.sh --archive ~/Downloads/lbc-0.7.0-universal-apple-darwin.tar.gz --sha256 TRUSTED_SHA256
 ```
 
 Installation defaults to `~/.local/bin`. Ensure that directory is on your `PATH`.
@@ -82,7 +82,7 @@ release archive also supports `./install.sh`.
 From the reviewed checkout containing `install.ps1`:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Archive "$HOME\Downloads\lbc-0.6.0-x86_64-pc-windows-msvc.zip" -Sha256 TRUSTED_SHA256
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Archive "$HOME\Downloads\lbc-0.7.0-x86_64-pc-windows-msvc.zip" -Sha256 TRUSTED_SHA256
 ```
 
 Replace `TRUSTED_SHA256` with the authenticated 64-character hexadecimal digest.

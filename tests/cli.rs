@@ -13,6 +13,8 @@ mod errors;
 mod fix;
 #[path = "cli/git_safety.rs"]
 mod git_safety;
+#[path = "cli/knowledge.rs"]
+mod knowledge_lifecycle;
 #[path = "cli/learn.rs"]
 mod learn;
 #[path = "cli/output.rs"]
@@ -515,7 +517,7 @@ fn knowledge_install_list_remove_roundtrip() {
     );
 
     let remove = lbc()
-        .args(["knowledge", "remove", "team-rules"])
+        .args(["knowledge", "remove", "team-rules", "--yes"])
         .env("XDG_DATA_HOME", &data_home)
         .output()
         .expect("lbc knowledge remove should run");

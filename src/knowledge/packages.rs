@@ -84,6 +84,30 @@ pub fn install_package(source: &Path, data_dir: &Path) -> Result<InstalledPackag
     install_package_with_hook(source, data_dir, || Ok(()))
 }
 
+/// Packages available offline from the binary, without a source checkout.
+pub fn bundled_packages() -> Vec<PackageManifest> {
+    vec![parse_manifest(super::bundled::MANIFEST).expect("valid bundled package manifest")]
+}
+
+pub fn install_bundled_package(name: &str, data_dir: &Path) -> Result<InstalledPackage> {
+    let manifest = parse_manifest(super::bundled::MANIFEST)?;
+    if name != manifest.name {
+        bail!("unknown bundled package {name:?}");
+    }
+    let documents: Vec<_> = super::bundled::DOCUMENTS
+        .iter()
+        .map(|(path, content)| ((*path).to_owned(), (*content).to_owned()))
+        .collect();
+    validate_documents(&documents)?;
+    install_snapshot(
+        super::bundled::MANIFEST,
+        manifest,
+        &documents,
+        data_dir,
+        || Ok(()),
+    )
+}
+
 fn install_package_with_hook<F>(
     source: &Path,
     data_dir: &Path,
@@ -103,6 +127,42 @@ where
     if documents.is_empty() {
         bail!("package contains no markdown knowledge documents");
     }
+
+    let checksum_path = source.join(CHECKSUM_FILE);
+    match fs::symlink_metadata(&checksum_path) {
+        Ok(_) => {
+            let checksums = crate::security::files::read_text(&checksum_path, MAX_CHECKSUM_BYTES)?;
+            validate_installed_tree(source)?;
+            verify_checksums(
+                &checksums,
+                &package_checksums(&manifest_content, &documents),
+            )
+            .context("incoming package checksum verification failed")?;
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => return Err(error).context("failed to inspect package checksum manifest"),
+    }
+
+    install_snapshot(
+        &manifest_content,
+        manifest,
+        &documents,
+        data_dir,
+        before_publish,
+    )
+}
+
+fn install_snapshot<F>(
+    manifest_content: &str,
+    manifest: PackageManifest,
+    documents: &[(String, String)],
+    data_dir: &Path,
+    before_publish: F,
+) -> Result<InstalledPackage>
+where
+    F: FnOnce() -> Result<()>,
+{
+    crate::security::files::reject_symlinks(data_dir)?;
 
     crate::security::permissions::validate_directory(data_dir)?;
     fs::create_dir_all(data_dir)
@@ -125,7 +185,7 @@ where
         manifest_content.as_bytes(),
     )
     .with_context(|| format!("failed to stage manifest for {:?}", manifest.name))?;
-    for (relative, content) in &documents {
+    for (relative, content) in documents {
         let destination = staging.path().join(relative);
         if let Some(parent) = destination.parent() {
             fs::create_dir_all(parent)
@@ -136,7 +196,7 @@ where
         write_synced(&destination, content.as_bytes())
             .with_context(|| format!("failed to copy {relative}"))?;
     }
-    let checksums = package_checksums(&manifest_content, &documents);
+    let checksums = package_checksums(manifest_content, documents);
     write_synced(
         staging.path().join(CHECKSUM_FILE),
         encode_checksums(&checksums).as_bytes(),
@@ -172,7 +232,13 @@ pub fn list_packages(data_dir: &Path) -> Vec<InstalledPackage> {
         }
         let manifest =
             crate::security::files::read_text(&entry.path().join(MANIFEST_FILE), 256 * 1024)
-                .and_then(|content| parse_manifest(&content));
+                .and_then(|content| parse_manifest(&content))
+                .and_then(|manifest| {
+                    if manifest.name != entry_name {
+                        bail!("package manifest name does not match its directory");
+                    }
+                    Ok(manifest)
+                });
         let Ok(manifest) = manifest else {
             packages.push(InstalledPackage {
                 name: entry_name,
@@ -209,7 +275,10 @@ pub fn list_packages(data_dir: &Path) -> Vec<InstalledPackage> {
 }
 
 pub fn package_has_integrity_manifest(package_root: &Path) -> bool {
-    package_root.join(CHECKSUM_FILE).is_file()
+    !matches!(
+        fs::symlink_metadata(package_root.join(CHECKSUM_FILE)),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound
+    )
 }
 
 /// Remove an installed package and return its former path.
@@ -249,6 +318,18 @@ pub fn verify_package_integrity(package_root: &Path) -> Result<usize> {
                 checksum_path.display()
             )
         })?;
+    let documents = collect_documents(package_root)?;
+    let manifest =
+        crate::security::files::read_text(&package_root.join(MANIFEST_FILE), 256 * 1024)?;
+    let expected = package_checksums(&manifest, &documents);
+    if expected.keys().cloned().collect::<BTreeSet<_>>() != installed_paths {
+        bail!("package checksum manifest does not match installed package files");
+    }
+    verify_checksums(&content, &expected)?;
+    Ok(documents.len())
+}
+
+fn verify_checksums(content: &str, expected: &BTreeMap<String, String>) -> Result<()> {
     let mut declared = BTreeMap::new();
     for (index, line) in content.lines().enumerate() {
         let (digest, relative) = line
@@ -274,21 +355,17 @@ pub fn verify_package_integrity(package_root: &Path) -> Result<usize> {
         }
     }
 
-    let documents = collect_documents(package_root)?;
-    let manifest =
-        crate::security::files::read_text(&package_root.join(MANIFEST_FILE), 256 * 1024)?;
-    let expected = package_checksums(&manifest, &documents);
     let expected_paths: BTreeSet<_> = expected.keys().cloned().collect();
     let declared_paths: BTreeSet<_> = declared.keys().cloned().collect();
-    if expected_paths != declared_paths || expected_paths != installed_paths {
+    if expected_paths != declared_paths {
         bail!("package checksum manifest does not match installed package files");
     }
     for (path, digest) in expected {
-        if declared.get(&path) != Some(&digest) {
+        if declared.get(path) != Some(digest) {
             bail!("package checksum mismatch for {path}");
         }
     }
-    Ok(documents.len())
+    Ok(())
 }
 
 fn validate_installed_tree(package_root: &Path) -> Result<BTreeSet<String>> {
@@ -350,7 +427,6 @@ fn sha256_hex(bytes: &[u8]) -> String {
 /// Collect and validate every markdown document below the package root.
 fn collect_documents(package_root: &Path) -> Result<Vec<(String, String)>> {
     crate::security::files::reject_symlinks(package_root)?;
-    let mut ids = HashSet::new();
     let mut documents = Vec::new();
     for entry in WalkDir::new(package_root).follow_links(false) {
         let entry = entry.with_context(|| format!("failed to walk {}", package_root.display()))?;
@@ -379,19 +455,30 @@ fn collect_documents(package_root: &Path) -> Result<Vec<(String, String)>> {
             .filter(|path| !path.contains(['\n', '\r']))
             .context("package document path must be valid UTF-8 without newlines")?
             .to_owned();
-        // Validate the document parses; failures abort the whole install.
-        let document = parse_document(&relative, &content)
-            .with_context(|| format!("invalid knowledge document {}", entry.path().display()))?;
-        if !ids.insert(document.metadata.id.clone()) {
+        documents.push((relative, content));
+    }
+    documents.sort();
+    validate_documents(&documents)?;
+    Ok(documents)
+}
+
+fn validate_documents(documents: &[(String, String)]) -> Result<()> {
+    let mut ids = HashSet::new();
+    let mut paths = HashSet::new();
+    for (relative, content) in documents {
+        if !paths.insert(relative.replace('\\', "/").to_lowercase()) {
+            bail!("duplicate package document path {relative:?}");
+        }
+        let document = parse_document(relative, content)
+            .with_context(|| format!("invalid knowledge document {relative}"))?;
+        if !ids.insert(document.metadata.id.to_ascii_lowercase()) {
             bail!(
                 "duplicate knowledge ID {:?} in package",
                 document.metadata.id
             );
         }
-        documents.push((relative, content));
     }
-    documents.sort();
-    Ok(documents)
+    Ok(())
 }
 
 fn write_synced(path: impl AsRef<Path>, bytes: &[u8]) -> Result<()> {
@@ -443,6 +530,88 @@ mod tests {
             "---\nid: demo-doc\ntags:\n  - demo\n---\n# Demo\n\nBody.\n",
         )
         .unwrap();
+    }
+
+    #[test]
+    fn bundled_package_installs_all_embedded_documents_and_rejects_duplicates() {
+        let data = tempfile::tempdir().unwrap();
+        let available = bundled_packages();
+        assert_eq!(available.len(), 1);
+        assert_eq!(available[0].name, "python-fastapi-basics");
+        let installed = install_bundled_package(&available[0].name, data.path()).unwrap();
+        assert_eq!(installed.documents, 40);
+        assert_eq!(verify_package_integrity(&installed.path).unwrap(), 40);
+        assert!(installed.path.join("fastapi/minimal-app.md").is_file());
+        assert!(install_bundled_package(&available[0].name, data.path()).is_err());
+        assert!(install_bundled_package("../unknown", data.path()).is_err());
+        assert!(install_bundled_package("unknown", data.path()).is_err());
+    }
+
+    #[test]
+    fn install_verifies_incoming_checksums_before_publishing() {
+        let source = tempfile::tempdir().unwrap();
+        let data = tempfile::tempdir().unwrap();
+        write_package(source.path());
+        let manifest = fs::read_to_string(source.path().join(MANIFEST_FILE)).unwrap();
+        let documents = collect_documents(source.path()).unwrap();
+        let checksums = encode_checksums(&package_checksums(&manifest, &documents));
+        for invalid in [
+            checksums.replace(&sha256_hex(documents[0].1.as_bytes()), &"0".repeat(64)),
+            format!("{checksums}{checksums}"),
+            "not a checksum\n".to_owned(),
+        ] {
+            fs::write(source.path().join(CHECKSUM_FILE), invalid).unwrap();
+            assert!(install_package(source.path(), data.path()).is_err());
+            assert!(!data.path().join("demo-pack").exists());
+        }
+        fs::write(source.path().join(CHECKSUM_FILE), checksums).unwrap();
+        fs::write(source.path().join("unexpected.bin"), "undeclared").unwrap();
+        assert!(install_package(source.path(), data.path()).is_err());
+        fs::remove_file(source.path().join("unexpected.bin")).unwrap();
+        assert!(install_package(source.path(), data.path()).is_ok());
+    }
+
+    #[test]
+    fn package_document_names_and_ids_must_be_unique_ignoring_case() {
+        let content = "---\nid: demo\n---\nBody\n";
+        let other = "---\nid: DEMO\n---\nBody\n";
+        assert!(
+            validate_documents(&[
+                ("first.md".to_owned(), content.to_owned()),
+                ("second.md".to_owned(), other.to_owned()),
+            ])
+            .is_err()
+        );
+        assert!(
+            validate_documents(&[
+                ("First.md".to_owned(), content.to_owned()),
+                (
+                    "first.md".to_owned(),
+                    "---\nid: other\n---\nBody\n".to_owned()
+                ),
+            ])
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn non_file_checksum_manifest_is_corrupt_rather_than_unverified() {
+        let data = tempfile::tempdir().unwrap();
+        let package = data.path().join("demo-pack");
+        write_package(&package);
+        fs::create_dir(package.join(CHECKSUM_FILE)).unwrap();
+        assert_eq!(list_packages(data.path())[0].integrity, "corrupt");
+    }
+
+    #[test]
+    fn list_marks_manifest_directory_aliases_corrupt() {
+        let data = tempfile::tempdir().unwrap();
+        write_package(&data.path().join("alias"));
+        let packages = list_packages(data.path());
+        assert_eq!(packages.len(), 1);
+        assert_eq!(packages[0].name, "alias");
+        assert_eq!(packages[0].integrity, "corrupt");
+        assert_eq!(packages[0].documents, 0);
     }
 
     #[test]

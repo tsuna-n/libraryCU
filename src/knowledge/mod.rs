@@ -1,4 +1,5 @@
 pub mod bundle;
+mod bundled;
 pub mod document;
 pub mod duplicates;
 pub mod index;
@@ -8,6 +9,7 @@ pub mod retrieval;
 pub mod search;
 pub mod storage;
 pub mod transfer;
+pub mod validation;
 
 pub use document::{KnowledgeDocument, KnowledgeMetadata};
 pub use index::{KnowledgeIndex, SearchResult};

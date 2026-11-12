@@ -170,6 +170,53 @@ Optional `created_at_unix` and `updated_at_unix` record UTC seconds since the Un
 epoch; older notes need no changes. Optional `framework` describes technical context.
 Existing metadata remains supported: `id`, `title`, `title_th`, `language`, `tool`, `category`, `error_code`, `tags`, and `keywords`. `language` describes technical material; it is separate from the UI language. `title_th` is an optional Thai display title.
 
+`add` and `learn` date new notes. An edit preserves the ID and creation date and
+records a new update date when the body changes. Editing an undated legacy note
+adds only its update date; its original creation time remains unknown. An
+unchanged body leaves the original file and dates untouched. Custom YAML fields
+are preserved as values; YAML formatting and comments may change during an edit.
+
+Before an edit or confirmed import/restore replaces a note, its exact previous
+Markdown is saved privately under `.lbc/knowledge-history/<id>.revisions/` for
+project notes, or `$XDG_DATA_HOME/lbc/knowledge-history/<id>.revisions/` for
+personal notes (the usual `~/.local/share` fallback applies). Files are named by
+the SHA-256 of their contents. Repeated snapshots reuse the same file; revisions
+are never automatically removed. A failed revision write prevents replacement.
+These local revisions are separate from portable backups and are excluded from
+knowledge loading and export. Use `backup create` for a portable current snapshot;
+copy revision directories separately if their history is needed elsewhere.
+
+### Validate knowledge and find review candidates
+
+```bash
+lbc knowledge validate --project .
+lbc knowledge validate --json
+lbc knowledge review --max-age-days 180 --json
+```
+
+Validation reports warnings for malformed/missing YAML frontmatter, invalid field
+types, IDs, empty bodies, duplicate source IDs, broken overrides, and invalid,
+missing or ambiguous metadata references. These commands do not repair, delete,
+rewrite, index or install anything and return success after reporting warnings.
+Operational failures, such as an invalid project path, still return nonzero.
+`lbc index` retains its existing nonzero result for invalid documents.
+
+Optional references are local knowledge IDs:
+
+```yaml
+references: [builtin:rust-e0308, 'package:python-fastapi-basics:python-none-type-error']
+```
+
+Use the actual IDs shown by `lbc list` or `lbc inspect`. A bare ID must match
+exactly one entry across all sources; a source-qualified ID also disambiguates
+overridden entries. References to superseded documents remain valid. External
+URLs and Markdown hyperlinks are not fetched or checked.
+
+`review` shows missing dates, dates in the future, update-before-creation dates,
+and entries whose last update (or creation date when no update exists) is more
+than `--max-age-days` old. The default is 365 days. These are review hints, not a
+claim that the content is incorrect; undated older Markdown remains supported.
+
 Built-in bilingual notes keep each translation in an explicit block:
 
 ```markdown
@@ -534,28 +581,40 @@ Existing Markdown packages remain supported:
 ```bash
 lbc knowledge install ./team-rules
 lbc knowledge list
-lbc knowledge remove team-rules
+lbc knowledge list --json
+lbc knowledge remove team-rules --yes
 ```
 
 A package contains `package.toml` with `name`, `version`, and optional
 `description`, plus valid Markdown documents. Installation validates a complete
 snapshot, stages and syncs it under a process lock, records `SHA256SUMS`, and
 publishes the directory atomically after checking that the target is absent.
+If the source supplies `SHA256SUMS`, installation verifies it against the
+validated snapshot before publishing anything. Invalid documents, duplicate
+IDs/paths (including case collisions), malformed checksums, missing/extra files
+in checksummed packages, and duplicate installed package names are rejected.
+Removal requires `--yes` because it deletes the entire package directory,
+including local changes. Installing never replaces an existing package or user
+note; upgrade an installed package only after saving any local changes.
 Unix publication is anchored to an opened parent directory; Linux also uses a
 kernel no-replace rename so a concurrently created target is preserved. `lbc
 knowledge list` reports `verified`, `unverified`
 (legacy install), or `corrupt`; corrupt packages are not loaded.
 
-The source checkout includes 40 bilingual Python/FastAPI notes in
-`packages/python-fastapi-basics`. Install them explicitly:
+The binary includes an optional package of 40 bilingual Python/FastAPI notes.
+List and install it without a source checkout or internet access:
 
 ```bash
-lbc knowledge install ./packages/python-fastapi-basics
+lbc knowledge list --bundled
+lbc knowledge install --bundled python-fastapi-basics
 lbc search "ModuleNotFoundError"
 lbc ask "Python CustomWidgetError failed in worker.py"
 ```
 
-They are an optional local package, not embedded knowledge. When a Python error
+The files also remain in `packages/python-fastapi-basics` for local directory
+installation. No package command downloads anything; URL sources are rejected.
+Checksums detect corruption, not publisher authenticity. Legacy packages without
+checksums are listed as `unverified`. When a Python error
 has no adequate specific match, `ask` may cite the generic traceback playbook
 with `answer_status: "general_guidance"`. It explicitly states that evidence for
 a specific fix is insufficient; `fix --ai` does not use that fallback as adequate
@@ -584,8 +643,8 @@ The [2026-11-08 release audit](release-readiness-2026-11-08.md) records fresh
 GitHub/CircleCI findings, local fixes, validation and the remaining owner gates.
 No production release was published by this work.
 
-The current source version is `0.6.0`; its release candidate is documented in
-the [v0.6.0 release notes](release-0.6.0.md). Hosted/native signing gates and
+The current source version is `0.7.0`; its release candidate is documented in
+the [v0.7.0 release notes](release-0.7.0.md). Hosted/native signing gates and
 owner approval must pass before publishing production assets.
 As rechecked on 2026-11-12, GitHub does expose an empty public `v0.5.0`
 Release despite its DRAFT title/body. This is a release-state inconsistency,
@@ -617,7 +676,7 @@ The tag workflow now requires Windows Authenticode and macOS Developer ID,
 hardened runtime, notarization and a stapled DMG before production packaging.
 These executable jobs have not run with production credentials. Candidates
 remain unsigned on Windows and ad-hoc signed on macOS; no production native
-trust or valid production `v0.6.0` release is claimed. See the
+trust or valid production `v0.7.0` release is claimed. See the
 [native signing and independent verification runbook](native-code-signing.md).
 The DMG is the offline-ticket delivery path; a raw tar cannot carry a stapled
 ticket. Certificate trust does not guarantee absence of SmartScreen prompts.

@@ -137,11 +137,33 @@ fn load_all_documents_with_roots(
             error: error.to_string(),
         });
     }
-    if let Ok(entries) = package_root_valid.and_then(|()| Ok(fs::read_dir(package_dir)?)) {
-        let mut entries: Vec<_> = entries
-            .flatten()
-            .filter(|entry| entry.path().is_dir())
-            .collect();
+    let entries = package_root_valid.ok().map(|()| fs::read_dir(package_dir));
+    if let Some(Err(error)) = &entries
+        && package_dir.exists()
+    {
+        invalid.push(InvalidDocument {
+            path: package_dir.display().to_string(),
+            error: format!("failed to inspect package directory: {error}"),
+        });
+    }
+    if let Some(Ok(entries)) = entries {
+        let mut directories = Vec::new();
+        for entry in entries {
+            match entry {
+                Ok(entry)
+                    if !entry.file_name().to_string_lossy().starts_with('.')
+                        && entry.path().is_dir() =>
+                {
+                    directories.push(entry)
+                }
+                Ok(_) => {}
+                Err(error) => invalid.push(InvalidDocument {
+                    path: package_dir.display().to_string(),
+                    error: format!("failed to inspect package entry: {error}"),
+                }),
+            }
+        }
+        let mut entries = directories;
         entries.sort_by_key(|entry| entry.file_name());
         for entry in entries {
             if packages::package_has_integrity_manifest(&entry.path())
@@ -167,6 +189,13 @@ fn load_all_documents_with_roots(
                     continue;
                 }
             };
+            if entry.file_name() != std::ffi::OsStr::new(&manifest.name) {
+                invalid.push(InvalidDocument {
+                    path: manifest_path.display().to_string(),
+                    error: "package manifest name does not match its directory name".to_owned(),
+                });
+                continue;
+            }
             let source = format!("package:{}", manifest.name);
             collect_source(
                 &entry.path(),
@@ -260,6 +289,12 @@ fn collect_source(
         return;
     }
     if !root.is_dir() {
+        if root.exists() {
+            invalid.push(InvalidDocument {
+                path: root.display().to_string(),
+                error: "knowledge source must be a directory".to_owned(),
+            });
+        }
         return;
     }
     for result in WalkDir::new(root).follow_links(false).sort_by_file_name() {
@@ -273,13 +308,20 @@ fn collect_source(
                 continue;
             }
         };
-        if !entry.file_type().is_file()
+        if entry.file_type().is_dir()
             || entry
                 .path()
                 .extension()
                 .and_then(|extension| extension.to_str())
                 != Some("md")
         {
+            continue;
+        }
+        if !entry.file_type().is_file() {
+            invalid.push(InvalidDocument {
+                path: entry.path().display().to_string(),
+                error: "knowledge document must be a regular file, without symlinks".to_owned(),
+            });
             continue;
         }
         let path = entry.path();
@@ -387,7 +429,7 @@ fn apply_overrides(documents: &mut [KnowledgeDocument], invalid: &mut Vec<Invali
             "user" => 1,
             _ => 0,
         };
-        if priority == 0 || !target.contains(':') {
+        if priority == 0 || !valid_reference(&target, true) {
             document.effective = false;
             invalid.push(InvalidDocument { path: document.path.clone(), error: format!("invalid override target {target:?}; only user/project notes may override a source-qualified ID") });
             continue;
@@ -395,6 +437,21 @@ fn apply_overrides(documents: &mut [KnowledgeDocument], invalid: &mut Vec<Invali
         groups.entry(target).or_default().push((priority, position));
     }
     for (target, candidates) in groups {
+        if documents
+            .iter()
+            .filter(|document| document.source_id == target)
+            .count()
+            > 1
+        {
+            for (_, position) in candidates {
+                documents[position].effective = false;
+                invalid.push(InvalidDocument {
+                    path: documents[position].path.clone(),
+                    error: format!("override target {target} is ambiguous"),
+                });
+            }
+            continue;
+        }
         let Some(target_position) = documents
             .iter()
             .position(|document| document.source_id == target)
@@ -454,6 +511,9 @@ pub fn parse_document_for_source(
 ) -> Result<KnowledgeDocument> {
     if content.len() as u64 > MAX_DOCUMENT_BYTES {
         anyhow::bail!("knowledge document including metadata exceeds 256 KB");
+    }
+    if content.contains('\0') {
+        anyhow::bail!("knowledge document must not contain NUL characters");
     }
     let content = content.replace('\r', "");
     let Some(after_opening) = content.strip_prefix("---\n") else {
@@ -545,6 +605,17 @@ pub fn validate_id(id: &str) -> Result<()> {
     Ok(())
 }
 
+pub(crate) fn valid_reference(reference: &str, require_qualified: bool) -> bool {
+    let Some((source, id)) = reference.rsplit_once(':') else {
+        return !require_qualified && validate_id(reference).is_ok();
+    };
+    validate_id(id).is_ok()
+        && (matches!(source, "builtin" | "user" | "project")
+            || source
+                .strip_prefix("package:")
+                .is_some_and(packages::is_valid_package_name))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -572,6 +643,123 @@ mod tests {
     fn validates_body_and_kind() {
         assert!(parse_document("bad.md", "---\nid: x\n---\n").is_err());
         assert!(parse_document("bad.md", "---\nid: x\nkind: other\n---\nbody").is_err());
+    }
+
+    #[test]
+    fn rejects_nul_in_markdown_body() {
+        assert!(parse_document("bad.md", "---\nid: x\n---\nbody\0hidden").is_err());
+    }
+
+    #[test]
+    fn ignores_package_staging_and_rejects_package_aliases() -> Result<()> {
+        let root = tempfile::tempdir()?;
+        let packages = root.path().join("packages");
+        fs::create_dir_all(packages.join(".staging"))?;
+        fs::create_dir_all(packages.join("alias"))?;
+        fs::write(
+            packages.join("alias/package.toml"),
+            "name = 'actual'\nversion = '1'\ndescription = 'Alias'\n",
+        )?;
+        fs::write(packages.join("alias/note.md"), "---\nid: alias\n---\nbody")?;
+
+        let report = load_all_documents_with_roots(
+            &root.path().join("project"),
+            &packages,
+            &root.path().join("notes"),
+        )?;
+
+        assert_eq!(report.invalid.len(), 1);
+        assert!(report.invalid[0].error.contains("directory name"));
+        assert!(
+            report
+                .documents
+                .iter()
+                .all(|document| document.source != "package:actual")
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn reports_bad_metadata_without_creating_stores_or_changing_notes() -> Result<()> {
+        let root = tempfile::tempdir()?;
+        let project = root.path().join("project");
+        let notes = project.join(".lbc/knowledge");
+        fs::create_dir_all(&notes)?;
+        let fixtures = [
+            ("frontmatter.md", "# No frontmatter"),
+            (
+                "references.md",
+                "---\nid: refs\nreferences: {invalid: shape}\n---\nbody",
+            ),
+            ("date.md", "---\nid: date\ncreated_at_unix: -1\n---\nbody"),
+        ];
+        for (name, content) in fixtures {
+            fs::write(notes.join(name), content)?;
+        }
+        let packages = root.path().join("packages");
+        let user = root.path().join("user");
+
+        let report = load_all_documents_with_roots(&project, &packages, &user)?;
+        let validation = super::super::validation::validate_report(&report, 100, 365);
+
+        assert_eq!(report.invalid.len(), 3);
+        assert_eq!(
+            validation
+                .warnings
+                .iter()
+                .filter(|warning| warning.code == "invalid_document")
+                .count(),
+            3
+        );
+        for (name, content) in fixtures {
+            assert_eq!(fs::read_to_string(notes.join(name))?, content);
+        }
+        assert!(!packages.exists());
+        assert!(!user.exists());
+        assert!(!project.join(".lbc/index.db").exists());
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn reports_symlinked_notes_without_reading_them() -> Result<()> {
+        let root = tempfile::tempdir()?;
+        let notes = root.path().join("notes");
+        fs::create_dir(&notes)?;
+        let target = root.path().join("private.txt");
+        fs::write(&target, "private body")?;
+        std::os::unix::fs::symlink(&target, notes.join("linked.md"))?;
+
+        let report = load_all_documents_with_roots(
+            &root.path().join("project"),
+            &root.path().join("packages"),
+            &notes,
+        )?;
+        assert_eq!(report.invalid.len(), 1);
+        assert!(report.invalid[0].error.contains("regular file"));
+        assert!(!report.invalid[0].error.contains("private body"));
+        Ok(())
+    }
+
+    #[test]
+    fn rejects_overrides_of_duplicate_qualified_ids() -> Result<()> {
+        let mut documents = vec![
+            parse_document_for_source("a.md", "---\nid: same\n---\nA", "user", "/a.md", true)?,
+            parse_document_for_source("b.md", "---\nid: same\n---\nB", "user", "/b.md", true)?,
+            parse_document_for_source(
+                "c.md",
+                "---\nid: replacement\noverrides: user:same\n---\nC",
+                "project",
+                "/c.md",
+                true,
+            )?,
+        ];
+        let mut invalid = Vec::new();
+        mark_duplicate_ids(&mut documents, &mut invalid);
+        apply_overrides(&mut documents, &mut invalid);
+        assert!(!documents[2].effective);
+        assert!(invalid.iter().any(|item| item.error.contains("ambiguous")));
+        Ok(())
     }
 
     #[test]

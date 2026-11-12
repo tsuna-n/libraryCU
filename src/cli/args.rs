@@ -423,18 +423,45 @@ pub struct DoctorArgs {
     pub json: bool,
 }
 
+#[derive(Debug, Args)]
+pub struct KnowledgeValidationArgs {
+    #[arg(long, default_value = ".")]
+    pub project: PathBuf,
+    /// Warn when the last recorded update is older than this many days
+    #[arg(long, default_value_t = 365)]
+    pub max_age_days: u64,
+    #[arg(long)]
+    pub json: bool,
+}
+
 #[derive(Debug, Subcommand)]
 pub enum KnowledgeCommand {
-    /// Install a knowledge package from a local directory
+    /// Inspect Markdown, metadata, references and dates without changing files
+    Validate(KnowledgeValidationArgs),
+    /// Find dated or undated knowledge that needs a review
+    Review(KnowledgeValidationArgs),
+    /// Install from a local directory or a bundled package (offline)
     Install {
         /// Directory containing package.toml and markdown documents
-        source: PathBuf,
+        #[arg(required_unless_present = "bundled", conflicts_with = "bundled")]
+        source: Option<PathBuf>,
+        /// Package name distributed with this binary; no download
+        #[arg(long, value_name = "NAME")]
+        bundled: Option<String>,
     },
-    /// List installed knowledge packages
-    List,
-    /// Remove an installed knowledge package
+    /// List installed packages, or available bundled packages
+    List {
+        #[arg(long)]
+        bundled: bool,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Remove an installed package after explicit confirmation with --yes
     Remove {
         /// Package name shown by `lbc knowledge list`
         name: String,
+        /// Confirm deletion of this entire package, including local changes
+        #[arg(long)]
+        yes: bool,
     },
 }

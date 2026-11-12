@@ -11,11 +11,11 @@ worked. Your notes stay on your machine. Core commands work offline; AI is optio
 Prebuilt binaries need **no Rust**. Platforms: Windows x86-64, Linux x86-64
 (glibc), and universal macOS (Apple Silicon and Intel).
 
-**Current source version: 0.6.0.** The `v0.6.0` release is being prepared;
+**Current source version: 0.7.0.** The `v0.7.0` release is being prepared;
 verified binary assets are not published yet. The existing public `v0.5.0`
 Release still has **zero assets**, as checked on 2026-11-12. Use the source
 installation below until verified binaries are available.
-See [v0.6.0 release notes](docs/release-0.6.0.md).
+See [v0.7.0 release notes](docs/release-0.7.0.md).
 
 Once available, download your platform archive from
 [GitHub Releases](https://github.com/tsuna-n/libraryCU/releases).
@@ -28,19 +28,19 @@ A checksum downloaded beside an untrusted archive is not independent authenticat
 Linux:
 
 ```bash
-bash install.sh --archive ~/Downloads/lbc-0.6.0-x86_64-unknown-linux-gnu.tar.gz --sha256 TRUSTED_SHA256
+bash install.sh --archive ~/Downloads/lbc-0.7.0-x86_64-unknown-linux-gnu.tar.gz --sha256 TRUSTED_SHA256
 ```
 
 macOS:
 
 ```bash
-bash install.sh --archive ~/Downloads/lbc-0.6.0-universal-apple-darwin.tar.gz --sha256 TRUSTED_SHA256
+bash install.sh --archive ~/Downloads/lbc-0.7.0-universal-apple-darwin.tar.gz --sha256 TRUSTED_SHA256
 ```
 
 Windows PowerShell:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Archive "$HOME\Downloads\lbc-0.6.0-x86_64-pc-windows-msvc.zip" -Sha256 TRUSTED_SHA256
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Archive "$HOME\Downloads\lbc-0.7.0-x86_64-pc-windows-msvc.zip" -Sha256 TRUSTED_SHA256
 ```
 
 Unix installs to `~/.local/bin`; ensure it is on `PATH`. Windows installs to
@@ -117,6 +117,13 @@ application records. See [transfer behavior and conflict handling](docs/cli-refe
 New `.lbc` stores stay private in Git by default; explicitly select reviewed notes
 for sharing and use `lbc doctor` to [check Git safety](docs/cli-reference.md#git-safety).
 
+Maintain the library with `lbc knowledge validate` (read-only warnings) and
+`lbc knowledge review --max-age-days 365` (review candidates). Edits keep stable
+IDs, custom YAML metadata, and exact previous revisions. Install the optional
+40-note Python/FastAPI package offline with
+`lbc knowledge install --bundled python-fastapi-basics`; use
+`lbc knowledge list` to check installed packages and integrity.
+
 ## Learn more
 
 - [Quick start](docs/quick-start.md): capture, search, and explain offline
@@ -128,9 +135,9 @@ for sharing and use `lbc doctor` to [check Git safety](docs/cli-reference.md#git
 
 ## Release status and integrity
 
-The `v0.6.0` candidate requires hosted CI, source identity checks, native signing
+The `v0.7.0` candidate requires hosted CI, source identity checks, native signing
 and owner approval before production publication. See the
-[release notes](docs/release-0.6.0.md).
+[release notes](docs/release-0.7.0.md).
 The empty public `v0.5.0` Release is not a verified production artifact set.
 [Release evidence](docs/release-readiness-2026-11-08.md),
 [full 25-file verification](docs/circleci.md#reproducible-independent-verification),
