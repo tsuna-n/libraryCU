@@ -8,7 +8,8 @@ See [product direction](product-direction.md) for scope and compatibility.
 
 ```bash
 lbc learn
-lbc learn --yes --problem 'Rust E0308 database String mismatch' \
+lbc learn --from build.log
+lbc learn --yes --new --problem 'Rust E0308 database String mismatch' \
   --cause 'Function expected &str' --solution 'Borrowed with &value' \
   --verification 'cargo test' --project ./backend --json
 lbc learn --yes --user --problem 'Local port occupied' \
@@ -17,13 +18,38 @@ lbc search E0308 --project ./backend
 lbc explain build.log --project ./backend
 ```
 
-The interactive flow previews Markdown and destination before confirmation. It
-defaults to the exact current directory's `.lbc/knowledge`; `--user` saves personal
-notes. Blank cause/check is allowed; EOF or cancellation saves nothing. IDs,
-titles, conservative language/tool/code hints, tags, and UTC timestamps are
-generated. Explicit IDs never overwrite; generated collisions get a suffix.
-Verification is a historical record, never executed by `learn`; empty means
-`unverified`, supplied means `recorded-check`. No AI configuration is required.
+Prefer interactive capture for real work. `--from build.log` prefills the Problem,
+error code, language/tool hints, and sanitized fenced Context for supported
+Rust/Cargo, TypeScript, Python, Node, and Go diagnostics offline. Unknown logs ask
+for the observed Problem. Supply the real Solution; LBC does not invent a fix.
+The log must be a regular UTF-8 file of at most 2 MiB; context is truncated to
+12 KiB. Shared secret recognition is not a guarantee that every secret is removed,
+so review the preview.
+
+The flow asks only for missing Problem, missing Solution, and a duplicate choice
+when matches exist, then previews Markdown and destination before `Save [y/N]`.
+Answer `y` to save; the default cancels. `:cancel` at any prompt, EOF, or Ctrl-C
+before saving creates no draft or store. The destination defaults to the exact
+current directory's `.lbc/knowledge`; `--user` saves personal notes and
+`--project PATH` selects a project, without a destination question. Optional
+Cause and Verification use `--cause` and `--verification` only.
+
+At most five effective duplicate suggestions rank exact normalized title/problem,
+meaningful token overlap, and compatible-language error codes. Choose `new` for a
+separate note or a listed writable number to replace that entry's body. Built-ins
+and packages cannot be edited. Replacement preserves metadata, ID, and creation
+time; changed content becomes `unverified`. Current and replacement bodies are
+previewed and require `y`; there is no automatic merge or overwrite.
+
+Scripts require `--yes --solution ...` and either `--problem ...` or `--from FILE`;
+unknown logs also require `--problem`. Duplicate matches stop the script unless
+`--new` deliberately creates a separate entry. The E0308 example uses `--new`
+because built-in knowledge already matches. `--json` requires `--yes`; stdout is
+JSON, with previews and duplicate suggestions on stderr. New entries get IDs,
+titles, metadata hints, tags, and UTC timestamps; explicit IDs never overwrite
+and generated collisions get a suffix. Verification is historical text, never
+executed: empty means `unverified`, supplied means `recorded-check`. Capture needs
+no AI, network, or new dependencies.
 
 This guide covers the knowledge and analysis commands in libraryCube 0.5.0. Commands run
 offline unless `--ai` is explicitly supplied. Paths, scores, and document counts

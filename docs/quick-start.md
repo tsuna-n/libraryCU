@@ -27,7 +27,7 @@ no provider request without `--ai`. Use `--provider off` to explicitly disable A
 Run these in the same project directory:
 
 ```bash
-lbc learn --yes --problem "Rust E0308 String to &str mismatch" --solution "Borrow the String with &value" --verification "cargo check passed after borrowing"
+lbc learn --yes --new --problem "Rust E0308 String to &str mismatch" --solution "Borrow the String with &value" --verification "cargo check passed after borrowing"
 lbc search E0308
 lbc explain --stdin
 ```
@@ -35,6 +35,8 @@ lbc explain --stdin
 The first command records an example solution in project Markdown. The supplied
 check is historical text (`recorded-check`), not a command executed by `learn`.
 Only record checks you actually performed when capturing your real work.
+This example deliberately uses `--new` because built-in E0308 knowledge already
+exists. Prefer interactive `lbc learn` to review similar entries for real work.
 
 Search should show the new `project:` entry among the E0308 results, with an
 excerpt and ranking reasons. Explain reads a diagnostic: paste
@@ -63,10 +65,27 @@ knowledge match is reported; a retrieved historical check is not a fresh test.
 
 ## Keep useful knowledge
 
-`lbc learn` without flags asks for the problem, optional cause, solution, and
-optional recorded check, then previews the destination before confirmation.
-Use `--user` for personal notes, or `--project PATH` to choose an exact project.
-Capture never overwrites an existing entry. Notes remain portable Markdown.
+After solving a diagnostic, run `lbc learn --from build.log`. Supported Rust/Cargo,
+TypeScript, Python, Node, and Go diagnostics prefill the problem, error code,
+language/tool hints, and sanitized log context offline. Unknown logs ask you to
+describe the observed problem. You must supply the real solution; LBC never
+invents one.
+
+Interactive capture asks only for missing problem/solution text, then shows any
+similar entries. Choose `new` or a listed writable number to replace that entry's
+body. Built-ins and packages are read-only. Replacement keeps its metadata and ID;
+changed content becomes `unverified`. The current and replacement bodies are
+previewed before confirmation; there is no automatic merge or overwrite.
+
+Review the preview and answer `y` at `Save [y/N]` to save. The default is cancel;
+`:cancel`, EOF, or Ctrl-C before saving creates no draft or knowledge store.
+Use `--user` for personal notes, or `--project PATH` for project notes; no
+destination question is asked. Optional cause/check text uses `--cause` and
+`--verification` only. Notes remain portable Markdown.
+
+Logs must be regular UTF-8 files of at most 2 MiB; fenced context is truncated to
+12 KiB. Shared secret recognition redacts known patterns, not every possible
+secret, so review the preview. Capture needs no AI, network, or new dependencies.
 
 Use the actual qualified ID printed by capture or search with `lbc inspect ID`.
 `lbc ask "How do I resolve E0308?"` answers from adequate local evidence.

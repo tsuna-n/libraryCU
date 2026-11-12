@@ -112,22 +112,45 @@ selection should improve precision rather than fill result quotas.
 
 ## Capture and project memory
 
-`lbc learn` asks for problem, optional cause, solution, optional historical check,
-project/user destination, and confirmation. It previews the content and
-destination; cancellation or EOF does not save. The default destination is the
-current explicit directory's `.lbc/knowledge`; no upward project discovery occurs.
-Use `--project PATH` or `--user` to choose a destination explicitly.
+`lbc learn` asks only for missing Problem and Solution, then a duplicate choice
+when matches exist, followed by a preview and `Save [y/N]` (default cancel).
+`:cancel`, EOF, or Ctrl-C before saving creates no draft or store. Optional Cause
+and Verification use flags only; destination is never a question. The default
+is the current explicit directory's `.lbc/knowledge`; use `--project PATH` to
+select a project or `--user` for personal notes. No upward project discovery occurs.
+
+`--from FILE` parses supported Rust/Cargo, TypeScript, Python, Node, and Go
+diagnostics offline into observed problem, error code, language/tool hints, and
+sanitized fenced Context. Unknown logs need a user-supplied Problem; every capture
+needs a real Solution. Logs must be regular UTF-8 files of at most 2 MiB, and
+context is truncated to 12 KiB. Shared secret recognition is not a complete
+guarantee; the user reviews the preview. No AI, network, or new dependencies are
+needed.
 
 For scripts:
 
 ```bash
-lbc learn --yes --problem 'Rust E0308 String to &str mismatch' \
+lbc learn --yes --new --problem 'Rust E0308 String to &str mismatch' \
   --cause 'Function expected &str but database value was String' \
   --solution 'Borrowed the database value using &value' \
   --verification 'cargo test' --project ./backend
 lbc search E0308 --project ./backend
 lbc explain build.log --project ./backend
 ```
+
+`--yes` requires `--solution` and either `--problem` or `--from`; an unknown log
+still requires `--problem`. Similar knowledge stops scripted capture unless
+`--new` deliberately requests a separate entry, as in this E0308 example with a
+built-in match. Prefer interactive review. `--json` requires `--yes`, keeps stdout
+for JSON, and sends previews and duplicate suggestions to stderr.
+
+Duplicate suggestions include at most five effective entries, ranked by
+normalized exact title/problem, meaningful token overlap, then compatible-language
+error code. Built-ins and packages remain read-only. Interactive `new` creates a
+separate entry; a listed writable number explicitly replaces its body after
+showing current and replacement content and requiring `y`. Metadata, ID, and
+creation time are preserved, and a changed body becomes `unverified`. No
+automatic merge or overwrite occurs.
 
 Capture generates a collision-safe ID, title, troubleshooting kind, conservative
 language/tool/error-code hints, tags, and UTC epoch-second creation/update times.

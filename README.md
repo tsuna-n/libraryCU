@@ -74,7 +74,7 @@ contacts AI providers. [Setup and optional AI](docs/quick-start.md#optional-ai).
 Save a solved problem, find it, and explain a diagnostic using local evidence:
 
 ```bash
-lbc learn --yes --problem "Rust E0308 String to &str mismatch" --solution "Borrow the String with &value" --verification "cargo check passed after borrowing"
+lbc learn --yes --new --problem "Rust E0308 String to &str mismatch" --solution "Borrow the String with &value" --verification "cargo check passed after borrowing"
 lbc search E0308
 lbc explain --stdin
 ```
@@ -83,9 +83,15 @@ For the last command, paste `error[E0308]: mismatched types`, then end input
 with Ctrl-D (Unix/macOS) or Ctrl-Z followed by Enter (Windows).
 The [quick start](docs/quick-start.md) also includes a copy-paste log-file example.
 
-`learn` saves portable Markdown under the current directory’s `.lbc/knowledge`.
-The check text is a historical record; `learn` never executes it.
-Use `lbc learn` without flags for guided capture, or `--user` for personal notes.
+Prefer `lbc learn` for guided capture, or `lbc learn --from build.log` to prefill a
+supported diagnostic offline; supply the solution that actually worked. Similar
+notes are shown before a preview and `Save [y/N]`; cancellation saves nothing.
+The scripted example uses `--new` to deliberately save a separate E0308 note
+despite the built-in match. No automatic merging or overwriting occurs.
+`learn` saves portable Markdown under the current directory’s `.lbc/knowledge`;
+use `--user` for personal notes. Optional `--cause` and `--verification` are flags;
+verification text records a historical check and is never executed. Review the
+preview, including redacted log context, before saving.
 Search shows source IDs and match reasons. Explain retrieves previous solutions
 and records their evidence state; an inadequate match is reported honestly.
 

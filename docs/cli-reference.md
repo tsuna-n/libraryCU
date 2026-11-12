@@ -68,27 +68,55 @@ be rewritten. Setup never runs provider connectivity checks.
 
 ## Capture a solved problem
 
-Run `lbc learn` for a short guided capture: what happened, cause (optional),
-solution, historical verification (optional), project/user destination, and
-confirmation. Preview before saving. It generates an ID, metadata, and portable
-troubleshooting Markdown. The default destination is `.lbc/knowledge` in the
-current directory. Use `--project PATH` or `--user` to choose explicitly.
+Run `lbc learn` for guided capture, or `lbc learn --from FILE` to prefill a supported
+Rust/Cargo, TypeScript, Python, Node, or Go diagnostic offline. Log parsing supplies
+the observed problem, error code, language/tool hints, and sanitized fenced
+context. Unknown diagnostics require an observed problem from you. The solution
+must describe the fix that actually worked.
 
 ```bash
 lbc learn
-lbc learn --yes --problem 'Rust E0308 String to &str mismatch' \
+lbc learn --from build.log
+lbc learn --yes --new --problem 'Rust E0308 String to &str mismatch' \
   --cause 'Function expected &str but database value was String' \
   --solution 'Borrowed the database value using &value' \
   --verification 'cargo test' --project ./backend
 lbc search E0308 --project ./backend
 ```
 
-`learn` records a check; it never runs it. A supplied check is `recorded-check`,
-otherwise `unverified`. `ask` and `explain` show the recorded problem, previous
-solution, and check when those sections exist, with ranking reasons and sources.
-Optional capture flags include `--title`, `--id`, `--language`, `--tool`, `--framework`,
-`--error-code`, `--tag`, `--symptoms`, `--context`, and `--reference`.
-Scripts use `--yes --problem ... --solution ...`; add `--json` for structured output.
+Interactive capture asks for Problem only when missing, then Solution only when
+missing, then a duplicate choice when matches exist. It previews the content and
+destination before `Save [y/N]`; saving requires `y`, and the default cancels.
+`:cancel` at any prompt, EOF, or Ctrl-C before saving creates no draft or store.
+The default destination is the current directory's `.lbc/knowledge`;
+`--project PATH` selects a project and `--user` selects personal notes. There is no
+destination prompt.
+
+Up to five effective matches are ranked by normalized exact title/problem,
+meaningful token overlap, then error code with compatible language. Built-ins
+and packages remain read-only suggestions. Choose `new` to save separately, or a
+listed writable number to explicitly replace that entry's body. Replacement
+preserves its metadata, ID, and creation time; a changed body becomes `unverified`.
+Both current and replacement bodies are previewed and require `y`. Nothing is
+automatically merged or overwritten.
+
+`--cause` and `--verification` are optional flags, never extra questions. A
+supplied check is `recorded-check`, otherwise `unverified`; checks are never run.
+Other capture flags include `--title`, `--id`, `--language`, `--tool`, `--framework`,
+`--error-code`, `--tag`, `--symptoms`, `--context`, and `--reference`. `ask` and
+`explain` show recorded problem/solution/check sections with sources.
+
+Scripts require `--yes --solution ...` and either `--problem ...` or `--from FILE`.
+An unknown log also needs `--problem`. Similar knowledge stops scripted capture
+unless `--new` explicitly requests a separate entry. The E0308 example needs
+`--new` because built-in knowledge matches; prefer interactive review for normal
+use. `--json` requires `--yes`; stdout contains JSON, while previews and duplicate
+suggestions go to stderr.
+
+Log files must be regular UTF-8 files no larger than 2 MiB. Context is fenced and
+truncated to at most 12 KiB. Shared secret recognition removes known patterns but
+cannot guarantee every secret is removed; review the preview. Capture uses no
+AI, network, or new dependencies.
 
 ## Add, find, inspect, and edit knowledge
 
