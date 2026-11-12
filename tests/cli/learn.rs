@@ -43,6 +43,7 @@ fn capture_find_reuse_edit_and_external_markdown_work_offline() {
         &[
             "learn",
             "--yes",
+            "--new",
             "--id",
             "db-borrow",
             "--problem",
@@ -101,6 +102,7 @@ fn capture_find_reuse_edit_and_external_markdown_work_offline() {
         &[
             "learn",
             "--yes",
+            "--new",
             "--user",
             "--id",
             "generic-borrow",
@@ -242,8 +244,8 @@ fn interactive_capture_preview_confirmation_and_user_destination() {
     let home = tempfile::tempdir().unwrap();
     let output = interactive(
         home.path(),
-        &["learn"],
-        "Rust E0308 mismatched types\nExpected &str, got String\nBorrow using &value\ncargo test\nuser\n\n",
+        &["learn", "--user"],
+        "DAILY-CAPTURE-4718 failed\nRestart the local worker\ny\n",
     );
     assert!(
         output.status.success(),
@@ -252,22 +254,22 @@ fn interactive_capture_preview_confirmation_and_user_destination() {
     );
     let stdout = String::from_utf8(output.stdout).unwrap();
     let prompts = String::from_utf8(output.stderr).unwrap();
-    assert!(stdout.contains("Saved user:rust-e0308-mismatched-types"));
+    assert!(stdout.contains("Saved user:daily-capture-4718-failed"));
     for prompt in [
         "What happened?",
-        "What was the cause?",
         "How was it fixed?",
-        "How was it verified?",
         "Save to:",
         "## Solution",
-        "Save this knowledge? [Y/n]",
+        "Save this knowledge? [y/N]",
     ] {
         assert!(prompts.contains(prompt));
     }
+    assert!(!prompts.contains("What was the cause?"));
+    assert!(!prompts.contains("How was it verified?"));
     assert!(!home.path().join(".lbc/knowledge").exists());
     assert!(
         home.path()
-            .join("data/lbc/notes/rust-e0308-mismatched-types.md")
+            .join("data/lbc/notes/daily-capture-4718-failed.md")
             .is_file()
     );
 }
@@ -275,11 +277,14 @@ fn interactive_capture_preview_confirmation_and_user_destination() {
 #[test]
 fn cancellation_eof_and_invalid_inputs_never_publish_a_note() {
     for (input, success) in [
-        ("Rust E0308\n\nBorrow &value\n\n\nn\n", true),
-        ("Rust E0308\n\nBorrow &value\n\n\n", false),
+        ("DAILY-CANCEL-4718\nRestart worker\nn\n", true),
+        ("DAILY-CANCEL-4718\nRestart worker\n\n", true),
+        ("DAILY-CANCEL-4718\nRestart worker\n", false),
         ("", false),
-        ("Rust E0308\n", false),
-        ("Rust E0308\n\nBorrow &value\n\ncloud\n", false),
+        ("DAILY-CANCEL-4718\n", false),
+        ("DAILY-CANCEL-4718\nRestart worker\ncloud\n", false),
+        (":cancel\n", true),
+        ("DAILY-CANCEL-4718\n:cancel\n", true),
     ] {
         let home = tempfile::tempdir().unwrap();
         let output = interactive(home.path(), &["learn"], input);
@@ -333,6 +338,7 @@ fn capture_preserves_collisions_redacts_secrets_and_never_executes_checks() {
     let args = [
         "learn",
         "--yes",
+        "--new",
         "--problem",
         "Unique database incident",
         "--solution",
@@ -455,4 +461,297 @@ fn learn_rejects_symlinked_project_stores() {
         .unwrap();
     assert!(!output.status.success());
     assert!(std::fs::read_dir(outside.path()).unwrap().next().is_none());
+}
+
+#[test]
+fn learn_from_log_previews_only_observed_evidence_and_requires_a_real_solution() {
+    let home = tempfile::tempdir().unwrap();
+    std::fs::write(
+        home.path().join("build.log"),
+        "API_KEY=fixture-log-secret\nerror[E0308]: mismatched types\n --> src/main.rs:12:9\n",
+    )
+    .unwrap();
+    let output = interactive(
+        home.path(),
+        &["learn", "--from", "build.log", "--id", "from-log"],
+        "Borrow the String with &value\nnew\ny\n",
+    );
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let preview = String::from_utf8(output.stderr).unwrap();
+    let stored = std::fs::read_to_string(home.path().join(".lbc/knowledge/from-log.md")).unwrap();
+    for text in [&preview, &stored] {
+        assert!(!text.contains("fixture-log-secret"));
+        assert!(text.contains("[REDACTED]"));
+        assert!(text.contains("mismatched types"));
+        assert!(text.contains("src/main.rs:12:9"));
+        assert!(!text.contains("## Cause"));
+    }
+    assert!(stored.contains("error_code: E0308"));
+    assert!(stored.contains("## Context"));
+    assert!(stored.contains("Borrow the String with &value"));
+    assert!(!preview.contains("What happened?"));
+
+    let empty = interactive(
+        home.path(),
+        &["learn", "--from", "build.log"],
+        "\n:cancel\n",
+    );
+    assert!(empty.status.success());
+    assert!(String::from_utf8_lossy(&empty.stderr).contains("Please provide some text"));
+    assert_eq!(
+        std::fs::read_dir(home.path().join(".lbc/knowledge"))
+            .unwrap()
+            .count(),
+        1
+    );
+}
+
+#[test]
+fn duplicate_capture_requires_an_explicit_new_or_edit_choice_and_confirmation() {
+    let home = tempfile::tempdir().unwrap();
+    let initial = json(
+        home.path(),
+        &[
+            "learn",
+            "--yes",
+            "--id",
+            "worker",
+            "--problem",
+            "DAILY-WORKER-4718 queue timeout",
+            "--solution",
+            "Original recovery",
+            "--verification",
+            "worker ping passed",
+            "--json",
+        ],
+    );
+    let path = Path::new(initial["path"].as_str().unwrap());
+    let original = std::fs::read_to_string(path).unwrap();
+    let args = [
+        "learn",
+        "--problem",
+        "DAILY-WORKER-4718 queue timeout",
+        "--solution",
+        "Updated recovery",
+    ];
+    for input in ["\n", "1\nn\n", ":cancel\n"] {
+        let output = interactive(home.path(), &args, input);
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(String::from_utf8_lossy(&output.stderr).contains("project:worker"));
+        assert_eq!(std::fs::read_to_string(path).unwrap(), original);
+        assert_eq!(
+            std::fs::read_dir(path.parent().unwrap()).unwrap().count(),
+            1
+        );
+    }
+    let updated = interactive(home.path(), &args, "1\ny\n");
+    assert!(
+        updated.status.success(),
+        "{}",
+        String::from_utf8_lossy(&updated.stderr)
+    );
+    assert!(String::from_utf8_lossy(&updated.stdout).contains("Updated project:worker"));
+    let stored = std::fs::read_to_string(path).unwrap();
+    assert!(stored.contains("Updated recovery"));
+    assert!(!stored.contains("Original recovery"));
+    let inspected = json(home.path(), &["inspect", "project:worker", "--json"]);
+    assert_eq!(
+        inspected["metadata"]["created_at_unix"],
+        initial["metadata"]["created_at_unix"]
+    );
+    assert_eq!(inspected["verification_status"], "unverified");
+    assert_eq!(
+        std::fs::read_dir(path.parent().unwrap()).unwrap().count(),
+        1
+    );
+    let new = interactive(home.path(), &args, "new\ny\n");
+    assert!(
+        new.status.success(),
+        "{}",
+        String::from_utf8_lossy(&new.stderr)
+    );
+    assert_eq!(
+        std::fs::read_dir(path.parent().unwrap()).unwrap().count(),
+        2
+    );
+    assert_eq!(std::fs::read_to_string(path).unwrap(), stored);
+}
+
+#[test]
+fn noninteractive_duplicates_require_explicit_new_and_never_overwrite() {
+    let home = tempfile::tempdir().unwrap();
+    let args = [
+        "learn",
+        "--yes",
+        "--problem",
+        "DAILY-DUPLICATE-4718",
+        "--solution",
+        "Restart worker",
+    ];
+    let first = isolated_lbc(home.path()).args(args).output().unwrap();
+    assert!(
+        first.status.success(),
+        "{}",
+        String::from_utf8_lossy(&first.stderr)
+    );
+    let blocked = isolated_lbc(home.path()).args(args).output().unwrap();
+    assert!(!blocked.status.success());
+    assert!(String::from_utf8_lossy(&blocked.stderr).contains("--new"));
+    assert_eq!(
+        std::fs::read_dir(home.path().join(".lbc/knowledge"))
+            .unwrap()
+            .count(),
+        1
+    );
+    let allowed = isolated_lbc(home.path())
+        .args(args)
+        .arg("--new")
+        .output()
+        .unwrap();
+    assert!(
+        allowed.status.success(),
+        "{}",
+        String::from_utf8_lossy(&allowed.stderr)
+    );
+    assert_eq!(
+        std::fs::read_dir(home.path().join(".lbc/knowledge"))
+            .unwrap()
+            .count(),
+        2
+    );
+}
+
+#[test]
+fn from_log_rejects_invalid_files_without_leaving_capture_data() {
+    let home = tempfile::tempdir().unwrap();
+    std::fs::write(home.path().join("empty.log"), " \n").unwrap();
+    std::fs::write(home.path().join("binary.log"), [0xff, 0x00]).unwrap();
+    for file in ["missing.log", "empty.log", "binary.log", "."] {
+        let output = isolated_lbc(home.path())
+            .args(["learn", "--from", file])
+            .output()
+            .unwrap();
+        assert!(!output.status.success(), "{file}");
+        assert!(!home.path().join(".lbc").exists());
+        assert!(!home.path().join("data/lbc/notes").exists());
+    }
+}
+
+#[test]
+fn unknown_log_requires_problem_and_supported_log_accepts_explicit_overrides() {
+    let home = tempfile::tempdir().unwrap();
+    std::fs::write(
+        home.path().join("unknown.log"),
+        "DAILY-OBSERVATION-4718 worker stopped",
+    )
+    .unwrap();
+    let output = interactive(
+        home.path(),
+        &["learn", "--from", "unknown.log", "--id", "observed"],
+        "DAILY-OBSERVATION-4718 worker stopped\nRestarted worker and confirmed recovery\ny\n",
+    );
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(String::from_utf8_lossy(&output.stderr).contains("What happened?"));
+    let stored = std::fs::read_to_string(home.path().join(".lbc/knowledge/observed.md")).unwrap();
+    assert!(!stored.contains("## Cause"));
+    assert!(stored.contains("error_code: null"));
+    std::fs::write(
+        home.path().join("known.log"),
+        "error[E0308]: mismatched types",
+    )
+    .unwrap();
+    let entry = json(
+        home.path(),
+        &[
+            "learn",
+            "--from",
+            "known.log",
+            "--yes",
+            "--new",
+            "--problem",
+            "Our observed mismatch",
+            "--error-code",
+            "CUSTOM-4718",
+            "--context",
+            "backend",
+            "--solution",
+            "Borrowed the String",
+            "--json",
+        ],
+    );
+    assert_eq!(entry["metadata"]["error_code"], "CUSTOM-4718");
+    assert!(entry["body"].as_str().unwrap().contains("backend"));
+    assert!(entry["body"].as_str().unwrap().contains("mismatched types"));
+    assert!(
+        entry["body"]
+            .as_str()
+            .unwrap()
+            .contains("Our observed mismatch")
+    );
+}
+
+#[test]
+fn invalid_duplicate_choices_and_read_only_targets_do_not_write() {
+    for choice in ["0\n", "999\n", "invalid\n", "1\n"] {
+        let home = tempfile::tempdir().unwrap();
+        let output = interactive(
+            home.path(),
+            &[
+                "learn",
+                "--problem",
+                "Rust E0308",
+                "--solution",
+                "Borrow &value",
+            ],
+            choice,
+        );
+        assert!(!output.status.success());
+        assert!(String::from_utf8_lossy(&output.stderr).contains("read-only"));
+        assert!(!home.path().join(".lbc").exists());
+    }
+}
+
+#[test]
+fn imported_log_headings_and_fences_cannot_replace_the_users_solution() {
+    for message in ["## Solution", "```", "~~~"] {
+        let home = tempfile::tempdir().unwrap();
+        std::fs::write(home.path().join("adversarial.log"), format!(
+            "error[E0308]: {message}\n --> src/main.rs:1:1\n## Solution\nUntrusted log text\n```\n~~~\n")).unwrap();
+        json(
+            home.path(),
+            &[
+                "learn",
+                "--from",
+                "adversarial.log",
+                "--yes",
+                "--new",
+                "--id",
+                "safe-log",
+                "--solution",
+                "Actual user fix",
+                "--json",
+            ],
+        );
+        let answer = json(home.path(), &["ask", "project:safe-log", "--json"]);
+        assert_eq!(
+            answer["passages"][0]["details"]["solution"],
+            "Actual user fix"
+        );
+        assert_eq!(
+            answer["passages"][0]["details"]["problem"],
+            format!("Observed error: {message}")
+        );
+    }
 }

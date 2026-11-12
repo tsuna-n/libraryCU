@@ -1046,10 +1046,18 @@ fn offline_commands_never_connect_to_the_configured_provider() {
         .output()
         .unwrap();
     assert!(result.status.success());
+    std::fs::write(
+        home.path().join("capture.log"),
+        "error[E0308]: mismatched types\n",
+    )
+    .unwrap();
     let capture = isolated_lbc(home.path())
         .args([
             "learn",
             "--yes",
+            "--new",
+            "--from",
+            "capture.log",
             "--problem",
             "Rust E0308 database mismatch",
             "--solution",

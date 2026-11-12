@@ -93,6 +93,9 @@ pub struct SetupArgs {
 
 #[derive(Debug, Args)]
 pub struct LearnArgs {
+    /// Prefill observed problem, error code and context from a local error log
+    #[arg(long, value_name = "FILE")]
+    pub from: Option<PathBuf>,
     #[arg(long)]
     pub problem: Option<String>,
     #[arg(long)]
@@ -128,9 +131,12 @@ pub struct LearnArgs {
     /// Save in your personal notes store
     #[arg(long)]
     pub user: bool,
-    /// Save supplied fields without prompts; requires --problem and --solution
-    #[arg(long, requires_all = ["problem", "solution"])]
+    /// Save without prompts; requires --solution and either --problem or --from
+    #[arg(long, requires = "solution")]
     pub yes: bool,
+    /// Explicitly create a new entry even if similar knowledge exists (--yes only)
+    #[arg(long = "new", requires = "yes")]
+    pub create_new: bool,
     /// Machine-readable output for noninteractive capture
     #[arg(long, requires = "yes")]
     pub json: bool,

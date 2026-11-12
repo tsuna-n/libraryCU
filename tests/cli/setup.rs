@@ -56,6 +56,7 @@ fn fresh_setup_supports_the_offline_knowledge_loop() {
         &[
             "learn",
             "--yes",
+            "--new",
             "--problem",
             "Rust E0308 setup incident",
             "--solution",

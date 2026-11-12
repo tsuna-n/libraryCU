@@ -1,4 +1,5 @@
 use std::{
+    fmt,
     io::{self, BufRead, Read, Write},
     path::Path,
     time::{SystemTime, UNIX_EPOCH},
@@ -10,99 +11,211 @@ use crate::{cli::args::LearnArgs, knowledge, scanner, security};
 
 const MAX_FIELD_BYTES: usize = 16 * 1024;
 
-pub fn run(mut args: LearnArgs) -> Result<()> {
+#[derive(Debug)]
+struct Cancelled;
+
+impl fmt::Display for Cancelled {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("Cancelled; nothing was saved.")
+    }
+}
+
+impl std::error::Error for Cancelled {}
+
+pub fn run(args: LearnArgs) -> Result<()> {
+    match capture(args) {
+        Err(error) if error.is::<Cancelled>() => {
+            eprintln!("{error}");
+            Ok(())
+        }
+        result => result,
+    }
+}
+
+fn capture(mut args: LearnArgs) -> Result<()> {
     let stdin = io::stdin();
     let mut input = stdin.lock();
     let mut prompts = io::stderr().lock();
+    if args.yes && args.problem.is_none() && args.from.is_none() {
+        bail!("--yes requires --problem or --from; nothing was saved");
+    }
+    if let Some(path) = &args.from {
+        let observed = super::learn_log::read(path)?;
+        if observed.problem.is_none() {
+            writeln!(
+                prompts,
+                "No supported diagnostic found; provide the observed problem with --problem or at the prompt."
+            )?;
+        }
+        // Diagnostic messages are single lines; a prefix keeps log text from becoming a Markdown heading/fence.
+        args.problem = args.problem.or_else(|| {
+            observed
+                .problem
+                .map(|problem| format!("Observed error: {problem}"))
+        });
+        args.error_code = args.error_code.or(observed.error_code);
+        args.language = args.language.or(observed.language);
+        args.tool = args.tool.or(observed.tool);
+        args.context = Some(match args.context {
+            Some(context) => format!("{context}\n\n{}", observed.context),
+            None => observed.context,
+        });
+    }
     if !args.yes {
+        writeln!(
+            prompts,
+            "Capture a fix that worked. Type :cancel at any prompt to stop."
+        )?;
         args.problem = Some(field(
             &mut input,
             &mut prompts,
             args.problem,
             "What happened?",
-            true,
-        )?);
-        args.cause = Some(field(
-            &mut input,
-            &mut prompts,
-            args.cause,
-            "What was the cause? (optional)",
-            false,
         )?);
         args.solution = Some(field(
             &mut input,
             &mut prompts,
             args.solution,
             "How was it fixed?",
-            true,
         )?);
-        args.verification = Some(field(
-            &mut input,
-            &mut prompts,
-            args.verification,
-            "How was it verified? (record only; optional)",
-            false,
-        )?);
-        if args.project.is_none() && !args.user {
-            let destination = prompt(
+    }
+    let lookup_project =
+        scanner::find_project_root(args.project.as_deref().unwrap_or(Path::new(".")))?;
+    let project = (!args.user).then_some(lookup_project.as_path());
+    let (mut title, mut body, metadata) = prepare(&args, project)?;
+    let report = knowledge::load_all_documents(&lookup_project)?;
+    if !report.invalid.is_empty() {
+        writeln!(
+            prompts,
+            "Warning: {} invalid knowledge entries could not be checked for duplicates.",
+            report.invalid.len()
+        )?;
+    }
+    let matches = knowledge::duplicates::find_similar(
+        &report.documents,
+        &title,
+        &clean(args.problem.as_deref().unwrap_or_default())?,
+        &metadata,
+    );
+    let mut editing = None;
+    if !matches.is_empty() {
+        writeln!(prompts, "\nSimilar knowledge (review before saving):")?;
+        for (index, document) in matches.iter().enumerate() {
+            writeln!(
+                prompts,
+                "  {}. {} — {}{}",
+                index + 1,
+                display(&document.source_id),
+                display(&document.title),
+                if document.writable {
+                    ""
+                } else {
+                    " (read-only)"
+                }
+            )?;
+        }
+        if args.yes {
+            if !args.create_new {
+                bail!(
+                    "similar knowledge exists; run interactive learn to review/edit, or pass --new to explicitly create a new entry; nothing was saved"
+                );
+            }
+        } else {
+            let choice = prompt(
                 &mut input,
                 &mut prompts,
-                "Save to: project / user [project]",
+                "Choose new / entry number to replace its body / cancel [cancel]",
             )?;
-            match destination.to_lowercase().as_str() {
-                "" | "project" => {}
-                "user" => args.user = true,
-                _ => bail!("save destination must be project or user; nothing was saved"),
+            match choice.to_ascii_lowercase().as_str() {
+                "new" => {}
+                "" | "cancel" => return Err(Cancelled.into()),
+                _ => {
+                    let selected = choice
+                        .parse::<usize>()
+                        .ok()
+                        .and_then(|index| index.checked_sub(1))
+                        .and_then(|index| matches.get(index))
+                        .ok_or_else(|| {
+                            anyhow::anyhow!(
+                                "choose new, a listed entry number, or cancel; nothing was saved"
+                            )
+                        })?;
+                    if !selected.writable {
+                        bail!(
+                            "{} is read-only; choose new to create a separate entry; nothing was saved",
+                            display(&selected.source_id)
+                        );
+                    }
+                    args.title = Some(selected.title.clone());
+                    (title, body, _) = prepare(&args, project)?;
+                    editing = Some(*selected);
+                }
             }
         }
     }
-    let project = if args.user {
-        None
-    } else {
-        Some(scanner::find_project_root(
-            args.project.as_deref().unwrap_or(Path::new(".")),
-        )?)
-    };
-    let (title, body, metadata) = prepare(&args, project.as_deref())?;
-    if !args.yes {
-        writeln!(
-            prompts,
-            "\n{body}\nSave to: {}\nVerification status: {} (not rerun)",
-            project
-                .as_ref()
-                .map(|path| path.join(".lbc/knowledge").display().to_string())
-                .unwrap_or_else(|| knowledge::notes_dir().display().to_string()),
+    if !args.yes || args.from.is_some() {
+        let preview_metadata = editing.map(|entry| &entry.metadata).unwrap_or(&metadata);
+        let status = if let Some(original) = editing {
+            writeln!(
+                prompts,
+                "\nReplacing body of {}. Existing metadata is kept; verification becomes unverified when changed.\nCurrent body:\n{}",
+                display(&original.source_id),
+                display(&original.body)
+            )?;
+            "unverified on change"
+        } else {
             metadata
                 .verification_status
                 .as_deref()
                 .unwrap_or("unverified")
+        };
+        writeln!(
+            prompts,
+            "\nPreview:\n{}\nError code: {}\nLanguage: {}\nTool: {}\nSave to: {}\nVerification status: {status} (not rerun)",
+            display(&body),
+            display(preview_metadata.error_code.as_deref().unwrap_or("unknown")),
+            display(preview_metadata.language.as_deref().unwrap_or("unknown")),
+            display(preview_metadata.tool.as_deref().unwrap_or("unknown")),
+            display(&editing.map(|entry| entry.path.clone()).unwrap_or_else(|| {
+                project
+                    .map(|path| path.join(".lbc/knowledge").display().to_string())
+                    .unwrap_or_else(|| knowledge::notes_dir().display().to_string())
+            })),
         )?;
-        let confirm = prompt(&mut input, &mut prompts, "Save this knowledge? [Y/n]")?;
+    }
+    if !args.yes {
+        let confirm = prompt(&mut input, &mut prompts, "Save this knowledge? [y/N]")?;
         match confirm.to_lowercase().as_str() {
-            "" | "y" | "yes" => {}
-            "n" | "no" => {
-                writeln!(prompts, "Cancelled; nothing was saved.")?;
-                return Ok(());
-            }
+            "y" | "yes" => {}
+            "" | "n" | "no" => return Err(Cancelled.into()),
             _ => bail!("expected yes or no; nothing was saved"),
         }
     }
-    let entry = knowledge::storage::add_entry_with_metadata(
-        knowledge::AddEntry {
-            id: args.id.as_deref(),
-            title: &title,
-            kind: "troubleshooting",
-            body: &body,
-            project: project.as_deref(),
-            overrides: None,
-        },
-        metadata,
-    )?;
+    let entry = if let Some(original) = editing {
+        knowledge::storage::edit_entry_from_preview(original, &body, &lookup_project)?
+    } else {
+        knowledge::storage::add_entry_with_metadata(
+            knowledge::AddEntry {
+                id: args.id.as_deref(),
+                title: &title,
+                kind: "troubleshooting",
+                body: &body,
+                project,
+                overrides: None,
+            },
+            metadata,
+        )?
+    };
     if args.json {
         println!("{}", serde_json::to_string_pretty(&entry)?);
     } else {
         println!(
-            "Saved {}\n  {}\n  Verification: {} (recorded only; not rerun)\n  Find it: lbc search {:?}",
+            "{} {}\n  {}\n  Verification: {} (recorded only; not rerun)\n  Find it: lbc search {:?}",
+            if editing.is_some() {
+                "Updated"
+            } else {
+                "Saved"
+            },
             entry.source_id,
             entry.path,
             entry.verification_status,
@@ -127,7 +240,18 @@ fn prompt(input: &mut impl BufRead, output: &mut impl Write, label: &str) -> Res
     if bytes > MAX_FIELD_BYTES {
         bail!("capture field exceeds 16 KB; nothing was saved");
     }
-    Ok(line.trim().to_owned())
+    let value = line.trim();
+    if value == ":cancel" {
+        return Err(Cancelled.into());
+    }
+    Ok(value.to_owned())
+}
+
+fn display(value: &str) -> String {
+    security::redact_sensitive(value)
+        .chars()
+        .filter(|c| !c.is_control() || matches!(c, '\n' | '\t'))
+        .collect()
 }
 
 fn field(
@@ -135,14 +259,13 @@ fn field(
     output: &mut impl Write,
     value: Option<String>,
     label: &str,
-    required: bool,
 ) -> Result<String> {
     if let Some(value) = value {
         return Ok(value);
     }
     loop {
         let value = prompt(input, output, label)?;
-        if !required || !value.is_empty() {
+        if !value.is_empty() {
             return Ok(value);
         }
         writeln!(output, "Please provide some text.")?;
@@ -152,6 +275,9 @@ fn field(
 fn clean(value: &str) -> Result<String> {
     if value.len() > MAX_FIELD_BYTES {
         bail!("capture field exceeds 16 KB; nothing was saved");
+    }
+    if value.contains('\0') {
+        bail!("capture fields must be text without NUL bytes; nothing was saved");
     }
     Ok(security::redact_sensitive(value.trim()))
 }

@@ -169,7 +169,34 @@ pub fn resolve_entry<'a>(
 }
 
 pub fn edit_entry(input: EditEntry<'_>) -> Result<KnowledgeDocument> {
-    let original = inspect_entry(input.reference, input.project)?;
+    edit_entry_impl(input, None)
+}
+
+/// Replace only the version the user reviewed; preserve newer edits made during capture.
+pub fn edit_entry_from_preview(
+    original: &KnowledgeDocument,
+    body: &str,
+    project: &Path,
+) -> Result<KnowledgeDocument> {
+    edit_entry_impl(
+        EditEntry {
+            reference: &original.source_id,
+            replacement: Some(body),
+            project,
+            create_override: false,
+        },
+        Some(original),
+    )
+}
+
+fn edit_entry_impl(
+    input: EditEntry<'_>,
+    reviewed: Option<&KnowledgeDocument>,
+) -> Result<KnowledgeDocument> {
+    let original = match reviewed {
+        Some(original) => original.clone(),
+        None => inspect_entry(input.reference, input.project)?,
+    };
     if original.source == "builtin" && !input.create_override {
         bail!(
             "{} is built in and read-only; use --override to create a user override",
@@ -456,6 +483,32 @@ fn ensure_document_unchanged(original: &KnowledgeDocument, project: &Path) -> Re
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn captured_edit_preserves_changes_made_after_preview() {
+        let project = tempfile::tempdir().unwrap();
+        let original = add_entry(AddEntry {
+            id: Some("preview-race"),
+            title: "Preview race",
+            kind: "troubleshooting",
+            body: "## Problem\n\nWorker stopped\n\n## Solution\n\nOriginal fix\n",
+            project: Some(project.path()),
+            overrides: None,
+        })
+        .unwrap();
+        let newer = edit_entry(EditEntry {
+            reference: &original.source_id,
+            replacement: Some("## Problem\n\nWorker stopped\n\n## Solution\n\nNewer fix\n"),
+            project: project.path(),
+            create_override: false,
+        })
+        .unwrap();
+        let bytes = fs::read(&newer.path).unwrap();
+        let error =
+            edit_entry_from_preview(&original, "Stale replacement", project.path()).unwrap_err();
+        assert!(error.to_string().contains("newer content was preserved"));
+        assert_eq!(fs::read(&newer.path).unwrap(), bytes);
+    }
 
     #[test]
     fn legacy_yaml_metadata_survives_edit_serialization() -> Result<()> {
