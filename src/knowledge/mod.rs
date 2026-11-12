@@ -1,3 +1,4 @@
+pub mod bundle;
 pub mod document;
 pub mod duplicates;
 pub mod index;
