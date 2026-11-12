@@ -1,4 +1,5 @@
 pub mod document;
+pub mod duplicates;
 pub mod index;
 pub mod loader;
 pub mod packages;
