@@ -273,7 +273,7 @@ pub fn run(args: DoctorArgs) -> Result<()> {
         },
     });
 
-    checks.push(match project {
+    checks.push(match &project {
         Ok(project) => knowledge_check(&project.root, thai),
         Err(_) => DoctorCheck {
             name: "Local knowledge".to_owned(),
@@ -288,6 +288,40 @@ pub fn run(args: DoctorArgs) -> Result<()> {
                 ),
                 "lbc scan --path .; lbc doctor",
             ),
+        },
+    });
+
+    checks.push(match &project {
+        Ok(project) => match crate::security::git::check(&project.root) {
+            Ok(report) => DoctorCheck {
+                name: "Git safety".into(),
+                ok: report.ok,
+                detail: report.detail,
+            },
+            Err(error) => DoctorCheck {
+                name: "Git safety".into(),
+                ok: false,
+                detail: guidance(
+                    thai,
+                    &safe_message(&error),
+                    text(
+                        thai,
+                        "inspect Git rules and .lbc paths without replacing private records",
+                        "ตรวจสอบกฎ Git และพาธ .lbc โดยเก็บข้อมูลส่วนตัวเดิมไว้",
+                    ),
+                    "git ls-files -- .lbc; lbc doctor",
+                ),
+            },
+        },
+        Err(_) => DoctorCheck {
+            name: "Git safety".into(),
+            ok: false,
+            detail: text(
+                thai,
+                "project root unavailable; fix Project detection, then run lbc doctor",
+                "ไม่พบรากโครงการ แก้การตรวจหาโครงการแล้วเรียก lbc doctor",
+            )
+            .into(),
         },
     });
 
@@ -419,6 +453,7 @@ pub fn run(args: DoctorArgs) -> Result<()> {
                         "Local knowledge" => "ความรู้ในเครื่อง",
                         "AI provider" => "ผู้ให้บริการ AI",
                         "Session memory" => "หน่วยความจำเซสชัน",
+                        "Git safety" => "ความปลอดภัยของ Git",
                         name => name,
                     }
                 } else {

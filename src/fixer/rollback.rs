@@ -203,6 +203,11 @@ fn verify_authentication(record: &Record, key: &[u8]) -> Result<()> {
 }
 
 pub(super) fn recovery_key(directory: &Path) -> Result<Vec<u8>> {
+    security::git::ensure_gitignore(
+        directory
+            .parent()
+            .context("recovery store has no project root")?,
+    )?;
     let path = directory.join("recovery.key");
     if path.exists() {
         return read_recovery_key(directory);
@@ -333,6 +338,12 @@ mod tests {
         let id = prepare(&target, &patch).unwrap();
         target.apply(&patch).unwrap();
         (root, target, patch, id)
+    }
+
+    #[test]
+    fn new_recovery_records_initialize_git_safety_without_setup() {
+        let (root, _, _, _) = recovery_fixture();
+        assert!(root.path().join(".lbc/.gitignore").is_file());
     }
 
     #[test]

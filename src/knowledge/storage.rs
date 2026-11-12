@@ -78,6 +78,9 @@ fn add_entry_impl(
     };
     crate::security::files::reject_symlinks(&root)?;
     crate::security::permissions::validate_directory(&root)?;
+    if input.project.is_some() {
+        crate::security::git::ensure_gitignore(&anchor)?;
+    }
     fs::create_dir_all(&root).with_context(|| format!("failed to create {}", root.display()))?;
     ensure_store_is_safe(&root, &anchor)?;
     let _lock = crate::security::storage::lock_exclusive(&store_lock_path(&root))?;
@@ -414,7 +417,7 @@ fn atomic_write_new(path: &Path, bytes: &[u8]) -> Result<()> {
     )?;
     Ok(())
 }
-fn store_lock_path(store: &Path) -> PathBuf {
+pub(crate) fn store_lock_path(store: &Path) -> PathBuf {
     let name = store
         .file_name()
         .and_then(|name| name.to_str())

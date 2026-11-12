@@ -189,6 +189,7 @@ fn fresh_doctor_explains_optional_stores_without_creating_them_or_changing_json_
             "Configuration",
             "Project detection",
             "Local knowledge",
+            "Git safety",
             "AI provider",
             "Session memory"
         ]

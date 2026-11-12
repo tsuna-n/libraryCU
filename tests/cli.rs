@@ -11,6 +11,8 @@ mod doctor;
 mod errors;
 #[path = "cli/fix.rs"]
 mod fix;
+#[path = "cli/git_safety.rs"]
+mod git_safety;
 #[path = "cli/learn.rs"]
 mod learn;
 #[path = "cli/output.rs"]

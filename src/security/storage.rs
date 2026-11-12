@@ -60,6 +60,18 @@ pub fn atomic_replace(path: &Path, bytes: &[u8], private: bool) -> Result<()> {
     atomic_replace_with_hook(path, bytes, private, || Ok(()))
 }
 
+/// Publish a complete new file without authorizing replacement of an existing file.
+pub fn atomic_create(path: &Path, bytes: &[u8], private: bool) -> Result<()> {
+    atomic_write_with_hook(path, bytes, private, true, || Ok(()))
+}
+
+fn atomic_replace_with_hook<F>(path: &Path, bytes: &[u8], private: bool, hook: F) -> Result<()>
+where
+    F: FnOnce() -> Result<()>,
+{
+    atomic_write_with_hook(path, bytes, private, false, hook)
+}
+
 /// Publish a fully prepared temporary directory after refusing an observed
 /// existing target. Unix anchors the rename; Linux additionally uses the
 /// kernel's no-replace operation for the final step.
@@ -270,7 +282,13 @@ fn stat_at_unix(directory: &fs::File, name: &std::ffi::CStr) -> Result<Option<li
 }
 
 #[cfg(unix)]
-fn atomic_replace_with_hook<F>(path: &Path, bytes: &[u8], private: bool, hook: F) -> Result<()>
+fn atomic_write_with_hook<F>(
+    path: &Path,
+    bytes: &[u8],
+    private: bool,
+    no_replace: bool,
+    hook: F,
+) -> Result<()>
 where
     F: FnOnce() -> Result<()>,
 {
@@ -303,6 +321,11 @@ where
             .as_bytes(),
     )?;
     let original = stat_at(&parent_file, &target_name)?;
+    ensure!(
+        !no_replace || original.is_none(),
+        "refusing to overwrite existing file {}",
+        path.display()
+    );
     if let Some(stat) = &original
         && (stat.st_mode & libc::S_IFMT) != libc::S_IFREG
     {
@@ -373,17 +396,36 @@ where
     // SAFETY: both names are valid C strings and both directory descriptors
     // remain open. renameat replaces the directory entry without following a
     // final-component symlink.
-    if unsafe {
-        libc::renameat(
-            parent_file.as_raw_fd(),
-            temporary_name.as_ptr(),
-            parent_file.as_raw_fd(),
-            target_name.as_ptr(),
-        )
-    } != 0
-    {
+    let published = if no_replace {
+        // linkat never replaces an existing name, including a racing creator.
+        unsafe {
+            libc::linkat(
+                parent_file.as_raw_fd(),
+                temporary_name.as_ptr(),
+                parent_file.as_raw_fd(),
+                target_name.as_ptr(),
+                0,
+            )
+        }
+    } else {
+        unsafe {
+            libc::renameat(
+                parent_file.as_raw_fd(),
+                temporary_name.as_ptr(),
+                parent_file.as_raw_fd(),
+                target_name.as_ptr(),
+            )
+        }
+    };
+    if published != 0 {
         return Err(std::io::Error::last_os_error())
             .with_context(|| format!("failed to replace {} atomically", path.display()));
+    }
+    if no_replace
+        && unsafe { libc::unlinkat(parent_file.as_raw_fd(), temporary_name.as_ptr(), 0) } != 0
+    {
+        return Err(std::io::Error::last_os_error())
+            .context("new file published but temporary link cleanup failed");
     }
     parent_file.sync_all()?;
     cleanup.published = true;
@@ -539,7 +581,13 @@ where
 }
 
 #[cfg(not(unix))]
-fn atomic_replace_with_hook<F>(path: &Path, bytes: &[u8], private: bool, hook: F) -> Result<()>
+fn atomic_write_with_hook<F>(
+    path: &Path,
+    bytes: &[u8],
+    private: bool,
+    no_replace: bool,
+    hook: F,
+) -> Result<()>
 where
     F: FnOnce() -> Result<()>,
 {
@@ -556,6 +604,11 @@ where
         super::permissions::validate_replacement_target(path)?;
     }
     let original_state = state(path)?;
+    ensure!(
+        !no_replace || original_state.is_none(),
+        "refusing to overwrite existing file {}",
+        path.display()
+    );
 
     let mut temp = tempfile::Builder::new()
         .prefix(".lbc-write-")
@@ -577,8 +630,13 @@ where
         state(path)? == original_state,
         "target changed during atomic replacement"
     );
-    temp.persist(path)
-        .with_context(|| format!("failed to replace {} atomically", path.display()))?;
+    if no_replace {
+        temp.persist_noclobber(path)
+            .context("refusing to overwrite new file destination")?;
+    } else {
+        temp.persist(path)
+            .with_context(|| format!("failed to replace {} atomically", path.display()))?;
+    }
     sync_directory(parent)?;
     return Ok(());
 
@@ -622,6 +680,57 @@ pub(crate) fn sync_directory(path: &Path) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn new_publication_refuses_existing_and_racing_files_and_cleans_failures() -> Result<()> {
+        let root = tempfile::tempdir()?;
+        let path = root.path().join("archive.json");
+        atomic_create(&path, b"original", true)?;
+        assert!(atomic_create(&path, b"replacement", true).is_err());
+        assert_eq!(fs::read(&path)?, b"original");
+        let race = root.path().join("race.json");
+        assert!(
+            atomic_write_with_hook(&race, b"replacement", true, true, || {
+                fs::write(&race, b"racing creator")?;
+                Ok(())
+            })
+            .is_err()
+        );
+        assert_eq!(fs::read(&race)?, b"racing creator");
+        let interrupted = root.path().join("interrupted.json");
+        assert!(
+            atomic_write_with_hook(&interrupted, b"partial", true, true, || anyhow::bail!(
+                "interrupted"
+            ))
+            .is_err()
+        );
+        assert!(!interrupted.exists());
+        assert_eq!(fs::read_dir(root.path())?.count(), 2);
+        Ok(())
+    }
+
+    #[test]
+    fn concurrent_creators_publish_one_complete_file() -> Result<()> {
+        let root = tempfile::tempdir()?;
+        let path = root.path().join("archive.json");
+        let barrier = std::sync::Barrier::new(2);
+        let results = std::thread::scope(|scope| {
+            let first = scope.spawn(|| {
+                barrier.wait();
+                atomic_create(&path, b"first complete value", true)
+            });
+            let second = scope.spawn(|| {
+                barrier.wait();
+                atomic_create(&path, b"second complete value", true)
+            });
+            [first.join().unwrap(), second.join().unwrap()]
+        });
+        assert_eq!(results.iter().filter(|result| result.is_ok()).count(), 1);
+        let contents = fs::read(&path)?;
+        assert!(contents == b"first complete value" || contents == b"second complete value");
+        assert_eq!(fs::read_dir(root.path())?.count(), 1);
+        Ok(())
+    }
 
     #[test]
     fn injected_failure_preserves_the_original_and_cleans_up() -> Result<()> {

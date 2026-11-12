@@ -114,6 +114,7 @@ pub fn run(mut args: SetupArgs) -> Result<()> {
                     .with_context(|| format!("failed to create {}", directory.display()))?;
                 security::permissions::validate_directory(directory)?;
             }
+            security::git::ensure_gitignore(&project)?;
             Ok(())
         },
     )?;
@@ -244,6 +245,15 @@ fn check_paths(config: &Path, directories: [&PathBuf; 2]) -> Result<()> {
             "knowledge destination must be a directory"
         );
         security::permissions::validate_directory(directory)?;
+    }
+    let ignore = directories[0]
+        .parent()
+        .context("project knowledge has no parent")?
+        .join(".gitignore");
+    security::files::reject_symlinks(&ignore)?;
+    if ignore.exists() {
+        ensure!(ignore.is_file(), ".lbc/.gitignore must be a regular file");
+        security::permissions::validate_path(&ignore, false)?;
     }
     Ok(())
 }
