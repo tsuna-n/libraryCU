@@ -38,8 +38,9 @@ falls back to English. TOML/YAML parse diagnostics omit source values to avoid
 printing credentials; YAML diagnostics retain the error location. Recognizable
 credentials and provider API-key values are masked in error messages.
 
-`doctor` checks the configuration, readable knowledge store directories and
-document validity without creating stores, changing notes, opening persistent
+`doctor` checks the configuration, readable knowledge store directories,
+document validity, effective Git ignore rules and tracked private `.lbc` paths
+without creating stores, changing notes, opening persistent
 history, or repairing files. Missing optional stores are normal on first use;
 follow `lbc setup` guidance when you want to create them. Invalid paths,
 permissions, symlinks and metadata receive repair instructions. Doctor checks AI
@@ -53,6 +54,8 @@ no automatic repair operation.
 `lbc setup --yes` uses offline defaults on a fresh installation and preserves
 existing configuration. It creates the exact project directory’s
 `.lbc/knowledge` and the personal notes directory without contacting a provider.
+It also creates `.lbc/.gitignore` with private defaults when that file is absent;
+existing ignore rules are preserved. See [Git safety](#git-safety).
 
 Optional flags: `--project PATH`, `--provider off|openai|zai|glm|ollama|openrouter|openai-compat`,
 `--model MODEL`, `--base-url URL`, and `--json` (requires `--yes`).
@@ -206,6 +209,119 @@ lbc edit builtin:rust-e0308 --override --file ./our-e0308.md
 ```
 
 The override records its target. A project override has priority over a user override in that project. External Markdown changes are reloaded by the next command and each chat question; `index` reports that it rebuilds in memory and does not pretend a persistent cache exists.
+
+## Back up and transfer knowledge
+
+```bash
+lbc backup create ./project-knowledge.json
+lbc backup restore ./project-knowledge.json
+lbc export ./personal-knowledge.json --user
+lbc import ./legacy-knowledge --project ./backend
+```
+
+`backup create FILE` and `export FILE` perform the same operation;
+`backup restore FILE_OR_DIRECTORY` and `import FILE_OR_DIRECTORY` share the same
+restore behavior. The default scope is the exact current project directory.
+`--project PATH` selects another existing project; `--user` selects personal
+notes instead and cannot be combined with `--project`.
+File arguments are relative to the current working directory.
+
+Project exports include Markdown from `.lbc/knowledge` and legacy `knowledge/`,
+including nested notes. Personal exports include only the personal notes store.
+Bundles exclude recovery keys, history, proposals, fixes, configuration, installed
+packages and built-in knowledge. Export writes a new file with private access
+and refuses to overwrite an existing output.
+
+The version 1 JSON bundle contains each note's ID, SHA-256 checksum and exact
+UTF-8 Markdown, including unknown YAML fields, timestamps and CRLF line endings.
+It contains no source filesystem paths. Checksums detect corruption; they do not
+authenticate the sender or encrypt the notes. Export preserves note content
+without redaction, so review it before sharing and keep backups private.
+Limits are 4,096 entries, 256 KiB per Markdown document, 16 MiB of Markdown in
+total and 32 MiB for the encoded JSON bundle.
+
+Import also accepts a legacy `.md` file or directory of Markdown with explicit
+YAML `id` values. Select the actual knowledge directory, such as
+`./old-project/.lbc/knowledge` or `./old-project/knowledge`, rather than private
+application storage. A selected knowledge store includes its nested notes;
+when scanning a general directory, Git's `.git` and private `.lbc` directories
+are skipped. Hidden note directories and ordinary folders named `runtime` are
+included. Symlinks, unsafe destinations, malformed notes,
+invalid or duplicate IDs, unsupported bundle versions and checksum failures
+are refused.
+
+Incoming Markdown and `metadata.id` are preserved. New project notes go to
+`.lbc/knowledge`; personal notes go to the user store. Source-qualified IDs follow
+the selected destination: importing ID `demo-port` into a project yields
+`project:demo-port`, while `--user` yields `user:demo-port`.
+
+The command validates the entire input, displays a plan and asks `Apply this
+plan? [y/N]`. The input and every planned destination are validated before note
+writes. Same ID and identical Markdown is skipped, making retries idempotent.
+Same ID with different Markdown is a conflict that stops the whole plan by
+default, including unrelated additions. Similar notes with different IDs are
+shown as suggestions; they are never automatically merged.
+
+```bash
+lbc import ./team-knowledge.json --project ./backend
+lbc import ./team-knowledge.json --project ./backend --replace
+lbc import ./team-knowledge.json --project ./backend --replace --yes --json
+```
+
+`--replace` permits replacing conflicting notes only after confirmation;
+`--replace --yes` explicitly confirms replacement for scripts. `--yes` alone
+confirms additions and identical skips, and still refuses conflicts. Import JSON
+requires `--yes`; the report contains `added`, `replaced`, `duplicates`, `similar`
+and `conflicts`, while the preview goes to stderr. Export supports `--json` and
+reports its output `path` and entry count. An empty response, `n`, `:cancel`, or
+EOF at confirmation writes no notes.
+
+Locks coordinate writers in the current, legacy and nested stores. A change
+since the preview aborts the stale plan so you can review again. Each note is
+published atomically, but the whole batch is not a transaction: interruption
+can leave a complete subset applied. Rerun the same command to skip identical
+completed IDs and resume; conflicting replacements still need `--replace` and
+confirmation. Unrelated existing notes are never deleted.
+
+## Git safety
+
+Setup, project capture/import, recovery-record creation and backups stored under
+`.lbc` create `.lbc/.gitignore` if it is absent. Its default
+rules ignore all `.lbc` contents except the ignore file itself, including
+knowledge until you choose individual notes to share. Existing rules are never
+overwritten. To share one reviewed Markdown note, append these rules to
+`.lbc/.gitignore`:
+
+```gitignore
+!/knowledge/
+/knowledge/*
+!/knowledge/shared.md
+```
+
+For a nested note, reopen each parent directory, ignore its children, then
+reopen the selected file. If the repository's root rules ignore `.lbc/`, append
+`!/.lbc/` there so the inner rules can apply. Review the result before staging:
+
+```bash
+git check-ignore --no-index .lbc/recovery.key
+git status --short --untracked-files=all
+lbc doctor
+git add .lbc/.gitignore .lbc/knowledge/shared.md
+```
+
+`doctor` checks actual Git ignore behavior and the index, including already
+tracked private records that ignore rules cannot protect. It reports unsafe
+paths without reading record contents. Only selected knowledge Markdown and
+`.lbc/.gitignore` should be tracked under `.lbc`; recovery keys, fixes, proposals,
+history and future runtime records must stay local. Non-Git projects need no Git
+installation for this check.
+
+Doctor never stages, untracks, removes files, installs hooks or changes ignore
+rules. Correct unsafe rules and review any index cleanup yourself. Ignore rules
+cannot prevent `git add --force`, and adding rules does not remove tracked files
+or past commits. If a credential or recovery key has been exposed, assess its
+use, rotate the affected credential and address repository history separately.
+These protections retain the [ownership and ACL policy](shared-store-security.md).
 
 ## Ask and explain offline
 
@@ -508,7 +624,7 @@ ticket. Certificate trust does not guarantee absence of SmartScreen prompts.
 
 ## Safety boundaries
 
-`search`, `inspect`, `ask`, `explain`, `scan`, and `doctor` do not change project sources, install packages, run suggested repairs, or execute arbitrary shell commands. Explicit add/edit/package/config/history-clear operations, `fix --ai --save-proposal`, `fix --ai --apply`, `apply-proposal`, and `rollback` write their selected data targets. `fix --verify` additionally executes the user-selected verification command. Common keys, bearer values, provider tokens, authorization headers, passwords, database URLs, and known token formats are redacted from remote context and persistent history.
+`search`, `inspect`, `ask`, `explain`, `scan`, and `doctor` do not change project sources, install packages, run suggested repairs, or execute arbitrary shell commands. Explicit add/edit/package/config/history-clear operations, backup/export/import operations, `fix --ai --save-proposal`, `fix --ai --apply`, `apply-proposal`, and `rollback` write their selected data targets. `fix --verify` additionally executes the user-selected verification command. Common keys, bearer values, provider tokens, authorization headers, passwords, database URLs, and known token formats are redacted from remote context and persistent history.
 
 Redaction handles multiple credentials per line, quoted structured keys, URI user information, and Unicode prefixes. Private-key blocks are redacted before passage selection while preserving line numbers. It is pattern-based, not a guarantee that arbitrary secrets are detected: review sensitive notes before opting into remote AI. Config display masks recognizable credentials without changing the saved value.
 

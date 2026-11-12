@@ -109,6 +109,14 @@ Optional `--ai` enhances retrieved evidence and sends bounded, redacted context
 to your configured provider. Review sensitive notes before enabling it.
 `fix`, `apply-proposal`, and `rollback` are experimental source-changing tools.
 
+Back up project knowledge with `lbc backup create ./knowledge-backup.json` and
+restore with `lbc backup restore ./knowledge-backup.json`; use `--user` for
+personal notes. `lbc export` and `lbc import` also support sharing bundles and
+importing legacy Markdown. Backups preserve notes exactly and exclude private
+application records. See [transfer behavior and conflict handling](docs/cli-reference.md#back-up-and-transfer-knowledge).
+New `.lbc` stores stay private in Git by default; explicitly select reviewed notes
+for sharing and use `lbc doctor` to [check Git safety](docs/cli-reference.md#git-safety).
+
 ## Learn more
 
 - [Quick start](docs/quick-start.md): capture, search, and explain offline

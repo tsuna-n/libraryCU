@@ -35,6 +35,35 @@ access. Atomic private replacement can tighten an owner-controlled public file,
 but it refuses an existing file writable by another principal. Read-only project
 source/knowledge inspection is not treated as trusted mutable storage.
 
+Knowledge backup/export outputs and restore/import destinations use the same
+ownership, ACL, symlink and regular-file checks. Export publishes a new private
+bundle without replacing an existing output. Import validates the input and all
+planned destinations before writing notes, locks current/legacy/nested writers,
+and rejects a destination changed since preview. Publication is atomic per file;
+an interrupted batch may leave complete notes applied and can be resumed by
+rerunning it. Conflicting replacements require `--replace` and confirmation.
+No unrelated notes are deleted.
+
+Bundles include only the selected project or personal Knowledge. Recovery keys,
+history, proposals, fixes, configuration, packages and built-ins are excluded.
+Exact Markdown, including unknown metadata, is preserved without redaction;
+review it before sharing. SHA-256 checksums detect corruption and provide neither
+sender authentication nor encryption. Protect backup storage as carefully as
+the original notes. See [transfer behavior](cli-reference.md#back-up-and-transfer-knowledge).
+
+## Git exposure checks
+
+Setup, project capture/import, recovery-record creation and backups under `.lbc`
+create a private-default `.lbc/.gitignore` only when absent. Knowledge must be
+explicitly selected for tracking; runtime records and
+recovery keys should remain ignored and untracked. Doctor checks effective ignore
+rules and already tracked private paths without reading their contents or
+changing files, the index or hooks. Existing ignore rules remain user-controlled.
+Ignore rules do not protect already tracked files, past commits, or forced adds;
+users must review index/history cleanup and rotate exposed credentials themselves.
+These checks supplement the filesystem policy above; they do not relax ownership,
+ACL, platform or single-owner guarantees. See [Git safety](cli-reference.md#git-safety).
+
 ## Remediation and limits
 
 Use a separate owner-controlled store per account. Move data out of writable
