@@ -21,6 +21,8 @@ mod output;
 mod setup;
 #[path = "cli/streaming.rs"]
 mod streaming;
+#[path = "cli/transfer.rs"]
+mod transfer;
 
 #[test]
 fn explain_broader_diagnostics_provides_known_guidance_without_claiming_verification() {

@@ -7,6 +7,7 @@ pub mod packages;
 pub mod retrieval;
 pub mod search;
 pub mod storage;
+pub mod transfer;
 
 pub use document::{KnowledgeDocument, KnowledgeMetadata};
 pub use index::{KnowledgeIndex, SearchResult};

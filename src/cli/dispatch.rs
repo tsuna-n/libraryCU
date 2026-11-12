@@ -1,7 +1,7 @@
 use anyhow::Result;
 
 use super::{
-    args::{Cli, Command},
+    args::{BackupCommand, Cli, Command},
     commands,
 };
 
@@ -11,6 +11,12 @@ pub fn dispatch(cli: Cli) -> Result<()> {
         Command::Setup(args) => commands::setup::run(args),
         Command::Add(args) => commands::entries::add(args),
         Command::Learn(args) => commands::learn::run(*args),
+        Command::Export(args) => commands::transfer::export(args),
+        Command::Import(args) => commands::transfer::import(args),
+        Command::Backup { command } => match command {
+            BackupCommand::Create(args) => commands::transfer::export(args),
+            BackupCommand::Restore(args) => commands::transfer::import(args),
+        },
         Command::List(args) => commands::entries::list(args),
         Command::Inspect(args) => commands::entries::inspect(args),
         Command::Edit(args) => commands::entries::edit(args),

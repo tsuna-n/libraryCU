@@ -29,6 +29,15 @@ pub enum Command {
     Add(AddArgs),
     /// Capture a solved problem as portable local Markdown
     Learn(Box<LearnArgs>),
+    /// Create or restore a local knowledge backup
+    Backup {
+        #[command(subcommand)]
+        command: BackupCommand,
+    },
+    /// Export local knowledge as a portable, checksummed bundle
+    Export(ExportArgs),
+    /// Import a bundle or legacy Markdown knowledge
+    Import(ImportArgs),
     /// List effective knowledge entries
     List(ListArgs),
     /// Show a complete knowledge entry
@@ -163,6 +172,46 @@ pub struct AddArgs {
     #[arg(long)]
     pub project: Option<PathBuf>,
     #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum BackupCommand {
+    Create(ExportArgs),
+    Restore(ImportArgs),
+}
+
+#[derive(Debug, Args)]
+pub struct ExportArgs {
+    /// New bundle file; existing files are never replaced
+    #[arg(value_name = "FILE")]
+    pub file: PathBuf,
+    #[arg(long, default_value = ".", conflicts_with = "user")]
+    pub project: PathBuf,
+    /// Export personal notes instead of project knowledge
+    #[arg(long)]
+    pub user: bool,
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct ImportArgs {
+    /// Bundle, legacy Markdown file, or knowledge directory
+    #[arg(value_name = "FILE_OR_DIRECTORY")]
+    pub file: PathBuf,
+    #[arg(long, default_value = ".", conflicts_with = "user")]
+    pub project: PathBuf,
+    /// Import into personal notes instead of project knowledge
+    #[arg(long)]
+    pub user: bool,
+    /// Permit replacement of conflicting IDs, with confirmation
+    #[arg(long)]
+    pub replace: bool,
+    /// Confirm the displayed plan; replacement also requires --replace
+    #[arg(long)]
+    pub yes: bool,
+    #[arg(long, requires = "yes")]
     pub json: bool,
 }
 
