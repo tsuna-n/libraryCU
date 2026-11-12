@@ -462,7 +462,17 @@ pub fn parse_document_for_source(
     let Some((frontmatter, body)) = after_opening.split_once("\n---\n") else {
         anyhow::bail!("unterminated YAML frontmatter");
     };
-    let metadata: KnowledgeMetadata = serde_yaml::from_str(frontmatter)?;
+    let metadata: KnowledgeMetadata = serde_yaml::from_str(frontmatter).map_err(|error| {
+        // Parser messages can echo arbitrary private values from the document.
+        let location = error.location().map_or(String::new(), |location| {
+            format!(
+                " at line {} column {}",
+                location.line() + 1,
+                location.column()
+            )
+        });
+        anyhow::anyhow!("invalid YAML frontmatter{location}; check field names and value types")
+    })?;
     validate_id(&metadata.id)?;
     if body.trim().is_empty() {
         anyhow::bail!("knowledge body must not be empty");
@@ -562,6 +572,19 @@ mod tests {
     fn validates_body_and_kind() {
         assert!(parse_document("bad.md", "---\nid: x\n---\n").is_err());
         assert!(parse_document("bad.md", "---\nid: x\nkind: other\n---\nbody").is_err());
+    }
+
+    #[test]
+    fn yaml_errors_keep_location_without_echoing_private_values() {
+        let error = parse_document(
+            "private.md",
+            "---\nid: private\ntags: unlabelled-private-marker\n---\nbody",
+        )
+        .unwrap_err();
+        let message = error.to_string();
+        assert!(!message.contains("unlabelled-private-marker"));
+        assert!(message.contains("line 3 column"), "{message}");
+        assert!(message.contains("check field names and value types"));
     }
 
     #[test]

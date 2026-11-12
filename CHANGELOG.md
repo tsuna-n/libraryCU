@@ -1,6 +1,47 @@
 # Changelog
 
-## 0.5.0 — Unreleased production release (checkpoint 2026-10-01)
+## 0.6.0 — Release candidate (2026-11-12)
+
+### Added
+
+- English/Thai CLI errors with causes, fixes and next commands.
+- `search/list --limit`, global `--quiet`/`--no-color`, and `NO_COLOR` support.
+- Guided `lbc setup` with safe offline defaults and environment-only AI keys.
+- Verified local-archive installation on Unix and Windows without Rust, plus
+  clearer PATH guidance and shorter installation/quick-start/CLI documentation.
+
+### Fixed
+
+- Doctor now diagnoses store types, read permissions, symlinks and invalid
+  documents, explains absent optional stores and never repairs user data.
+  Provider connectivity remains explicit opt-in.
+- Warnings/progress use stderr while command results and JSON stay on stdout;
+  default search limits and existing JSON fields/types are preserved.
+- Invalid config changes no longer echo private input values; TOML/YAML error
+  diagnostics omit source values while retaining useful recovery guidance.
+- Personal stores use stable USERPROFILE paths on fresh Windows environments
+  without HOME/XDG, preserving existing relative stores and extension settings.
+- Installer/signing failures preserve existing installs, configuration, knowledge,
+  unsafe output paths and unrelated user files.
+
+### Security
+
+- Redact recognizable credentials, provider keys and encoded URL credential keys.
+- Patch rustls, rustls-webpki and Tokio advisories; replace the archived YAML
+  backend with its maintained compatible successor and metadata regressions.
+- Retain source identity, native signing and production approval gates.
+
+See [v0.6.0 release notes](docs/release-0.6.0.md). The candidate requires hosted
+verification and signed assets before production publication.
+
+## 0.5.0 — Historical production candidate
+
+The existing public release has no assets, as checked on 2026-11-12. Its signed
+source tag is preserved; it is not a verified production artifact set.
+See the [2026-11-08 release audit](docs/release-readiness-2026-11-08.md) and
+[onboarding validation receipt](docs/onboarding-validation.md) for dated evidence.
+
+### Historical checkpoint — 2026-10-01
 
 - Added `fix --ai --save-proposal` and offline `apply-proposal ID`, authenticated
   private records bound to project/target/source hash/replacement, source-change

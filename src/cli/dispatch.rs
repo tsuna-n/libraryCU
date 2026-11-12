@@ -6,7 +6,9 @@ use super::{
 };
 
 pub fn dispatch(cli: Cli) -> Result<()> {
+    crate::output::configure(cli.quiet, cli.no_color);
     match cli.command {
+        Command::Setup(args) => commands::setup::run(args),
         Command::Add(args) => commands::entries::add(args),
         Command::Learn(args) => commands::learn::run(*args),
         Command::List(args) => commands::entries::list(args),

@@ -1,6 +1,6 @@
 [package]
 name = "librarycube"
-version = "0.5.0"
+version = "0.6.0"
 edition = "2024"
 description = "A local-first developer knowledge engine with offline retrieval and optional AI"
 license = "MIT"
@@ -20,7 +20,7 @@ tokio = { version = "1", features = ["full"] }
 
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-serde_yaml = "0.9"
+serde_yaml = { package = "yaml_serde", version = "0.10.7" }
 toml = "0.8"
 
 reqwest = { version = "0.12", features = ["json"] }

@@ -1,8 +1,8 @@
-use std::io::{self, BufRead, Read, Write};
+use std::io::{self, BufRead, IsTerminal, Read, Write};
 
 use anyhow::Result;
 
-use crate::{ai, answer, cli::args::ChatArgs, config, history};
+use crate::{ai, answer, cli::args::ChatArgs, config, history, output};
 
 const MAX_HISTORY_MESSAGES: usize = 12;
 const MAX_HISTORY_CHARS: usize = 16_000;
@@ -16,10 +16,14 @@ pub fn run(args: ChatArgs) -> Result<()> {
     } else {
         Vec::new()
     };
-    println!("libraryCube chat — /clear clears this session; /exit ends it");
+    if !output::is_quiet() && io::stdin().is_terminal() {
+        eprintln!("libraryCube chat — /clear clears this session; /exit ends it");
+    }
     loop {
-        print!("> ");
-        io::stdout().flush()?;
+        if !output::is_quiet() && io::stdin().is_terminal() {
+            eprint!("> ");
+            io::stderr().flush()?;
+        }
         let mut line = String::new();
         let count = io::stdin()
             .lock()
@@ -55,20 +59,22 @@ pub fn run(args: ChatArgs) -> Result<()> {
         )?;
         let mut is_thinking = false;
         let mut has_streamed = false;
+        let thai = report.language == "th";
 
         let enhance_result = if args.ai {
             let mut on_event = |event: ai::StreamEvent| match event {
                 ai::StreamEvent::Thinking => {
                     if !is_thinking && !has_streamed {
-                        is_thinking = true;
-                        eprint!("Thinking...");
-                        let _ = io::stderr().flush();
+                        is_thinking = output::progress(if thai {
+                            "กำลังคิด..."
+                        } else {
+                            "Thinking..."
+                        });
                     }
                 }
                 ai::StreamEvent::Content(text) => {
                     if is_thinking {
-                        eprint!("\r\x1b[2K");
-                        let _ = io::stderr().flush();
+                        output::clear_progress();
                         is_thinking = false;
                     }
                     has_streamed = true;
@@ -88,10 +94,9 @@ pub fn run(args: ChatArgs) -> Result<()> {
 
         if let Err(error) = enhance_result {
             if is_thinking {
-                eprint!("\r\x1b[2K");
-                let _ = io::stderr().flush();
+                output::clear_progress();
             }
-            eprintln!("! AI unavailable: {error:#}; showing the offline answer");
+            output::warning(&crate::cli::errors::format_error(&error, &report.language));
             println!("{}", report.offline_answer);
         } else if !has_streamed {
             println!("{}", report.offline_answer);
@@ -99,7 +104,7 @@ pub fn run(args: ChatArgs) -> Result<()> {
             println!();
         }
         for warning in &report.warnings {
-            eprintln!("! Invalid knowledge document: {warning}");
+            output::warning(&format!("Invalid knowledge document: {warning}"));
         }
         session_history.push(format!(
             "User: {}",

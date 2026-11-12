@@ -117,7 +117,15 @@ pub fn config_path() -> PathBuf {
     if let Some(home) = env::var_os("HOME") {
         return PathBuf::from(home).join(".config/lbc/config.toml");
     }
-    PathBuf::from(".config/lbc/config.toml")
+    let legacy = PathBuf::from(".config/lbc/config.toml");
+    if !matches!(fs::symlink_metadata(&legacy), Err(error) if error.kind() == std::io::ErrorKind::NotFound)
+    {
+        return legacy;
+    }
+    if let Some(home) = env::var_os("USERPROFILE") {
+        return PathBuf::from(home).join(".config/lbc/config.toml");
+    }
+    legacy
 }
 
 pub fn load() -> Result<LoadedConfig> {
@@ -147,45 +155,85 @@ pub fn load_from(path: PathBuf) -> Result<LoadedConfig> {
 }
 
 pub fn set_value(key: &str, value: &str) -> Result<PathBuf> {
-    let path = config_path();
-    let lock_path = path.with_extension("lock");
-    let _lock = crate::security::storage::lock_exclusive(&lock_path)?;
-    let mut config = load_from(path.clone())?.config;
-
-    match key {
-        "output.language" => config.output.language = value.to_owned(),
-        "scanner.max_file_size_kb" => {
-            config.scanner.max_file_size_kb = value
-                .parse()
-                .with_context(|| format!("{key} must be a positive integer"))?;
-        }
-        "scanner.ignore_hidden" => {
-            config.scanner.ignore_hidden = value
-                .parse()
-                .with_context(|| format!("{key} must be true or false"))?;
-        }
-        "memory.mode" => config.memory.mode = value.to_owned(),
-        "ai.provider" => config.ai.provider = value.to_owned(),
-        "ai.model" => config.ai.model = value.to_owned(),
-        "ai.base_url" => config.ai.base_url = value.to_owned(),
-        _ => bail!(
-            "unsupported setting {key:?}; supported settings: output.language, scanner.max_file_size_kb, scanner.ignore_hidden, memory.mode, ai.provider, ai.model, ai.base_url"
-        ),
-    }
-    validate(&config)?;
-
-    crate::security::files::reject_symlinks(&path)?;
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)
-            .with_context(|| format!("failed to create {}", parent.display()))?;
-    }
-    let encoded = toml::to_string_pretty(&config).context("failed to encode configuration")?;
-    crate::security::storage::atomic_replace(&path, encoded.as_bytes(), true)
-        .with_context(|| format!("failed to write configuration at {}", path.display()))?;
-    Ok(path)
+    set_value_with_preview(key, value, || Ok(()))
 }
 
-fn validate(config: &Config) -> Result<()> {
+pub(crate) fn set_value_with_preview(
+    key: &str,
+    value: &str,
+    before_write: impl FnOnce() -> Result<()>,
+) -> Result<PathBuf> {
+    let loaded = update(
+        |config| {
+            match key {
+                "output.language" => config.output.language = value.to_owned(),
+                "scanner.max_file_size_kb" => {
+                    config.scanner.max_file_size_kb = value
+                        .parse()
+                        .with_context(|| format!("{key} must be a positive integer"))?;
+                }
+                "scanner.ignore_hidden" => {
+                    config.scanner.ignore_hidden = value
+                        .parse()
+                        .with_context(|| format!("{key} must be true or false"))?;
+                }
+                "memory.mode" => config.memory.mode = value.to_owned(),
+                "ai.provider" => config.ai.provider = value.to_owned(),
+                "ai.model" => config.ai.model = value.to_owned(),
+                "ai.base_url" => config.ai.base_url = value.to_owned(),
+                _ => bail!(
+                    "unsupported setting {key:?}; supported settings: output.language, scanner.max_file_size_kb, scanner.ignore_hidden, memory.mode, ai.provider, ai.model, ai.base_url"
+                ),
+            }
+            Ok(())
+        },
+        before_write,
+    )?;
+    Ok(loaded.path)
+}
+
+/// Validate the complete candidate and preserve extension keys under one store lock.
+pub(crate) fn update(
+    change: impl FnOnce(&mut Config) -> Result<()>,
+    before_write: impl FnOnce() -> Result<()>,
+) -> Result<LoadedConfig> {
+    let path = config_path();
+    crate::security::files::reject_symlinks(&path)?;
+    let _lock = crate::security::storage::lock_exclusive(&path.with_extension("lock"))?;
+    let loaded = load_from(path.clone())?;
+    let mut config = loaded.config;
+    change(&mut config)?;
+    validate(&config)?;
+    let mut document = if loaded.found {
+        let content = crate::security::files::read_store_text(&path, 256 * 1024, false)?;
+        toml::from_str::<toml::Value>(&content).context("invalid configuration")?
+    } else {
+        toml::Value::Table(Default::default())
+    };
+    merge(&mut document, toml::Value::try_from(&config)?);
+    let encoded = toml::to_string_pretty(&document).context("failed to encode configuration")?;
+    anyhow::ensure!(encoded.len() <= 256 * 1024, "configuration exceeds 256 KB");
+    before_write()?;
+    crate::security::storage::atomic_replace(&path, encoded.as_bytes(), true)
+        .with_context(|| format!("failed to write configuration at {}", path.display()))?;
+    load_from(path)
+}
+
+fn merge(existing: &mut toml::Value, candidate: toml::Value) {
+    if let (Some(existing), toml::Value::Table(candidate)) = (existing.as_table_mut(), &candidate) {
+        for (key, value) in candidate {
+            if let Some(previous) = existing.get_mut(key) {
+                merge(previous, value.clone());
+            } else {
+                existing.insert(key.clone(), value.clone());
+            }
+        }
+    } else {
+        *existing = candidate;
+    }
+}
+
+pub(crate) fn validate(config: &Config) -> Result<()> {
     if !matches!(config.output.language.as_str(), "en" | "th" | "auto") {
         bail!("output.language must be en, th, or auto");
     }

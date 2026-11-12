@@ -2,7 +2,7 @@ use std::io::{self, Write};
 
 use anyhow::Result;
 
-use crate::{ai, answer, cli::args::AskArgs, config};
+use crate::{ai, answer, cli::args::AskArgs, config, output};
 
 pub fn run(args: AskArgs) -> Result<()> {
     let loaded = config::load()?;
@@ -17,16 +17,12 @@ pub fn run(args: AskArgs) -> Result<()> {
         if args.ai
             && let Err(error) = answer::enhance(&mut report, &loaded.config.ai, &[])
         {
-            let message = if report.language == "th" {
-                format!("ไม่สามารถใช้ AI ได้: {error:#}")
-            } else {
-                format!("AI unavailable: {error:#}")
-            };
+            let message = crate::cli::errors::format_error(&error, &report.language);
             report.ai_error = Some(message.clone());
             if report.language == "th" {
-                eprintln!("! {message}; กำลังแสดงคำตอบแบบออฟไลน์");
+                output::warning(&format!("{message}; กำลังแสดงคำตอบแบบออฟไลน์"));
             } else {
-                eprintln!("! {message}; showing the offline answer");
+                output::warning(&format!("{message}; showing the offline answer"));
             }
         }
         println!("{}", serde_json::to_string_pretty(&report)?);
@@ -49,22 +45,16 @@ pub fn run(args: AskArgs) -> Result<()> {
         let mut on_event = |event: ai::StreamEvent| match event {
             ai::StreamEvent::Thinking => {
                 if !is_thinking && !has_content {
-                    is_thinking = true;
-                    eprint!(
-                        "{}",
-                        if thai {
-                            "กำลังคิด..."
-                        } else {
-                            "Thinking..."
-                        }
-                    );
-                    let _ = io::stderr().flush();
+                    is_thinking = output::progress(if thai {
+                        "กำลังคิด..."
+                    } else {
+                        "Thinking..."
+                    });
                 }
             }
             ai::StreamEvent::Content(text) => {
                 if is_thinking {
-                    eprint!("\r\x1b[2K");
-                    let _ = io::stderr().flush();
+                    output::clear_progress();
                     is_thinking = false;
                 }
                 if !has_content {
@@ -84,20 +74,15 @@ pub fn run(args: AskArgs) -> Result<()> {
             answer::enhance_stream(&mut report, &loaded.config.ai, &[], Some(&mut on_event))
         {
             if is_thinking {
-                eprint!("\r\x1b[2K");
-                let _ = io::stderr().flush();
+                output::clear_progress();
             }
-            let message = if report.language == "th" {
-                format!("ไม่สามารถใช้ AI ได้: {error:#}")
-            } else {
-                format!("AI unavailable: {error:#}")
-            };
+            let message = crate::cli::errors::format_error(&error, &report.language);
             report.ai_error = Some(message.clone());
             if report.language == "th" {
-                eprintln!("! {message}; กำลังแสดงคำตอบแบบออฟไลน์");
+                output::warning(&format!("{message}; กำลังแสดงคำตอบแบบออฟไลน์"));
                 println!("\nคำตอบจาก libraryCube\n\n{}", report.offline_answer);
             } else {
-                eprintln!("! {message}; showing the offline answer");
+                output::warning(&format!("{message}; showing the offline answer"));
                 println!("\nlibraryCube answer\n\n{}", report.offline_answer);
             }
         } else if has_content {
@@ -107,9 +92,9 @@ pub fn run(args: AskArgs) -> Result<()> {
 
     for warning in report.warnings {
         if report.language == "th" {
-            eprintln!("! เอกสารความรู้ไม่ถูกต้อง: {warning}");
+            output::warning(&format!("เอกสารความรู้ไม่ถูกต้อง: {warning}"));
         } else {
-            eprintln!("! Invalid knowledge document: {warning}");
+            output::warning(&format!("Invalid knowledge document: {warning}"));
         }
     }
     Ok(())

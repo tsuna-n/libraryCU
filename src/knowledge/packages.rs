@@ -58,13 +58,24 @@ pub fn is_valid_package_name(name: &str) -> bool {
 
 /// User-level knowledge directory: `$XDG_DATA_HOME/lbc/knowledge` by default.
 pub fn data_dir() -> PathBuf {
+    user_data_dir().join("knowledge")
+}
+
+pub(crate) fn user_data_dir() -> PathBuf {
     if let Some(path) = std::env::var_os("XDG_DATA_HOME") {
-        return PathBuf::from(path).join("lbc/knowledge");
+        return PathBuf::from(path).join("lbc");
     }
     if let Some(home) = std::env::var_os("HOME") {
-        return PathBuf::from(home).join(".local/share/lbc/knowledge");
+        return PathBuf::from(home).join(".local/share/lbc");
     }
-    PathBuf::from(".local/share/lbc/knowledge")
+    let legacy = PathBuf::from(".local/share/lbc");
+    // Preserve existing stores; fresh Windows profiles need stable paths across projects.
+    if matches!(fs::symlink_metadata(&legacy), Err(error) if error.kind() == std::io::ErrorKind::NotFound)
+        && let Some(profile) = std::env::var_os("USERPROFILE")
+    {
+        return PathBuf::from(profile).join(".local/share/lbc");
+    }
+    legacy
 }
 
 /// Validate a package directory and publish a checksummed snapshot.

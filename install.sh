@@ -9,6 +9,8 @@
 #   --system          Install system-wide to /usr/local/bin (may prompt for sudo)
 #   --prefix <DIR>    Install binary to custom directory (default: ~/.local/bin)
 #   --no-build        Skip source build (use bundled lbc or target/release/lbc)
+#   --archive <FILE>  Install a local release archive, verified with --sha256
+#   --sha256 <HEX>    Independently trusted SHA-256 digest of --archive
 #   --uninstall       Remove installed lbc binary from target directory
 #   -h, --help        Show this help message and exit
 #
@@ -59,6 +61,8 @@ Options:
   --system           Install system-wide to /usr/local/bin (may prompt for sudo)
   --prefix <DIR>     Install binary to custom directory (default: ~/.local/bin)
   --no-build         Skip source build (use bundled lbc or target/release/lbc)
+  --archive <FILE>   Install a local release archive, verified with --sha256
+  --sha256 <HEX>     Independently trusted SHA-256 digest (64 hex characters)
   --uninstall        Remove installed lbc binary from target directory
   -h, --help         Show this help message and exit
 
@@ -70,7 +74,8 @@ Examples:
 EOF
 }
 
-# Resolve project root directory
+# Resolve project root directory; archive paths remain relative to the caller.
+CALLER_DIR="$PWD"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
@@ -78,6 +83,10 @@ INSTALL_DIR="${HOME}/.local/bin"
 SYSTEM_INSTALL=0
 DO_BUILD=1
 DO_UNINSTALL=0
+ARCHIVE=""
+EXPECTED_SHA256=""
+ARCHIVE_TEMP=""
+trap 'if [[ -n "$ARCHIVE_TEMP" ]]; then rm -rf -- "$ARCHIVE_TEMP"; fi' EXIT
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -99,6 +108,14 @@ while [[ $# -gt 0 ]]; do
       DO_BUILD=0
       shift
       ;;
+    --archive|--sha256)
+      if [[ -z "${2:-}" ]]; then
+        print_error "$1 requires a value"
+        exit 1
+      fi
+      if [[ "$1" == --archive ]]; then ARCHIVE="$2"; else EXPECTED_SHA256="$2"; fi
+      shift 2
+      ;;
     --uninstall)
       DO_UNINSTALL=1
       shift
@@ -115,13 +132,107 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+if [[ -n "$ARCHIVE" || -n "$EXPECTED_SHA256" ]]; then
+  if [[ -z "$ARCHIVE" || ! "$EXPECTED_SHA256" =~ ^[[:xdigit:]]{64}$ || "$DO_UNINSTALL" -eq 1 ]]; then
+    print_error "--archive and --sha256 require a file and an independently trusted 64-character hex digest; do not combine them with --uninstall."
+    exit 1
+  fi
+fi
+if [[ "$INSTALL_DIR" != /* ]]; then INSTALL_DIR="${CALLER_DIR}/${INSTALL_DIR}"; fi
+
+# Verify an immutable private copy before interpreting any archive data.
+if [[ -n "$ARCHIVE" ]]; then
+  if [[ "$ARCHIVE" != /* ]]; then ARCHIVE="${CALLER_DIR}/${ARCHIVE}"; fi
+  if [[ ! -f "$ARCHIVE" || -L "$ARCHIVE" ]]; then
+    print_error "Archive must be a regular file: $ARCHIVE"
+    exit 1
+  fi
+  ARCHIVE_TEMP="$(mktemp -d "${TMPDIR:-/tmp}/lbc-install.XXXXXXXX")"
+  cp -- "$ARCHIVE" "${ARCHIVE_TEMP}/release.tar.gz"
+  ARCHIVE="${ARCHIVE_TEMP}/release.tar.gz"
+  if command -v sha256sum >/dev/null 2>&1; then
+    ACTUAL_SHA256="$(sha256sum "$ARCHIVE")"
+  elif command -v shasum >/dev/null 2>&1; then
+    ACTUAL_SHA256="$(shasum -a 256 "$ARCHIVE")"
+  else
+    print_error "SHA-256 verification requires sha256sum or shasum."
+    exit 1
+  fi
+  ACTUAL_SHA256="${ACTUAL_SHA256%% *}"
+  if [[ "$(printf '%s' "$EXPECTED_SHA256" | tr 'A-F' 'a-f')" != "$ACTUAL_SHA256" ]]; then
+    print_error "SHA-256 mismatch. Installation was not changed."
+    exit 1
+  fi
+  case "$(uname -s):$(uname -m)" in
+    Linux:x86_64) ARCHIVE_TARGET="x86_64-unknown-linux-gnu" ;;
+    Darwin:x86_64|Darwin:arm64) ARCHIVE_TARGET="universal-apple-darwin" ;;
+    *) print_error "No supported release archive for $(uname -s) $(uname -m)."; exit 1 ;;
+  esac
+  if ! LC_ALL=C tar -tzf "$ARCHIVE" > "${ARCHIVE_TEMP}/names" ||
+     ! LC_ALL=C tar --numeric-owner -tvzf "$ARCHIVE" > "${ARCHIVE_TEMP}/metadata"; then
+    print_error "Invalid or corrupt release archive."
+    exit 1
+  fi
+  if ! IFS= read -r FIRST_MEMBER < "${ARCHIVE_TEMP}/names"; then
+    print_error "Empty release archive."
+    exit 1
+  fi
+  PACKAGE="${FIRST_MEMBER%%/*}"
+  if [[ ! "$PACKAGE" =~ ^lbc-([0-9]+\.[0-9]+\.[0-9]+)-${ARCHIVE_TARGET}$ ]]; then
+    print_error "Archive package does not match this platform ($ARCHIVE_TARGET)."
+    exit 1
+  fi
+  PACKAGE_VERSION="${BASH_REMATCH[1]}"
+  # Both GNU tar and bsdtar expose final names/types, including PAX overrides.
+  if ! LC_ALL=C awk -v root="$PACKAGE" '
+    FNR == NR {
+      name = $0; sub(/\/$/, "", name)
+      if (seen[name]++ || ($0 != root "/" && $0 != root &&
+          $0 != root "/lbc" && $0 != root "/install.sh" &&
+          $0 != root "/README.md" && $0 != root "/CHANGELOG.md" && $0 != root "/LICENSE")) exit 1
+      names[++count] = $0; next
+    }
+    {
+      name = names[++rows]; type = substr($1, 1, 1)
+      size = ($2 ~ /^[0-9]+\/[0-9]+$/) ? $3 : $5
+      if (size !~ /^[0-9]+$/ || $NF != name) exit 1
+      if (name == root || name == root "/") {
+        if (type != "d" || size != 0) exit 1
+      } else if (type != "-" || size <= 0 || size > 134217728) exit 1
+    }
+    END {
+      if (rows != count || !seen[root "/lbc"] || !seen[root "/install.sh"] ||
+          !seen[root "/README.md"] || !seen[root "/CHANGELOG.md"] || !seen[root "/LICENSE"]) exit 1
+    }
+  ' "${ARCHIVE_TEMP}/names" "${ARCHIVE_TEMP}/metadata"; then
+    print_error "Unsafe, unexpected, duplicate, missing, or oversized archive member."
+    exit 1
+  fi
+  # Extract only the binary as data; never run the packaged installer.
+  if ! tar -xOzf "$ARCHIVE" "$PACKAGE/lbc" > "${ARCHIVE_TEMP}/lbc"; then
+    print_error "Could not read the verified archive binary."
+    exit 1
+  fi
+  MAGIC="$(od -An -tx1 -N4 "${ARCHIVE_TEMP}/lbc" | tr -d ' \n')"
+  case "$ARCHIVE_TARGET:$MAGIC" in
+    x86_64-unknown-linux-gnu:7f454c46|universal-apple-darwin:cafebabe|universal-apple-darwin:cafebabf|universal-apple-darwin:cffaedfe|universal-apple-darwin:feedfacf) ;;
+    *) print_error "Archive does not contain a native executable for $ARCHIVE_TARGET."; exit 1 ;;
+  esac
+  chmod 755 "${ARCHIVE_TEMP}/lbc"
+  if ! ARCHIVE_VERSION="$("${ARCHIVE_TEMP}/lbc" --version 2>/dev/null)" || [[ "$ARCHIVE_VERSION" != "lbc $PACKAGE_VERSION" ]]; then
+    print_error "Archive binary version verification failed. Installation was not changed."
+    exit 1
+  fi
+  DO_BUILD=0
+fi
+
 SOURCE_TREE=0
 if [[ -f "Cargo.toml" ]] && grep -q 'name = "librarycube"' Cargo.toml 2>/dev/null; then
   SOURCE_TREE=1
 fi
 BUNDLED_BIN="${SCRIPT_DIR}/lbc"
 
-if [[ "$DO_UNINSTALL" -eq 0 ]] && [[ "$SOURCE_TREE" -eq 0 ]] && [[ ! -f "$BUNDLED_BIN" ]]; then
+if [[ "$DO_UNINSTALL" -eq 0 ]] && [[ "$SOURCE_TREE" -eq 0 ]] && [[ ! -f "$BUNDLED_BIN" ]] && [[ -z "$ARCHIVE" ]]; then
   print_error "No bundled lbc binary or libraryCube source tree was found beside install.sh."
   exit 1
 fi
@@ -204,7 +315,9 @@ if [[ "$DO_BUILD" -eq 1 ]] && [[ "$SOURCE_TREE" -eq 1 ]]; then
   cargo build --locked --release
 fi
 
-if [[ "$SOURCE_TREE" -eq 1 ]] && [[ -f "${SCRIPT_DIR}/target/release/lbc" ]]; then
+if [[ -n "$ARCHIVE" ]]; then
+  RELEASE_BIN="${ARCHIVE_TEMP}/lbc"
+elif [[ "$SOURCE_TREE" -eq 1 ]] && [[ -f "${SCRIPT_DIR}/target/release/lbc" ]]; then
   RELEASE_BIN="${SCRIPT_DIR}/target/release/lbc"
 else
   RELEASE_BIN="$BUNDLED_BIN"
@@ -254,13 +367,13 @@ else
 fi
 
 # Verify installation
-if [[ -x "${INSTALL_DIR}/lbc" ]]; then
-  INSTALLED_VERSION="$("${INSTALL_DIR}/lbc" --version 2>/dev/null || echo "lbc")"
-  print_success "Successfully installed ${INSTALLED_VERSION} to ${INSTALL_DIR}/lbc"
-else
-  print_error "Installation verification failed: ${INSTALL_DIR}/lbc is not executable."
+if [[ ! -x "${INSTALL_DIR}/lbc" ]] ||
+  ! INSTALLED_VERSION="$("${INSTALL_DIR}/lbc" --version 2>/dev/null)" ||
+  [[ "$INSTALLED_VERSION" != lbc\ * ]]; then
+  print_error "Installation verification failed for ${INSTALL_DIR}/lbc."
   exit 1
 fi
+print_success "Successfully installed ${INSTALLED_VERSION} to ${INSTALL_DIR}/lbc"
 
 # Check PATH
 in_path=0
@@ -276,22 +389,26 @@ if [[ "$in_path" -eq 0 ]]; then
   echo "To use 'lbc' directly from any directory, add it to your shell configuration:"
 
   CURRENT_SHELL="$(basename "${SHELL:-bash}")"
+  # Single quotes prevent spaces, dollars, and command substitutions in prefixes
+  # from becoming shell syntax when the user copies the PATH command.
+  QUOTED_DIR="'${INSTALL_DIR//\'/\'\\\'\'}'"
   case "$CURRENT_SHELL" in
-    zsh)
-      printf "  ${BOLD}echo 'export PATH=\"%s:\$PATH\"' >> ~/.zshrc && source ~/.zshrc${RESET}\n" "$INSTALL_DIR"
-      ;;
     fish)
-      printf "  ${BOLD}fish_add_path %s${RESET}\n" "$INSTALL_DIR"
+      FISH_DIR="${INSTALL_DIR//\\/\\\\}"
+      FISH_DIR="'${FISH_DIR//\'/\\\'}'"
+      printf '  fish_add_path -- %s\n' "$FISH_DIR"
       ;;
     *)
-      printf "  ${BOLD}echo 'export PATH=\"%s:\$PATH\"' >> ~/.bashrc && source ~/.bashrc${RESET}\n" "$INSTALL_DIR"
+      printf '  export PATH=%s:"$PATH"\n' "$QUOTED_DIR"
+      echo "For future terminals, add that line to ~/.zshrc (zsh) or ~/.bashrc (Bash), then open a new terminal."
       ;;
   esac
   echo ""
 fi
 
 echo "Quick start:"
-echo "  lbc --help"
-echo "  lbc add --title \"My First Note\" --stdin"
-echo "  lbc ask \"How do I use libraryCube?\""
+echo "  lbc setup"
+echo "  lbc learn"
+echo '  lbc search "your problem"'
+echo '  lbc explain build.log'
 echo ""

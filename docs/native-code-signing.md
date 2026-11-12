@@ -123,9 +123,9 @@ native trust evidence or unforgeable hosted-builder attestations.
 On a clean Windows machine, safely extract the authenticated ZIP:
 
 ```powershell
-signtool.exe verify /pa /all /tw /v .\lbc-0.5.0-x86_64-pc-windows-msvc\lbc.exe
+signtool.exe verify /pa /all /tw /v .\lbc-0.6.0-x86_64-pc-windows-msvc\lbc.exe
 if ($LASTEXITCODE -ne 0) { throw 'Authenticode failed or warned' }
-$signature = Get-AuthenticodeSignature -LiteralPath .\lbc-0.5.0-x86_64-pc-windows-msvc\lbc.exe
+$signature = Get-AuthenticodeSignature -LiteralPath .\lbc-0.6.0-x86_64-pc-windows-msvc\lbc.exe
 if ($signature.Status -ne 'Valid' -or $signature.SignatureType -ne 'Authenticode' -or
     $signature.SignerCertificate.Thumbprint -cne $env:LBC_WINDOWS_CERT_THUMBPRINT -or
     $null -eq $signature.TimeStamperCertificate) { throw 'Signer/trust/timestamp mismatch' }
@@ -135,7 +135,7 @@ On a clean Mac, authenticate DMG signature/checksum, validate its ticket and
 Gatekeeper assessment, then mount read-only:
 
 ```bash
-dmg=lbc-0.5.0-universal-apple-darwin.dmg
+dmg=lbc-0.6.0-universal-apple-darwin.dmg
 xcrun stapler validate "$dmg"
 codesign --verify --strict --verbose=2 "$dmg"
 spctl --assess --type open --context context:primary-signature --verbose=2 "$dmg"

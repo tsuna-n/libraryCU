@@ -99,6 +99,8 @@ fn streaming_http_preserves_unicode_redacts_before_display_and_bounds_reasoning(
         server.join().unwrap();
         let stdout = String::from_utf8(output.stdout).unwrap();
         let stderr = String::from_utf8(output.stderr).unwrap();
+        assert!(!stdout.contains('\x1b'), "{stdout}");
+        assert!(!stderr.contains('\x1b'), "{stderr}");
         if oversized {
             // Optional AI failure still leaves the offline answer available.
             assert!(stdout.contains("E0308"));

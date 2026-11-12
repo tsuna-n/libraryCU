@@ -1,5 +1,9 @@
 # v0.5.0 repository completion and owner handoff — 2026-09-17
 
+Latest results and owner steps: [2026-11-08 release readiness](release-readiness-2026-11-08.md).
+Production remains NOT READY. This older completion ledger is historical;
+its candidate passes do not validate starting main `21a8ea2` or the latest fixes.
+
 Current October candidate C1 `4a213ecd828e1ae52400d219e871dd03f22e24a6` passed Linux 171,
 macOS 170, Windows 172 and dependency 173; exact job revisions are retained in
 [the candidate receipt](evidence/candidate-ci.json). This proves candidate

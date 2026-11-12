@@ -13,6 +13,9 @@ const SENSITIVE_KEYS: &[&str] = &[
     "authorization",
     "token",
     "secret",
+    "credential",
+    "credentials",
+    "signature",
 ];
 
 /// Mask recognizable credentials while preserving line count and UTF-8 boundaries.
@@ -55,6 +58,32 @@ fn redact_line(line: &str) -> String {
         {
             spans.push((start, start + at));
         }
+        let url_end = rest
+            .find(|ch: char| ch.is_whitespace() || matches!(ch, '\'' | '"' | '`'))
+            .unwrap_or(rest.len());
+        if let Some(query_start) = rest[..url_end].find('?') {
+            let query = &rest[query_start + 1..url_end];
+            let query = query.split('#').next().unwrap_or_default();
+            let mut pair_start = start + query_start + 1;
+            for pair in query.split('&') {
+                if let Some((key, value)) = pair.split_once('=') {
+                    // URL parsing decodes percent escapes in credential names.
+                    if let Ok(parsed) =
+                        reqwest::Url::parse(&format!("https://redact.invalid/?{key}="))
+                        && let Some((key, _)) = parsed.query_pairs().next()
+                        && is_sensitive_key(&key.to_ascii_lowercase().replace('-', "_"))
+                        && !value.is_empty()
+                        && value != "[REDACTED]"
+                    {
+                        spans.push((
+                            pair_start + pair.len() - value.len(),
+                            pair_start + pair.len(),
+                        ));
+                    }
+                }
+                pair_start += pair.len() + 1;
+            }
+        }
     }
     let mut cursor = 0;
     while cursor < line.len() {
@@ -78,7 +107,19 @@ fn redact_line(line: &str) -> String {
             value_start = skip_space(line, value_start);
             if matches!(line.as_bytes().get(value_start), Some(b'=' | b':')) {
                 value_start = skip_space(line, value_start + 1);
-                if let Some(span) = value_span(line, value_start) {
+                let in_query = matches!(
+                    line.as_bytes().get(start.wrapping_sub(1)),
+                    Some(b'?' | b'&')
+                );
+                let span = if in_query {
+                    let value = &line[value_start..];
+                    let end = value.find(['&', '#']).unwrap_or(value.len());
+                    (!value.is_empty() && !value.starts_with("[REDACTED]"))
+                        .then_some((value_start, value_start + end))
+                } else {
+                    value_span(line, value_start)
+                };
+                if let Some(span) = span {
                     spans.push(span);
                 }
             }
@@ -128,6 +169,9 @@ fn identifier_byte(byte: u8) -> bool {
 
 fn is_sensitive_key(key: &str) -> bool {
     SENSITIVE_KEYS.contains(&key)
+        || SENSITIVE_KEYS
+            .iter()
+            .any(|sensitive| key.replace('_', "") == sensitive.replace('_', ""))
         || SENSITIVE_KEYS.iter().any(|suffix| {
             key.strip_suffix(suffix)
                 .is_some_and(|prefix| prefix.ends_with('_'))
@@ -203,5 +247,23 @@ mod tests {
             assert!(!redacted.contains(value));
         }
         assert!(redacted.contains("[REDACTED]"));
+    }
+
+    #[test]
+    fn redacts_query_credentials_with_encoded_and_camel_case_keys() {
+        for key in [
+            "api%5Fkey",
+            "accessToken",
+            "credential",
+            "api-key",
+            "X-Amz-Signature",
+        ] {
+            let input =
+                format!("https://example.invalid/v1?{key}=private-query-value&model=public");
+            let redacted = redact_sensitive(&input);
+            assert!(!redacted.contains("private-query-value"), "{key}");
+            assert!(redacted.contains("model=public"));
+            assert_eq!(redact_sensitive(&redacted), redacted);
+        }
     }
 }

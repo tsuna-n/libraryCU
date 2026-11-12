@@ -1,4 +1,4 @@
-use std::{env, fs, path::PathBuf};
+use std::{fs, path::PathBuf};
 
 use anyhow::{Context, Result, bail};
 
@@ -9,14 +9,7 @@ const MAX_MESSAGES: usize = 12;
 const MAX_CHARS: usize = 16_000;
 
 pub fn history_path() -> PathBuf {
-    let base = if let Some(path) = env::var_os("XDG_DATA_HOME") {
-        PathBuf::from(path)
-    } else if let Some(home) = env::var_os("HOME") {
-        PathBuf::from(home).join(".local/share")
-    } else {
-        PathBuf::from(".local/share")
-    };
-    base.join("lbc/history/default.json")
+    crate::knowledge::packages::user_data_dir().join("history/default.json")
 }
 
 pub fn load() -> Result<Vec<String>> {

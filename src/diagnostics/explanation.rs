@@ -126,12 +126,9 @@ pub fn explain(
         confidence = Confidence::RetrievedKnowledge;
     }
     warnings.extend(scan.warnings.clone());
-    warnings.extend(
-        retrieved
-            .invalid
-            .into_iter()
-            .map(|invalid| format!("{}: {}", invalid.path, invalid.error)),
-    );
+    warnings.extend(retrieved.invalid.into_iter().map(|invalid| {
+        crate::security::redact_sensitive(&format!("{}: {}", invalid.path, invalid.error))
+    }));
 
     Ok(ExplanationReport {
         project: scan.project,

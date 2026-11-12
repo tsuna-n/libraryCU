@@ -12,17 +12,25 @@ pub fn run(args: SearchArgs) -> Result<()> {
         .results
         .into_iter()
         .filter(answer::is_adequate)
+        .take(
+            args.limit
+                .map_or(if args.json { usize::MAX } else { 10 }, |limit| limit.get()),
+        )
         .collect();
     if args.json {
         println!("{}", serde_json::to_string_pretty(&results)?);
     } else {
-        output::print_search_language(&args.query, &results, &language);
+        output::terminal::print_search_results(
+            &crate::security::redact_sensitive(&args.query),
+            &results,
+            &language,
+        );
     }
     for invalid in retrieved.invalid {
-        eprintln!(
-            "! Invalid knowledge document {}: {}",
+        output::warning(&format!(
+            "Invalid knowledge document {}: {}; run `lbc index` for details",
             invalid.path, invalid.error
-        );
+        ));
     }
     Ok(())
 }

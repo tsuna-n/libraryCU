@@ -107,7 +107,7 @@ pub fn run(args: FixArgs) -> Result<()> {
         }
     }
     for warning in &report.guidance.warnings {
-        eprintln!("! {warning}");
+        crate::output::warning(warning);
     }
     if args.json {
         println!("{}", serde_json::to_string_pretty(&report)?);

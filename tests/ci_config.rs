@@ -1,6 +1,151 @@
 use serde_yaml::Value;
 #[cfg(target_os = "linux")]
-use std::{fs, path::Path, process::Command};
+use std::path::Path;
+#[cfg(unix)]
+use std::{fs, process::Command};
+
+#[test]
+#[cfg(unix)]
+fn unix_release_archive_installs_and_uninstalls_without_removing_user_files() {
+    let root = tempfile::tempdir().unwrap();
+    let package = root.path().join("package");
+    fs::create_dir(&package).unwrap();
+    fs::copy("install.sh", package.join("install.sh")).unwrap();
+    fs::copy(env!("CARGO_BIN_EXE_lbc"), package.join("lbc")).unwrap();
+    let archive = root.path().join("release.tar.gz");
+    assert!(
+        Command::new("tar")
+            .args(["-czf", archive.to_str().unwrap(), "-C"])
+            .arg(root.path())
+            .arg("package")
+            .status()
+            .unwrap()
+            .success()
+    );
+    let extracted = root.path().join("extracted");
+    fs::create_dir(&extracted).unwrap();
+    assert!(
+        Command::new("tar")
+            .arg("-xzf")
+            .arg(archive)
+            .arg("-C")
+            .arg(&extracted)
+            .status()
+            .unwrap()
+            .success()
+    );
+    let installer = extracted.join("package/install.sh");
+    let prefix = root.path().join("prefix with spaces");
+    fs::create_dir(&prefix).unwrap();
+    fs::write(prefix.join("user-note.md"), "keep my knowledge").unwrap();
+    let install = Command::new("bash")
+        .arg(&installer)
+        .arg("--prefix")
+        .arg(&prefix)
+        .output()
+        .unwrap();
+    assert!(install.status.success(), "{install:?}");
+    let version = Command::new(prefix.join("lbc"))
+        .arg("--version")
+        .output()
+        .unwrap();
+    assert!(version.status.success());
+    assert_eq!(
+        String::from_utf8(version.stdout).unwrap().trim(),
+        format!("lbc {}", env!("CARGO_PKG_VERSION"))
+    );
+    for _ in 0..2 {
+        assert!(
+            Command::new("bash")
+                .arg(&installer)
+                .arg("--prefix")
+                .arg(&prefix)
+                .arg("--uninstall")
+                .output()
+                .unwrap()
+                .status
+                .success()
+        );
+        assert!(!prefix.join("lbc").exists());
+        assert_eq!(
+            fs::read_to_string(prefix.join("user-note.md")).unwrap(),
+            "keep my knowledge"
+        );
+    }
+}
+
+#[test]
+#[cfg(unix)]
+fn unix_bundled_installer_rejects_a_binary_that_fails_version_verification() {
+    let root = tempfile::tempdir().unwrap();
+    fs::copy("install.sh", root.path().join("install.sh")).unwrap();
+    for binary in [
+        "#!/bin/sh\nexit 37\n",
+        "#!/bin/sh\necho unrelated-command\n",
+    ] {
+        fs::write(root.path().join("lbc"), binary).unwrap();
+        let output = Command::new("bash")
+            .arg(root.path().join("install.sh"))
+            .arg("--prefix")
+            .arg(root.path().join("prefix"))
+            .output()
+            .unwrap();
+        assert!(!output.status.success(), "{output:?}");
+        assert!(
+            String::from_utf8_lossy(&output.stderr).contains("Installation verification failed")
+        );
+    }
+}
+
+#[test]
+fn native_candidates_test_installers_from_the_extracted_release_archives() {
+    let config: Value = serde_yaml::from_str(include_str!("../.circleci/config.yml")).unwrap();
+    for (job, checks) in [
+        (
+            "build_and_test",
+            vec![
+                "tar -xzf \"dist/${archive_name}\"",
+                "archive/$(basename \"${package_root}\")/install.sh",
+                "prefix/lbc\" --version",
+                "--uninstall",
+                "test ! -e \"${install_test_root}/prefix/lbc\"",
+            ],
+        ),
+        (
+            "build_macos",
+            vec![
+                "tar -xzf \"dist/${package_name}.tar.gz\"",
+                "archive/${package_name}/install.sh",
+                "prefix/lbc\" --version",
+                "--uninstall",
+                "test ! -e \"${install_test_root}/prefix/lbc\"",
+            ],
+        ),
+        (
+            "build_windows",
+            vec![
+                "Expand-Archive -LiteralPath $archivePath",
+                "$extractRoot \"$packageName\\install.ps1\"",
+                "& $installedBinary --version",
+                "-Prefix $prefix -Uninstall",
+                "Test-Path -LiteralPath $installedBinary",
+                "$userPath -notcontains $prefix",
+                "$userPath -contains $prefix",
+            ],
+        ),
+    ] {
+        let commands = config["jobs"][job]["steps"]
+            .as_sequence()
+            .unwrap()
+            .iter()
+            .filter_map(|step| step["run"]["command"].as_str())
+            .collect::<Vec<_>>()
+            .join("\n");
+        for check in checks {
+            assert!(commands.contains(check), "{job} must retain {check}");
+        }
+    }
+}
 
 #[test]
 fn release_pipeline_parses_and_requires_supply_chain_gate() {

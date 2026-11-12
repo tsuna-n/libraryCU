@@ -22,7 +22,7 @@ pub fn run(args: ExplainArgs) -> Result<()> {
             && let Err(error) =
                 ai::enhance_with_language(&mut report, &input, &loaded.config.ai, &language)
         {
-            report.ai_error = Some(format!("{error:#}"));
+            report.ai_error = Some(crate::cli::errors::format_error(&error, &language));
         }
         println!("{}", serde_json::to_string_pretty(&report)?);
         return Ok(());
@@ -41,15 +41,16 @@ pub fn run(args: ExplainArgs) -> Result<()> {
     let mut on_event = |event: ai::StreamEvent| match event {
         ai::StreamEvent::Thinking => {
             if !is_thinking && !has_content {
-                is_thinking = true;
-                eprint!("Thinking...");
-                let _ = io::stderr().flush();
+                is_thinking = output::progress(if language == "th" {
+                    "กำลังคิด..."
+                } else {
+                    "Thinking..."
+                });
             }
         }
         ai::StreamEvent::Content(text) => {
             if is_thinking {
-                eprint!("\r\x1b[2K");
-                let _ = io::stderr().flush();
+                output::clear_progress();
                 is_thinking = false;
             }
             if !has_content {
@@ -81,13 +82,9 @@ pub fn run(args: ExplainArgs) -> Result<()> {
         }
         Err(error) => {
             if is_thinking {
-                eprint!("\r\x1b[2K");
-                let _ = io::stderr().flush();
+                output::clear_progress();
             }
-            report.ai_error = Some(format!("{error:#}"));
-            eprintln!(
-                "! AI enhancement failed; showing the deterministic explanation instead.\n  Reason: {error:#}"
-            );
+            report.ai_error = Some(crate::cli::errors::format_error(&error, &language));
             output::print_explanation_language(&report, args.verbose, &language);
         }
     }

@@ -7,10 +7,16 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 #[path = "cli/doctor.rs"]
 mod doctor;
+#[path = "cli/errors.rs"]
+mod errors;
 #[path = "cli/fix.rs"]
 mod fix;
 #[path = "cli/learn.rs"]
 mod learn;
+#[path = "cli/output.rs"]
+mod output;
+#[path = "cli/setup.rs"]
+mod setup;
 #[path = "cli/streaming.rs"]
 mod streaming;
 

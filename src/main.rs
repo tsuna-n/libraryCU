@@ -17,7 +17,10 @@ fn main() -> ExitCode {
         Err(error) => {
             eprintln!(
                 "lbc: {}",
-                librarycube::security::redact_sensitive(&format!("{error:#}"))
+                librarycube::cli::errors::format_error(
+                    &error,
+                    &librarycube::cli::errors::language()
+                )
             );
             ExitCode::FAILURE
         }

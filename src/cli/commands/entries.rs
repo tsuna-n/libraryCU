@@ -41,6 +41,7 @@ pub fn list(args: ListArgs) -> Result<()> {
         .documents
         .iter()
         .filter(|document| document.effective)
+        .take(args.limit.map_or(usize::MAX, |limit| limit.get()))
         .collect();
     let entries: Vec<_> = documents
         .iter()
@@ -68,12 +69,12 @@ pub fn list(args: ListArgs) -> Result<()> {
                 println!("  Overrides: {target}");
             }
         }
-        if !report.invalid.is_empty() {
-            eprintln!(
-                "! {} invalid knowledge document(s); run `lbc index` for details",
-                report.invalid.len()
-            );
-        }
+    }
+    if !report.invalid.is_empty() {
+        crate::output::warning(&format!(
+            "{} invalid knowledge document(s); run `lbc index` for details",
+            report.invalid.len()
+        ));
     }
     Ok(())
 }
@@ -142,7 +143,11 @@ struct IndexReport<'a> {
 
 pub fn index(args: IndexArgs) -> Result<()> {
     let root = crate::scanner::find_project_root(&args.project)?;
-    let report = knowledge::load_all_documents(&root)?;
+    let mut report = knowledge::load_all_documents(&root)?;
+    for invalid in &mut report.invalid {
+        invalid.path = crate::security::redact_sensitive(&invalid.path);
+        invalid.error = crate::security::redact_sensitive(&invalid.error);
+    }
     let output = IndexReport {
         status: if report.invalid.is_empty() {
             "valid"
@@ -167,7 +172,10 @@ pub fn index(args: IndexArgs) -> Result<()> {
             output.documents, output.effective_documents, output.invalid_documents
         );
         for invalid in output.invalid {
-            println!("\n! {}\n  {}", invalid.path, invalid.error);
+            eprintln!(
+                "lbc: invalid knowledge document {}\n  {}",
+                invalid.path, invalid.error
+            );
         }
     }
     if report.invalid.is_empty() {

@@ -32,6 +32,9 @@ relevant part of a longer result is shown.
 
 ## 1. Install and get help
 
+See the [installation guide](installation.md) for binary availability and verification,
+and the [quick start](quick-start.md) for `lbc setup` and an offline walkthrough.
+
 Build and install `lbc` from a source checkout:
 
 ```bash
@@ -947,7 +950,7 @@ inspection. Version 2 records are HMAC-authenticated using the private
 `.lbc/recovery.key`. LBC retains at most 100 records for 30 days, pruning when a
 new record is prepared. Version 1 records require manual recovery. Keep the
 records and key out of version control.
-See [verification and recovery semantics](../README.md#propose-and-apply-a-small-patch)
+See [verification and recovery semantics](cli-reference.md#experimental-propose-and-apply-a-small-patch)
 for command side effects, descendant-process limits, and output limits.
 
 The first diagnostic must locate a regular UTF-8 file inside the exact project

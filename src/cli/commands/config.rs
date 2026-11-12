@@ -17,11 +17,13 @@ pub fn run(command: ConfigCommand) -> Result<()> {
             }
         }
         ConfigCommand::Set { key, value } => {
-            println!(
-                "Proposed configuration change\n  {}\n",
-                crate::security::redact_sensitive(&format!("{key} = {value}"))
-            );
-            let path = config::set_value(&key, &value)?;
+            let path = config::settings::set_value_with_preview(&key, &value, || {
+                println!(
+                    "Proposed configuration change\n  {}\n",
+                    crate::security::redact_sensitive(&format!("{key} = {value}"))
+                );
+                Ok(())
+            })?;
             println!("✓ Set {key}\n\nConfig file\n  {}", path.display());
         }
     }

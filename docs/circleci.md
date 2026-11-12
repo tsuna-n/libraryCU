@@ -1,5 +1,10 @@
 # CircleCI candidate gates and protected release workflow
 
+Latest read-only audit and local fixes: [2026-11-08 release readiness](release-readiness-2026-11-08.md).
+Starting main `21a8ea2`: Linux 184, macOS 183 and dependency 185 passed;
+Windows 182 failed. Earlier candidate receipts below are historical. Final
+reviewed changes require fresh exact-source hosted passes before release.
+
 Current October candidate C1 `4a213ecd828e1ae52400d219e871dd03f22e24a6` passed Linux 171,
 macOS 170, Windows 172 and dependency 173; exact job revisions are retained in
 [the candidate receipt](evidence/candidate-ci.json). This proves candidate
@@ -72,7 +77,7 @@ For this release, pin each context to the approved tag AND reviewed revision
 using expression restrictions in addition to project/maintainer restrictions:
 
 ```text
-pipeline.git.tag == "v0.5.0"
+pipeline.git.tag == "v0.6.0"
 and pipeline.git.revision == "OWNER_REVIEWED_FULL_RELEASE_SHA"
 and not job.ssh.enabled
 and not (pipeline.config_source starts-with "api")
@@ -129,7 +134,7 @@ gpg --no-options --batch --armor --export "$LBC_MAINTAINER_SIGNING_FINGERPRINT" 
 
 The owner must review the export/pin independently, save both context variables
 and verify context restrictions before retrying any protected job. A key beside
-a Git signature is not an independent trust anchor. Set `CIRCLE_TAG=v0.5.0` and
+a Git signature is not an independent trust anchor. Set `CIRCLE_TAG=v0.6.0` and
 `CIRCLE_SHA1` to the exact expected full lowercase commit SHA in a clean reviewed
 checkout, then run `bash .circleci/verify-release-source.sh` with those two PUBLIC
 variables. The script verifies exact HEAD and annotated tag target, Cargo/tag
@@ -150,7 +155,7 @@ and accept signed primary-pinned source (including signing subkeys).
 ## Canonical production manifest: exactly 25 assets
 
 .circleci/release-common.sh:set_release_assets is authoritative.
-VERSION is 0.5.0 for this candidate:
+VERSION is 0.6.0 for this candidate:
 
 | Unsigned input class | Exact names/count |
 |---|---|
@@ -195,7 +200,7 @@ export LBC_RELEASE_SIGNING_FINGERPRINT=TRUSTED_FULL_PRIMARY_FINGERPRINT
 export LBC_WINDOWS_CERT_THUMBPRINT=TRUSTED_WINDOWS_LEAF_THUMBPRINT
 export LBC_MACOS_IDENTITY_SHA1=TRUSTED_DEVELOPER_ID_LEAF_FINGERPRINT
 export LBC_MACOS_TEAM_ID=TRUSTED_TEAM_ID
-export CIRCLE_SHA1=EXPECTED_FULL_RELEASE_COMMIT_SHA CIRCLE_TAG=v0.5.0
+export CIRCLE_SHA1=EXPECTED_FULL_RELEASE_COMMIT_SHA CIRCLE_TAG=v0.6.0
 export CIRCLE_PROJECT_USERNAME=tsuna-n CIRCLE_PROJECT_REPONAME=libraryCU
 export CIRCLE_WORKFLOW_ID=EXPECTED_RELEASE_WORKFLOW_ID CIRCLE_WORKFLOW_NAME=ci_cd
 export CIRCLE_JOB=publish_github_release CIRCLE_BUILD_URL=EXPECTED_PUBLISH_JOB_URL
@@ -260,5 +265,7 @@ title/body wording: the publisher will refuse this release before any remote
 mutation. The owner must reconcile it explicitly and approve a tag/revision
 recovery plan after reviewing this continuation; no automatic deletion,
 recreation, force-move, or final publication is authorized. See
-[release-completion-0.5.0.md](release-completion-0.5.0.md). crates.io and v0.6
-are out of scope.
+[release-completion-0.5.0.md](release-completion-0.5.0.md) for that historical
+v0.5.0 recovery scope. The current v0.6.0 candidate uses a new source revision;
+see its [release notes](release-0.6.0.md). crates.io publication remains out of
+scope, and production approval still requires every gate above.

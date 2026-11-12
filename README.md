@@ -1,550 +1,130 @@
 # libraryCube
 
 libraryCube (`lbc`) is a **local-first developer knowledge engine**.
-
-Save solutions, notes, debugging knowledge, and project-specific fixes as portable
-local Markdown. Search them instantly or reuse them to explain similar problems
-later. Everything important works offline. AI is optional.
+Save solutions as Markdown, find them when an error returns, and reuse what
+worked. Your notes stay on your machine. Core commands work offline; AI is optional.
 
 **Save. Find. Reuse.**
 
-```bash
-lbc search "E0308"
-lbc explain build.log
-lbc learn
-```
-
-Find yesterday's solution, solve today's problem, and capture what worked for
-next time. The primary commands are `add`, `learn`, `search`, `ask`, `inspect`,
-`edit`, and `explain`. See [usage examples](docs/usage-examples.md),
-[product direction](docs/product-direction.md), and the [roadmap](ROADMAP.md).
-The crate is `librarycube`; the executable is `lbc`.
-
 ## Install
 
-For a source checkout, `cargo install --path .` builds the CLI. Binary release
-status and integrity instructions are [documented below](#release-status-and-integrity).
+Prebuilt binaries need **no Rust**. Platforms: Windows x86-64, Linux x86-64
+(glibc), and universal macOS (Apple Silicon and Intel).
 
-Download the archive for your platform from
-[GitHub Releases](https://github.com/tsuna-n/libraryCU/releases). Release
-archives contain a prebuilt executable, so installing them does not require
-Rust.
+**Current source version: 0.6.0.** The `v0.6.0` release is being prepared;
+verified binary assets are not published yet. The existing public `v0.5.0`
+Release still has **zero assets**, as checked on 2026-11-12. Use the source
+installation below until verified binaries are available.
+See [v0.6.0 release notes](docs/release-0.6.0.md).
 
-On macOS (Apple Silicon and Intel), extract the universal archive and run:
+Once available, download your platform archive from
+[GitHub Releases](https://github.com/tsuna-n/libraryCU/releases).
+Before installing, follow the [verification and installation guide](docs/installation.md):
+it retains the full signed-manifest and native platform trust checks.
+Use an installer from a reviewed checkout and an independently authenticated
+archive SHA-256. Replace `TRUSTED_SHA256` below with that 64-character digest.
+A checksum downloaded beside an untrusted archive is not independent authentication.
+
+Linux:
 
 ```bash
-./install.sh
+bash install.sh --archive ~/Downloads/lbc-0.6.0-x86_64-unknown-linux-gnu.tar.gz --sha256 TRUSTED_SHA256
 ```
 
-On Windows x86-64, extract the ZIP and run from PowerShell:
+macOS:
+
+```bash
+bash install.sh --archive ~/Downloads/lbc-0.6.0-universal-apple-darwin.tar.gz --sha256 TRUSTED_SHA256
+```
+
+Windows PowerShell:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
-# Open a new PowerShell window, then run: lbc --help
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Archive "$HOME\Downloads\lbc-0.6.0-x86_64-pc-windows-msvc.zip" -Sha256 TRUSTED_SHA256
 ```
 
-The Windows installer places `lbc.exe` under the current user's local programs
-directory and adds it to the user `PATH`. Use `-Prefix C:\path\to\bin` to choose
-another directory, `-System` from an elevated PowerShell for a machine-wide
-installation, or `-Uninstall` to remove it.
+Unix installs to `~/.local/bin`; ensure it is on `PATH`. Windows installs to
+`%LOCALAPPDATA%\Programs\libraryCube\bin` and updates the user `PATH`;
+open a new terminal. [Custom paths and uninstall](docs/installation.md#custom-paths-and-uninstall).
 
-From a source checkout, run the Unix/macOS installation script to build and
-install `lbc` to `~/.local/bin`:
+Source fallback (requires Rust and Cargo), from this checkout:
 
 ```bash
-./install.sh
+cargo install --path . --locked
+lbc --version
 ```
 
-Or customize the installation:
+The Rust crate is `librarycube`; the installed command is `lbc`.
+
+## Set up once
+
+Run this from the project directory:
 
 ```bash
-./install.sh --system          # Install system-wide to /usr/local/bin
-./install.sh --prefix ~/bin    # Install to custom directory
-./install.sh --uninstall       # Remove installed binary
+lbc setup
 ```
 
-Alternatively, build and install manually with Cargo on any supported platform:
+Choose offline mode for no API key or network dependency. For scripts,
+`lbc setup --yes` creates fresh offline defaults and preserves existing config.
+Setup shows your project knowledge, personal notes, and config paths. It never
+contacts AI providers. [Setup and optional AI](docs/quick-start.md#optional-ai).
+
+## Five-minute quick start
+
+Save a solved problem, find it, and explain a diagnostic using local evidence:
 
 ```bash
-cargo build --release
-cargo install --path .
-lbc --help
+lbc learn --yes --problem "Rust E0308 String to &str mismatch" --solution "Borrow the String with &value" --verification "cargo check passed after borrowing"
+lbc search E0308
+lbc explain --stdin
 ```
 
-## Capture a solved problem
-
-Run `lbc learn` for a short guided capture: what happened, cause (optional),
-solution, historical verification (optional), project/user destination, and
-confirmation. Preview before saving. It generates an ID, metadata, and portable
-troubleshooting Markdown. The default destination is `.lbc/knowledge` in the
-current directory. Use `--project PATH` or `--user` to choose explicitly.
-
-```bash
-lbc learn
-lbc learn --yes --problem 'Rust E0308 String to &str mismatch' \
-  --cause 'Function expected &str but database value was String' \
-  --solution 'Borrowed the database value using &value' \
-  --verification 'cargo test' --project ./backend
-lbc search E0308 --project ./backend
-```
-
-`learn` records a check; it never runs it. A supplied check is `recorded-check`,
-otherwise `unverified`. `ask` and `explain` show the recorded problem, previous
-solution, and check when those sections exist, with ranking reasons and sources.
-Optional capture flags include `--title`, `--id`, `--language`, `--tool`, `--framework`,
-`--error-code`, `--tag`, `--symptoms`, `--context`, and `--reference`.
-Scripts use `--yes --problem ... --solution ...`; add `--json` for structured output.
-
-## Add, find, inspect, and edit knowledge
-
-Import a plain Markdown file into the user store:
-
-```bash
-lbc add --title "Demo service port conflict" --file ./port-note.md
-lbc add --id demo-port --title "Demo service port conflict" \
-  --kind troubleshooting --file ./port-note.md
-printf '%s\n' 'Use port 4318, then verify the listener.' | \
-  lbc add --id demo-stdin --title "Demo port" --stdin
-```
-
-`--kind` accepts `note`, `concept`, or `troubleshooting`. An omitted ID is generated from the title and remains stable after storage. Existing entries are never overwritten by `add`.
-
-Use `--project PATH` with `add` to write explicitly to `PATH/.lbc/knowledge` instead of the user store. Then retrieve or update entries:
-
-```bash
-lbc list
-lbc search "demo service port conflict"
-lbc inspect user:demo-port
-lbc ask "How do I resolve the demo service port conflict?"
-lbc edit user:demo-port --file ./updated-port-note.md
-lbc index
-```
-
-`search` shows ranked excerpts, match reasons, source-qualified IDs, and locators. `inspect` shows the full body, including embedded built-ins. `edit` validates the replacement and atomically replaces a writable entry; without `--file`, it starts `VISUAL` or `EDITOR` directly without invoking a shell. A failed editor or invalid replacement preserves the original.
-
-### Markdown format
-
-Stored entries use YAML frontmatter followed by a nonempty Markdown body:
-
-```markdown
----
-id: demo-port
-title: Demo service port conflict
-kind: troubleshooting
-tags: [demo, port]
-keywords: [address-in-use]
----
-# Demo service port conflict
-
-Change the development port to 4318, restart the development process, and
-confirm that it listens on 4318.
-```
-
-Optional `created_at_unix` and `updated_at_unix` record UTC seconds since the Unix
-epoch; older notes need no changes. Optional `framework` describes technical context.
-Existing metadata remains supported: `id`, `title`, `title_th`, `language`, `tool`, `category`, `error_code`, `tags`, and `keywords`. `language` describes technical material; it is separate from the UI language. `title_th` is an optional Thai display title.
-
-Built-in bilingual notes keep each translation in an explicit block:
-
-```markdown
-<!-- lbc:en -->
-# English title
-
-English guidance.
-
-<!-- lbc:th -->
-# ชื่อภาษาไทย
-
-คำแนะนำภาษาไทย
-```
-
-When both markers are present, `ask` and `search` select only the configured or automatically detected output language. Notes without these markers remain compatible and are returned as written.
-
-Troubleshooting notes can use headings for symptoms/environment, cause, suggested solution, verification steps, and references. Optional `verification_status` accepts `unverified`, `user-reported`, or `recorded-check`. The latter two describe what the note author recorded; libraryCube never presents them as a fresh check performed by the current command.
-
-### Sources, collisions, and overrides
-
-When relevance is comparable, source preference is project → user → installed
-package → builtin. Exact error codes and entry IDs take priority over weaker
-lexical overlap. Ranking reasons appear in text and JSON. The sources are:
-
-- `builtin:ID`: knowledge embedded in the executable.
-- `package:NAME:ID`: installed package knowledge under `$XDG_DATA_HOME/lbc/knowledge` (fallback `~/.local/share/lbc/knowledge`).
-- `user:ID`: user notes under `$XDG_DATA_HOME/lbc/notes` (fallback `~/.local/share/lbc/notes`).
-- `project:ID`: explicit `<project>/.lbc/knowledge` and compatible `<project>/knowledge` documents.
-
-IDs that collide across sources remain distinct; a bare ambiguous ID produces an error with candidates. Duplicate IDs inside one source are validation errors. Installed packages do not silently replace built-ins.
-
-Create an intentional user override without modifying the binary:
-
-```bash
-lbc inspect builtin:rust-e0308
-lbc edit builtin:rust-e0308 --override --file ./our-e0308.md
-```
-
-The override records its target. A project override has priority over a user override in that project. External Markdown changes are reloaded by the next command and each chat question; `index` reports that it rebuilds in memory and does not pretend a persistent cache exists.
-
-## Ask and explain offline
-
-```bash
-lbc ask "What causes a detached HEAD?"
-printf '%s\n' 'error[E0308]: mismatched types' | lbc explain
-lbc explain build.log --project ./my-project --verbose
-```
-
-Answers include actual retrieved passages and resolvable source IDs. Retrieved suggestions are labeled unverified against the current project. If no adequate match exists, libraryCube says so and offers investigation steps instead of inventing a fix.
-
-`explain` parses compiler output, retrieves through the same index as `search` and `ask`, and reads only bounded relevant project excerpts: the diagnostic file near its reported line and small recognized manifests. JSON distinguishes inventory counts from file contents actually used as evidence. Paths outside the project, symlinks, inaccessible files, and oversized evidence are excluded with warnings. libraryCube only suggests verification commands; analysis commands never execute them.
-
-Multiple diagnostics are counted explicitly. The current text report expands the first diagnostic and states how many additional diagnostics were detected.
-
-Ordinary Python tracebacks and syntax-error frames are parsed too, including
-ANSI-colored input and chained exceptions. The last reported frame is retained;
-it may belong to a dependency. This does not establish a root cause. Complex
-ExceptionGroup tree formatting and arbitrary log prefixes are not fully supported.
-TypeScript `tsc` locations (both `(line,column)` and `:line:column` formats),
-Go compiler file diagnostics, and Node error headers with a JavaScript/TypeScript
-stack frame or explicit Node error code are also parsed. Paths with Windows drive
-letters, Unicode, ANSI colors, and CRLF logs are supported. Selected known rules
-cover TypeScript type/module errors, Node module resolution, and Go undefined
-identifiers. These rules supply general guidance, not a project-verified cause.
-
-## Experimental: propose and apply a small patch
-
-```bash
-lbc fix build.log --project ./my-project             # Offline guidance
-lbc fix build.log --project ./my-project --ai        # Preview a replacement
-lbc fix build.log --project ./my-project --ai --apply # Generate and apply
-lbc fix --stdin --project ./my-project --ai --json < build.log
-lbc fix build.log --project ./my-project --ai --apply --verify "cargo check --offline"
-lbc rollback fix-ABC123 --project ./my-project --json # Use the emitted recovery_id
-```
-
-`fix --ai` retrieves adequate local knowledge before requesting one exact
-`before`/`after` replacement near the first diagnostic's line. The provider cannot
-choose another target file. `--apply` requires `--ai`; each invocation generates
-a fresh proposal, so an apply invocation can differ from an earlier preview.
-Without `--verify`, proposed and applied patches remain `unverified`. Add
-`--verify "COMMAND"` with `--ai --apply` to run your chosen executable and arguments
-in the exact project directory. Arguments use shell-style quoting on every OS;
-quote Windows paths with spaces, preferably using forward slashes. No shell is
-launched implicitly, so pipes, redirection, and variable expansion are not shell
-operations. On Windows, invoke an executable such as `node.exe` directly; shell
-scripts require an explicitly selected interpreter. The provider cannot select
-the command. Only use verification commands you trust: they inherit your
-environment and can execute project code, access the network, or change files.
-
-The deadline is 120 seconds; `--verify-timeout 30` changes it (1–3600 seconds).
-Standard input is closed. Each output stream retains at most 32 KiB, redacts
-recognizable secrets, and reports truncation. A passed command records `passed`
-only if the patched file still matches. This proves that particular command
-exited successfully, not general program correctness. On timeout LBC stops the
-direct child; it does not guarantee termination of detached descendant processes.
-
-Every CLI application first saves a private recovery record under
-`<project>/.lbc/fixes/<recovery_id>.json`, containing the original and applied
-source snapshots. Version 2 records are authenticated with HMAC-SHA256 using a
-random project-local key at `<project>/.lbc/recovery.key`; altered records and
-keys with unsafe ownership, permissions, or ACL grants are refused. A failed, unavailable,
-or timed-out verifier triggers rollback and exits nonzero. `lbc rollback ID
---project PATH` also restores an applied patch in a later invocation without AI.
-Both forms refuse to overwrite source that no longer matches the recorded applied
-content. Only the selected file is restored; side effects of the verification
-command are outside the rollback. LBC keeps at most 100 records and removes
-records older than 30 days when preparing a new patch. Version 1 records from
-older releases are unauthenticated and must be inspected and recovered manually.
-Keep `.lbc/fixes/` and `.lbc/recovery.key` out of version control. Power-loss
-durability is not guaranteed.
-
-The exact `--project` directory is the boundary. Targets must be regular UTF-8
-files of at most 256 KiB; the seven-line excerpt is at most 8 KiB, and provider
-patch JSON is at most 8 KiB. Replacements must match uniquely, intersect the
-reported line, and keep the resulting file within 256 KiB. Symlinked paths,
-hidden/generated targets, recognized `.gitignore` matches, and targets containing
-recognizable secrets are refused. Source content is checked again before atomic
-replacement, and file permissions are retained. On Unix, final publication is
-anchored to an opened parent-directory descriptor and rejects a replaced parent;
-other platforms retain portable component checks. Advisory locks still require
-cooperating writers.
-
-JSON reports contain `status` (`offline_guidance`, `proposed`, `applied`,
-`verified`, `rolled_back`, or `failed`), `applied`, `verification_status`,
-`guidance`, `patch`, `error`, `recovery_id`, `verification`, and `rollback_status`.
-Verification status is `unverified`, `passed`, `failed`, `timed_out`, or `error`;
-the optional verification object includes exit code, captured stdout/stderr,
-truncation, and execution error. `applied` becomes false after successful rollback.
-An AI/patch failure preserves offline guidance and exits nonzero; preflight
-input/configuration errors go to stderr. Without `--ai`, fix makes no provider
-connection and changes no project files.
-
-Save a reviewed preview for a separate offline application:
-
-```bash
-lbc fix build.log --project ./app --ai --save-proposal --json
-lbc apply-proposal proposal-ID --project ./app --verify "cargo check" --json
-lbc rollback fix-ID --project ./app --json
-```
-
-Use the actual `proposal_id` returned by the first command. The preview changes
-no project source; the opt-in save writes a private authenticated record under
-`PROJECT/.lbc/proposals/`. Records bind ID, canonical project, diagnostic target
-and line, original SHA-256 and exact before/after replacement. Unix directories
-are mode 0700 and records/key are 0600; all platforms enforce the existing owner/
-ACL policy. Saving prunes to 100 records / 30 days; expired proposals cannot apply.
-Tampering, moving records to another project, changed source or unsafe paths/
-permissions are refused. This protects against edits without the private key;
-it does not defend against the account owner or an attacker possessing that key.
-
-`apply-proposal` never calls AI or loads AI configuration. It revalidates the
-source and boundaries, records recovery before writing, and shares the same
-explicit verification/automatic rollback workflow as `fix --ai --apply`.
-It requires no error log. An unchanged proposal can be applied again after a
-rollback within its validity window. Existing `fix --ai` remains a transient
-preview, and `fix --ai --apply` still generates a fresh proposal before applying;
-`--save-proposal` conflicts with `--apply`. Fix JSON adds nullable `proposal_id`;
-existing keys and statuses remain. A successful write without verification is
-still `unverified`. `apply-proposal --json` reports status, patch, proposal and
-recovery IDs, verification and error; refused applications exit nonzero.
-
-## Optional AI
-
-Answer generation contacts providers only when `--ai` is present.
-`doctor --connectivity` separately opts into a model-list probe:
-
-```bash
-lbc ask "How do I resolve the demo port conflict?" --ai
-lbc explain build.log --ai
-lbc chat --ai
-```
-
-Configure a named provider preset (`openai`, `zai`/`glm`, `ollama`), OpenRouter, or a custom OpenAI-compatible endpoint:
-
-```toml
-[ai]
-provider = "zai" # off | openai | zai | glm | ollama | openrouter | openai-compat
-# Optional for named presets (sensible defaults provided):
-# model = "glm-4-flash"
-# base_url = "https://open.bigmodel.cn/api/paas/v4"
-```
-
-### Supported AI Providers
-
-| Provider | Description | Default Endpoint | Default Model | Environment Variable |
-|---|---|---|---|---|
-| `openai` | OpenAI Platform | `https://api.openai.com/v1` | `gpt-4o-mini` | `OPENAI_API_KEY` |
-| `zai` / `glm` | Zhipu AI (BigModel) | `https://open.bigmodel.cn/api/paas/v4` | `glm-4-flash` | `ZAI_API_KEY` or `GLM_API_KEY` |
-| `ollama` | Local Ollama server | `http://localhost:11434/v1` | `llama3.2` | None required (`OLLAMA_API_KEY` optional) |
-| `openrouter` | OpenRouter gateway | `https://openrouter.ai/api/v1` | Set via `ai.model` | `OPENROUTER_API_KEY` |
-| `openai-compat` | Custom self-hosted server | Configured via `ai.base_url` | Configured via `ai.model` | `OPENAI_API_KEY`, `ZAI_API_KEY`, or `GLM_API_KEY` |
-
-Requests have a timeout and bounded input/output budgets. In terminal mode, `--ai` returns only the concrete edits to make (`Change`/`From`/`To`, or `แก้`/`จาก`/`เป็น`) and does not print the full offline explanation first. Selected note excerpts, source IDs, and bounded project evidence are redacted before sending. Notes are labeled as untrusted data in the prompt. If the provider fails, stderr and JSON expose the failure while the offline answer remains available. Check local configuration and credential presence with `lbc doctor`. Normal doctor
-makes no connection and reports provider connectivity as `untested` (or
-`unavailable` when AI is off or prerequisites are missing). A detected key does
-not establish its validity or provider availability.
-
-```bash
-lbc doctor --json
-lbc doctor --connectivity --connectivity-timeout 5 --json
-```
-
-`--connectivity` explicitly sends a bounded GET to the configured provider's
-`/models` endpoint, with its configured credential, a 1–45 second deadline and no
-redirects. No question, project context or generation request is sent. A valid
-model-list response reports `available`; it does not prove generation or the
-configured model works. Connection/HTTP/JSON/timeout errors report `error` and
-exit nonzero. JSON retains `healthy` and `checks`, adding `health_scope` and
-`provider_connectivity`; `healthy` without the opt-in describes local checks.
-
-## English and Thai output
-
-Set the output language explicitly or use automatic selection:
-
-```bash
-lbc config set output.language th
-lbc ask "แก้ปัญหาพอร์ตของ demo service อย่างไร"
-lbc config set output.language auto
-```
-
-Supported values are `en`, `th`, and `auto`. `auto` selects Thai when the current question contains Thai characters and otherwise falls back to English. Built-in notes include clean English and Thai sections, so their title and excerpt follow the selected language. Retrieval supports Unicode and matches Thai terms present in a note's title, body, tags, or keywords; unmarked user notes are not translated automatically in offline mode. Commands, paths, error codes, source IDs, and JSON keys remain unchanged.
-
-## Optional chat and history
-
-The default is honest session-only memory:
-
-```toml
-[memory]
-mode = "session"
-```
-
-`lbc chat` keeps at most 12 messages and a bounded character budget inside that process. `/clear` clears it; `/exit` or EOF ends the session. Default chat writes no history file, and independent `lbc ask` invocations are stateless. Knowledge added with `lbc add` is separate and is not deleted when chat exits.
-
-Persistent history is explicit opt-in:
-
-```bash
-lbc config set memory.mode persistent
-lbc history show
-lbc history clear
-```
-
-Persistent mode saves only bounded, redacted chat messages under `$XDG_DATA_HOME/lbc/history/default.json`, restores them in a new chat process, and lets `/clear` or `lbc history clear` remove them. Project file contents are not persisted by default. `lbc config show` and `lbc doctor` display the effective mode and history location.
-
-## Packages and other commands
-
-Existing Markdown packages remain supported:
-
-```bash
-lbc knowledge install ./team-rules
-lbc knowledge list
-lbc knowledge remove team-rules
-```
-
-A package contains `package.toml` with `name`, `version`, and optional
-`description`, plus valid Markdown documents. Installation validates a complete
-snapshot, stages and syncs it under a process lock, records `SHA256SUMS`, and
-publishes the directory atomically after checking that the target is absent.
-Unix publication is anchored to an opened parent directory; Linux also uses a
-kernel no-replace rename so a concurrently created target is preserved. `lbc
-knowledge list` reports `verified`, `unverified`
-(legacy install), or `corrupt`; corrupt packages are not loaded.
-
-The source checkout includes 40 bilingual Python/FastAPI notes in
-`packages/python-fastapi-basics`. Install them explicitly:
-
-```bash
-lbc knowledge install ./packages/python-fastapi-basics
-lbc search "ModuleNotFoundError"
-lbc ask "Python CustomWidgetError failed in worker.py"
-```
-
-They are an optional local package, not embedded knowledge. When a Python error
-has no adequate specific match, `ask` may cite the generic traceback playbook
-with `answer_status: "general_guidance"`. It explicitly states that evidence for
-a specific fix is insufficient; `fix --ai` does not use that fallback as adequate
-evidence. English/Thai selection applies to the bilingual passages.
-
-Other read-only commands:
-
-```bash
-lbc scan --path . --tree
-lbc scan --json
-lbc config show --json
-lbc doctor --json
-```
-
-`scan` is a lightweight inventory; it does not imply that every source file was
-read. `--project` and `--path` use the exact supplied directory and never ascend
-to a parent project root. Git-compatible `.gitignore` rules and nested ignore
-files are applied to inventory and diagnostic evidence. JSON commands print one
-machine-readable value to stdout, while warnings go to stderr. `doctor` exits
-nonzero when any check fails, including with `--json`; the JSON report is still
-printed.
+For the last command, paste `error[E0308]: mismatched types`, then end input
+with Ctrl-D (Unix/macOS) or Ctrl-Z followed by Enter (Windows).
+The [quick start](docs/quick-start.md) also includes a copy-paste log-file example.
+
+`learn` saves portable Markdown under the current directory’s `.lbc/knowledge`.
+The check text is a historical record; `learn` never executes it.
+Use `lbc learn` without flags for guided capture, or `--user` for personal notes.
+Search shows source IDs and match reasons. Explain retrieves previous solutions
+and records their evidence state; an inadequate match is reported honestly.
+
+## How knowledge works
+
+Your notes are ordinary Markdown with YAML metadata. Edit or back them up with
+your own tools. Capture generates IDs and metadata; you can supply your own.
+When relevance is comparable, sources rank project → user → installed package →
+builtin. Use `--project PATH` to select an exact directory; LBC does not search
+upward for a project root.
+
+The everyday commands are `learn`, `add`, `search`, `ask`, `inspect`, `edit`,
+and `explain`. Try `lbc --help` or `lbc COMMAND --help`.
+Optional `--ai` enhances retrieved evidence and sends bounded, redacted context
+to your configured provider. Review sensitive notes before enabling it.
+`fix`, `apply-proposal`, and `rollback` are experimental source-changing tools.
+
+## Learn more
+
+- [Quick start](docs/quick-start.md): capture, search, and explain offline
+- [Installation](docs/installation.md): binaries, verification, PATH, uninstall, and source builds
+- [CLI reference](docs/cli-reference.md): commands, Markdown, AI, storage, safety, and development
+- [Complete usage examples](docs/usage-examples.md): detailed command walkthroughs
+- [Product direction](docs/product-direction.md) and [roadmap](ROADMAP.md)
+- [Changelog](CHANGELOG.md) and [security policy](SECURITY.md)
 
 ## Release status and integrity
 
-The following release observations are the dated 2026-10-01 checkpoint, not a
-new check of hosted state. This product refocus does not publish a release.
-
-Version `0.5.0` is currently a release candidate. No production `v0.5.0`
-release or signed artifact set has been verified yet.
-As rechecked on 2026-10-01, GitHub does expose an empty public `v0.5.0`
-Release despite its DRAFT title/body. This is a release-state inconsistency,
-not a production release; there are no verified production assets to install.
-
-The Rust package and crate are named `librarycube`; the executable is `lbc`.
-
-For copy-paste examples covering every command, see the
-[complete usage examples](docs/usage-examples.md).
-The [v0.5 roadmap checkpoint](docs/roadmap-progress.md) records current
-verification, external release gates, and remaining limitations.
-The [v0.5 acceptance/evidence ledger](docs/v0.5-completion-checklist.md) separates
-repository checks from external production gates; `ROADMAP.md` remains canonical.
-See the [changelog](CHANGELOG.md) for the version's changes.
-
-After every hosted and repository gate passes, the `v0.5.x` release pipeline is
-configured to publish every archive, checksum, SBOM, and provenance file with a
-detached `.asc` signature. Download
-`lbc-release-signing-key.asc`, compare its full
-fingerprint with the value published by the maintainer through a separate trusted
-channel, then verify before installation:
-
-Use the [clean-keyring full-manifest verification procedure](docs/circleci.md#reproducible-independent-verification)
-to verify all 25 files, trusted fingerprints, checksums, SBOM and exact
-source/version/workflow provenance before extracting or installing anything.
-The key shipped alongside the assets is not itself an independent trust anchor.
-
-The tag workflow now requires Windows Authenticode and macOS Developer ID,
-hardened runtime, notarization and a stapled DMG before production packaging.
-These executable jobs have not run with production credentials. Candidates
-remain unsigned on Windows and ad-hoc signed on macOS; no production native
-trust or valid production `v0.5.0` release is claimed. See the
-[native signing and independent verification runbook](docs/native-code-signing.md).
-The DMG is the offline-ticket delivery path; a raw tar cannot carry a stapled
-ticket. Certificate trust does not guarantee absence of SmartScreen prompts.
-
-## Safety boundaries
-
-`search`, `inspect`, `ask`, `explain`, `scan`, and `doctor` do not change project sources, install packages, run suggested repairs, or execute arbitrary shell commands. Explicit add/edit/package/config/history-clear operations, `fix --ai --save-proposal`, `fix --ai --apply`, `apply-proposal`, and `rollback` write their selected data targets. `fix --verify` additionally executes the user-selected verification command. Common keys, bearer values, provider tokens, authorization headers, passwords, database URLs, and known token formats are redacted from remote context and persistent history.
-
-Redaction handles multiple credentials per line, quoted structured keys, URI user information, and Unicode prefixes. Private-key blocks are redacted before passage selection while preserving line numbers. It is pattern-based, not a guarantee that arbitrary secrets are detected: review sensitive notes before opting into remote AI. Config display masks recognizable credentials without changing the saved value.
-
-Input limits: questions/search queries are at most 8 KiB; notes are at most 256 KiB **including serialized metadata**; error-log input is at most 2 MiB. AI user context is limited to 32,000 Unicode characters, with separate per-field limits and retrieved knowledge prioritized ahead of chat history. Each provider request has a 45-second timeout and a 2 MiB response limit.
-Streaming counts all wire bytes, including hidden reasoning and framing. It
-preserves UTF-8 split across HTTP chunks, stops at `[DONE]`, and redacts before
-callbacks/display. An incomplete logical line is held until its newline or
-completion so a credential split across content deltas cannot escape redaction.
-
-Note creation publishes a fully written temporary file without overwriting an existing target. Edits atomically replace a validated document; failed editor launches and cancellations clean up temporary files. Builtin overrides preserve retrieval metadata, and changed bodies reset verification to `unverified`. Editor arguments support quoting without launching a shell implicitly. Bounded text readers reject special files and symlinked path components (including parent directories); use real, non-symlinked storage paths.
-
-Mutable config, history, knowledge, and package stores use advisory process locks
-and atomic file/directory publication. Unix file replacement anchors validation
-and rename to an opened directory descriptor to prevent parent-symlink redirects,
-and rechecks the target digest so a same-size concurrent edit is not silently
-overwritten during publication. Mutable stores follow the fail-closed
-[single-owner ownership and ACL policy](docs/shared-store-security.md): unsafe
-owners, shared writable directories, extended/default ACL grants, and Windows
-reparse points are refused. Locks and private key/history data require private
-access; owner-controlled public configuration and notes remain supported.
-These controls require cooperating LBC processes; shared writable collaboration
-is not supported. Production readiness remains under
-audit, especially non-Unix directory races, and
-the final target-creation race on non-Linux platforms, and complete Thai
-diagnostic content.
-
-The fixed [retrieval benchmark](docs/retrieval-benchmark.md) evaluates 40 bilingual
-cases against embedded notes, the optional Python package and seven explicit
-reference fixtures. Top-1 improved 28/31 → 31/31 and Top-3 30/31 → 31/31;
-strict citation relevance remains 33/40. This measures that corpus, not product
-accuracy or successful resolution of arbitrary incidents.
+The `v0.6.0` candidate requires hosted CI, source identity checks, native signing
+and owner approval before production publication. See the
+[release notes](docs/release-0.6.0.md).
+The empty public `v0.5.0` Release is not a verified production artifact set.
+[Release evidence](docs/release-readiness-2026-11-08.md),
+[full 25-file verification](docs/circleci.md#reproducible-independent-verification),
+and [native trust checks](docs/native-code-signing.md) track the remaining gates.
 
 ## Development
 
-```bash
-cargo fmt --check
-cargo check --locked
-cargo clippy --locked --all-targets --all-features -- -D warnings
-cargo test --locked
-cargo build --locked --release
-cargo audit
-cargo deny check
-cargo cyclonedx --format json --all-features
-bash .circleci/test-release-scripts.sh
-```
-
-CircleCI runs these gates for every branch and pull request. The dependency job
-also exercises provenance and signing with a disposable one-day test key.
-Linux, universal macOS, and Windows x86-64 jobs test and package every candidate
-branch and pull request as well as matching version tags. Only matching version
-tags can publish artifacts to GitHub Releases, after the remote names, sizes,
-states, and SHA-256 digests match the canonical manifest. See
-[CircleCI CI/CD setup](docs/circleci.md) for the one-time token setup and release
-procedure.
-
-CLI tests use isolated XDG stores and a local mock HTTP provider; CI needs no API key or live service. Socket-restricted environments must allow loopback for provider tests; those tests fail rather than silently skip. The real timeout regression takes approximately 45 seconds.
-
-To repeat the CLI walkthrough against the release binary, outside the source checkout (the fixtures set their own working directories):
-
-```bash
-LBC_TEST_BINARY="$PWD/target/release/lbc" cargo test --locked --test cli add_list_inspect_ask_edit_roundtrip_uses_current_content
-```
-
-Deferred work includes vector search, embedding services, executable plugin SDKs, model training, automatic repair, autonomous agents, GUI/TUI redesign, npm distribution, and broad compiler coverage.
+See [development checks](docs/cli-reference.md#development). No release is
+published by building or testing this checkout.
+The [onboarding validation report](docs/onboarding-validation.md) records local
+test results and the remaining native-platform limits.

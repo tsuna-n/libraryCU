@@ -11,12 +11,20 @@ use clap::{Args, Parser, Subcommand};
     propagate_version = true
 )]
 pub struct Cli {
+    /// Suppress optional warnings and progress; keep results and errors
+    #[arg(long, short = 'q', global = true)]
+    pub quiet: bool,
+    /// Disable color and terminal escape sequences (also honors NO_COLOR)
+    #[arg(long, global = true)]
+    pub no_color: bool,
     #[command(subcommand)]
     pub command: Command,
 }
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
+    /// Initialize local knowledge stores and optional AI configuration
+    Setup(SetupArgs),
     /// Add a Markdown entry to your knowledge library
     Add(AddArgs),
     /// Capture a solved problem as portable local Markdown
@@ -62,6 +70,25 @@ pub enum Command {
         #[command(subcommand)]
         command: KnowledgeCommand,
     },
+}
+
+#[derive(Debug, Args)]
+pub struct SetupArgs {
+    /// Initialize PATH/.lbc/knowledge (default: current directory)
+    #[arg(long, value_name = "PATH")]
+    pub project: Option<PathBuf>,
+    /// Optional AI provider; existing configuration is kept by default
+    #[arg(long, value_parser = ["off", "openai", "zai", "glm", "ollama", "openrouter", "openai-compat"])]
+    pub provider: Option<String>,
+    #[arg(long)]
+    pub model: Option<String>,
+    #[arg(long)]
+    pub base_url: Option<String>,
+    /// Use safe defaults without prompts; new configurations use AI off
+    #[arg(long)]
+    pub yes: bool,
+    #[arg(long, requires = "yes")]
+    pub json: bool,
 }
 
 #[derive(Debug, Args)]
@@ -135,6 +162,9 @@ pub struct AddArgs {
 
 #[derive(Debug, Args)]
 pub struct ListArgs {
+    /// Maximum entries to return (default: all)
+    #[arg(long)]
+    pub limit: Option<std::num::NonZeroUsize>,
     #[arg(long, default_value = ".")]
     pub project: PathBuf,
     #[arg(long)]
@@ -295,6 +325,9 @@ pub struct ApplyProposalArgs {
 
 #[derive(Debug, Args)]
 pub struct SearchArgs {
+    /// Maximum matches to return (default: 10 in text, all in JSON)
+    #[arg(long)]
+    pub limit: Option<std::num::NonZeroUsize>,
     /// Error code or technical keywords
     pub query: String,
     /// Project path containing optional knowledge documents

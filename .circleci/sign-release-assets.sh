@@ -16,6 +16,14 @@ fi
 validate_release_tag "${version}"
 require_release_inputs "${dist_dir}" "${version}" true
 
+for name in lbc-release-signing-key.asc "${RELEASE_INPUTS[@]/%/.asc}"; do
+    output="${dist_dir}/${name}"
+    if [[ -L "${output}" || ( -e "${output}" && ! -f "${output}" ) ]]; then
+        echo "Release signing output is unsafe: ${name}" >&2
+        exit 1
+    fi
+done
+
 : "${LBC_RELEASE_SIGNING_KEY_BASE64:?Set the masked release signing key in the CircleCI release context}"
 : "${LBC_RELEASE_SIGNING_FINGERPRINT:?Set the full release signing fingerprint in the CircleCI release context}"
 validate_signing_fingerprint "${LBC_RELEASE_SIGNING_FINGERPRINT}"

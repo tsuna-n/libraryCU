@@ -1,5 +1,10 @@
 # 0.5.0 release-candidate audit — 2026-09-17
 
+Latest audit: [2026-11-08 release readiness](release-readiness-2026-11-08.md).
+Starting main `21a8ea2` has a failing Windows candidate; the old tag's source
+gate and public empty-release conflict remain unresolved. The observations below
+are historical and do not validate the current worktree.
+
 Current October candidate C1 `4a213ecd828e1ae52400d219e871dd03f22e24a6` passed Linux 171,
 macOS 170, Windows 172 and dependency 173; exact job revisions are retained in
 [the candidate receipt](evidence/candidate-ci.json). This proves candidate

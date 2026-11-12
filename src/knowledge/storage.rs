@@ -30,13 +30,7 @@ pub struct EditEntry<'a> {
 }
 
 pub fn notes_dir() -> PathBuf {
-    if let Some(path) = env::var_os("XDG_DATA_HOME") {
-        PathBuf::from(path).join("lbc/notes")
-    } else if let Some(home) = env::var_os("HOME") {
-        PathBuf::from(home).join(".local/share/lbc/notes")
-    } else {
-        PathBuf::from(".local/share/lbc/notes")
-    }
+    super::packages::user_data_dir().join("notes")
 }
 
 pub fn add_entry(input: AddEntry<'_>) -> Result<KnowledgeDocument> {
@@ -457,4 +451,58 @@ fn ensure_document_unchanged(original: &KnowledgeDocument, project: &Path) -> Re
         bail!("knowledge entry changed during editing; the newer content was preserved");
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn legacy_yaml_metadata_survives_edit_serialization() -> Result<()> {
+        let legacy = "---\nid: null\ntitle: 'YAML: quotes, # and ไทย'\nkind: troubleshooting\nlanguage: &language rust\ntool: *language\nframework: null\ncategory: ~\nerror_code: E0308\ntitle_th: แก้ไขชนิดข้อมูล\ntags: [null, 'true', '0123', 'a: b']\nkeywords:\n  - |\n    first line\n    second line\nverification_status: recorded-check\ncreated_at_unix: 18446744073709551615\nupdated_at_unix: 1\n<<: {kind: ignored, title: ignored}\n---\n# Existing note\n\nKeep `exact_code()` and ไทย.\n";
+        let original = parse_document_for_source("legacy.md", legacy, "user", "/legacy.md", true)?;
+        assert_eq!(original.metadata.id, "null");
+        assert_eq!(original.metadata.tool.as_deref(), Some("rust"));
+        assert_eq!(original.metadata.framework, None);
+        assert_eq!(original.metadata.category, None);
+        assert_eq!(original.metadata.tags, ["null", "true", "0123", "a: b"]);
+        assert_eq!(original.metadata.created_at_unix, Some(u64::MAX));
+        assert_eq!(original.metadata.keywords, ["first line\nsecond line\n"]);
+
+        let encoded = encode_existing(&original, &original.body)?;
+        let reloaded =
+            parse_document_for_source("legacy.md", &encoded, "user", "/legacy.md", true)?;
+        assert_eq!(reloaded.metadata, original.metadata);
+        assert_eq!(reloaded.body, original.body);
+        assert!(encoded.starts_with("---\n"));
+        Ok(())
+    }
+
+    #[test]
+    fn yaml_capture_roundtrips_special_and_multiline_titles() -> Result<()> {
+        for title in [
+            "null",
+            "true",
+            "0123",
+            "a: b # ไทย",
+            "first line\n---\nsecond line",
+        ] {
+            let encoded = encode(
+                "yaml-note",
+                title,
+                "note",
+                Some("builtin:rust-e0308"),
+                "Keep body",
+            )?;
+            let document =
+                parse_document_for_source("note.md", &encoded, "user", "/note.md", true)?;
+            assert_eq!(document.title, title);
+            assert_eq!(
+                document.metadata.overrides.as_deref(),
+                Some("builtin:rust-e0308")
+            );
+            assert_eq!(document.body, "Keep body");
+        }
+        Ok(())
+    }
 }

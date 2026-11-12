@@ -10,6 +10,9 @@ pub fn print_explanation_language(report: &ExplanationReport, verbose: bool, lan
 }
 
 pub fn print_explanation_deterministic(report: &ExplanationReport, verbose: bool, language: &str) {
+    for warning in &report.warnings {
+        super::warning(warning);
+    }
     if language == "th" {
         return print_explanation_thai_deterministic(report, verbose);
     }
@@ -104,12 +107,6 @@ pub fn print_explanation_deterministic(report: &ExplanationReport, verbose: bool
             println!("  Frameworks: {}", report.project.frameworks.join(", "));
         }
     }
-    if !report.warnings.is_empty() {
-        println!("\nWarnings");
-        for warning in &report.warnings {
-            println!("  - {warning}");
-        }
-    }
 }
 
 pub fn print_explanation_footer(report: &ExplanationReport, language: &str) {
@@ -117,7 +114,9 @@ pub fn print_explanation_footer(report: &ExplanationReport, language: &str) {
         return print_explanation_thai_footer(report);
     }
     if let Some(error) = &report.ai_error {
-        println!("\nAI status\n  unavailable: {error}");
+        super::warning(&format!(
+            "AI enhancement failed; showing the deterministic explanation.\n{error}"
+        ));
     }
     if let Some(ai) = &report.ai {
         println!("\nAI analysis ({} / {})", ai.provider, ai.model);
@@ -197,7 +196,7 @@ fn print_explanation_thai_footer(report: &ExplanationReport) {
         );
     }
     if let Some(error) = &report.ai_error {
-        println!("\nสถานะ AI\n  ใช้งานไม่ได้: {error}");
+        super::warning(&format!("AI ใช้งานไม่ได้: {error}"));
     }
     println!("\nระดับความมั่นใจ\n  {}", report.confidence);
 }

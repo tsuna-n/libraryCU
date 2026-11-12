@@ -10,3 +10,4 @@ pub mod knowledge;
 pub mod learn;
 pub mod scan;
 pub mod search;
+pub mod setup;

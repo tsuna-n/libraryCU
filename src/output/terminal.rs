@@ -92,11 +92,8 @@ pub fn print_scan(report: &ScanReport, show_tree: bool) {
             println!("  {directory}");
         }
     }
-    if !report.warnings.is_empty() {
-        println!("\n! Scan warnings");
-        for warning in &report.warnings {
-            println!("  {warning}");
-        }
+    for warning in &report.warnings {
+        super::warning(warning);
     }
 }
 
@@ -171,6 +168,10 @@ pub fn print_search(query: &str, results: &[SearchResult]) {
 }
 
 pub fn print_search_language(query: &str, results: &[SearchResult], language: &str) {
+    print_search_results(query, &results[..results.len().min(10)], language);
+}
+
+pub(crate) fn print_search_results(query: &str, results: &[SearchResult], language: &str) {
     if language == "th" {
         println!("ค้นหาคลังความรู้\n");
         println!("คำค้น\n  {query}\n");
@@ -191,7 +192,7 @@ pub fn print_search_language(query: &str, results: &[SearchResult], language: &s
         );
         return;
     }
-    for (index, result) in results.iter().take(10).enumerate() {
+    for (index, result) in results.iter().enumerate() {
         println!("\n{}. {}", index + 1, result.document.title);
         if language == "th" {
             let match_reason = match result.match_reason.as_str() {

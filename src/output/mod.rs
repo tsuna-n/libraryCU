@@ -1,5 +1,8 @@
 pub mod diagnostic;
+mod status;
 pub mod terminal;
+
+pub use status::{clear_progress, configure, is_quiet, progress, warning};
 
 pub use diagnostic::{
     print_explanation, print_explanation_deterministic, print_explanation_footer,

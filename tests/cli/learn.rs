@@ -408,8 +408,11 @@ fn explicit_project_scope_is_preserved_and_other_projects_do_not_see_it() {
             "--json",
         ],
     );
-    assert!(
-        Path::new(capture["path"].as_str().unwrap()).starts_with(project.join(".lbc/knowledge"))
+    assert_eq!(
+        Path::new(capture["path"].as_str().unwrap())
+            .parent()
+            .unwrap(),
+        project.join(".lbc/knowledge").canonicalize().unwrap()
     );
     assert!(
         json(home.path(), &["search", "PROJECTMEMORY-4318", "--json"])

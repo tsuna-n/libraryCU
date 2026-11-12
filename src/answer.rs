@@ -56,7 +56,7 @@ pub fn answer(
     let mut warnings: Vec<_> = retrieved
         .invalid
         .iter()
-        .map(|invalid| format!("{}: {}", invalid.path, invalid.error))
+        .map(|invalid| security::redact_sensitive(&format!("{}: {}", invalid.path, invalid.error)))
         .collect();
     let (project_evidence, evidence_warnings) = crate::diagnostics::parse_primary(question)
         .filter(|diagnostic| diagnostic.file.is_some())

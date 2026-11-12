@@ -92,6 +92,25 @@ printf '%s\n' "${RELEASE_ASSETS[@]}" > "${expected_assets_file}"
 valid_dist="${fixture_root}/valid-dist"
 cp -a "${dist_dir}" "${valid_dist}"
 
+# Signing must reject unsafe output paths before overwriting any target.
+for output in lbc-release-signing-key.asc "${RELEASE_INPUTS[0]}.asc"; do
+    case_dir="${fixture_root}/symlinked-signing-output"
+    rm -rf "${case_dir}"
+    cp -a "${valid_dist}" "${case_dir}"
+    printf 'keep signing output target unchanged\n' > "${fixture_root}/signing-sentinel"
+    cp "${fixture_root}/signing-sentinel" "${fixture_root}/signing-sentinel.expected"
+    rm "${case_dir}/${output}"
+    ln -s "${fixture_root}/signing-sentinel" "${case_dir}/${output}"
+    signing_status=0
+    bash .circleci/sign-release-assets.sh "${case_dir}" >"${fixture_root}/signing-output.log" 2>&1 || signing_status=$?
+    if ! cmp -s "${fixture_root}/signing-sentinel" "${fixture_root}/signing-sentinel.expected"; then
+        echo "Release signing overwrote a symlink target: ${output}" >&2; exit 1
+    fi
+    if [[ "${signing_status}" == 0 ]]; then
+        echo "Release signing accepted a symlinked output: ${output}" >&2; exit 1
+    fi
+done
+
 # Real signed source fixture. It never tags or configures the actual repository.
 source_repo="${fixture_root}/source-repository"
 mkdir "${source_repo}"
