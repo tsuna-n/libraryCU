@@ -150,6 +150,11 @@ for config, JSON, and saved proposal compatibility.
 
 Publishing `v0.7.1` requires hosted CI, source identity checks, native signing,
 and owner approval. [Release procedure](docs/circleci.md).
+
+Use `lbc-main-reviewed-signed-ci` as the GitHub ruleset name for `main`.
+Version tags use separate rulesets for creation and immutability.
+[Repository controls guide](docs/repository-controls/README.md).
+
 The empty public `v0.5.0` Release is not a verified production artifact set.
 [Release evidence](docs/release-readiness-2026-11-08.md),
 [full 25-file verification](docs/circleci.md#reproducible-independent-verification),
