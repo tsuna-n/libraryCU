@@ -113,16 +113,6 @@ pub fn print_explanation_footer(report: &ExplanationReport, language: &str) {
     if language == "th" {
         return print_explanation_thai_footer(report);
     }
-    if let Some(error) = &report.ai_error {
-        super::warning(&format!(
-            "AI enhancement failed; showing the deterministic explanation.\n{error}"
-        ));
-    }
-    if let Some(ai) = &report.ai {
-        println!("\nAI analysis ({} / {})", ai.provider, ai.model);
-        println!("  {}", ai.analysis.replace('\n', "\n  "));
-        println!("\nAI confidence\n  {}", ai.confidence);
-    }
     println!("\nConfidence\n  {}", report.confidence);
 }
 
@@ -187,16 +177,5 @@ fn print_explanation_thai_deterministic(report: &ExplanationReport, verbose: boo
 }
 
 fn print_explanation_thai_footer(report: &ExplanationReport) {
-    if let Some(ai) = &report.ai {
-        println!(
-            "\nคำอธิบายจาก AI ({} / {})\n  {}",
-            ai.provider,
-            ai.model,
-            ai.analysis.replace('\n', "\n  ")
-        );
-    }
-    if let Some(error) = &report.ai_error {
-        super::warning(&format!("AI ใช้งานไม่ได้: {error}"));
-    }
     println!("\nระดับความมั่นใจ\n  {}", report.confidence);
 }

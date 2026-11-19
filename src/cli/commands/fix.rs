@@ -41,16 +41,10 @@ struct FixReport {
 }
 
 pub fn run(args: FixArgs) -> Result<()> {
-    let verify = args
-        .verify
-        .as_deref()
-        .map(fixer::verification::parse)
-        .transpose()?;
     let input = super::explain::read_error_input(&ExplainArgs {
         file: args.file,
         text: None,
         stdin: args.stdin,
-        ai: args.ai,
         json: args.json,
         verbose: false,
         project: args.project.clone(),
@@ -70,126 +64,20 @@ pub fn run(args: FixArgs) -> Result<()> {
     let mut output = loaded.config.output.clone();
     output.language = answer::choose_language(&output.language, &input);
     let guidance = answer::answer(query.trim(), &root, &output, &loaded.config.scanner)?;
-    let mut report = FixReport {
+    let report = FixReport {
         application: Application::default(),
         guidance,
         patch: None,
         error: None,
         proposal_id: None,
     };
-    if args.ai {
-        let generated = (|| -> Result<()> {
-            let target = fixer::Target::read(&root, &diagnostic)?;
-            let mut patch = target.generate(&report.guidance, &loaded.config.ai)?;
-            if args.save_proposal {
-                report.proposal_id = Some(fixer::proposal::save(&target, &patch)?);
-            }
-            report.application.status = "proposed";
-            let applied = if args.apply {
-                apply_and_verify(
-                    &root,
-                    &target,
-                    &mut patch,
-                    verify.as_ref(),
-                    args.verify_timeout,
-                    &mut report.application,
-                )
-            } else {
-                Ok(())
-            };
-            report.patch = Some(patch);
-            applied?;
-            Ok(())
-        })();
-        if let Err(error) = generated {
-            if report.application.status != "rolled_back" {
-                report.application.status = "failed";
-            }
-            report.error = Some(security::redact_sensitive(&format!("{error:#}")));
-        }
-    }
     for warning in &report.guidance.warnings {
         crate::output::warning(warning);
     }
     if args.json {
         println!("{}", serde_json::to_string_pretty(&report)?);
     } else {
-        let thai = report.guidance.language == "th";
-        if let Some(patch) = &report.patch {
-            println!(
-                "{}: {}\n{}:\n{}\n{}:\n{}",
-                if thai { "แก้" } else { "Change" },
-                patch.path,
-                if thai { "จาก" } else { "From" },
-                patch.before,
-                if thai { "เป็น" } else { "To" },
-                patch.after
-            );
-            if let Some(verification) = &report.application.verification {
-                println!(
-                    "{}: {}",
-                    if thai {
-                        "ผลการตรวจสอบ"
-                    } else {
-                        "Verification"
-                    },
-                    verification.status
-                );
-                if let Some(error) = &verification.error {
-                    eprintln!("! {error}");
-                }
-                if !verification.stdout.is_empty() {
-                    println!("{}", verification.stdout);
-                }
-                if !verification.stderr.is_empty() {
-                    eprintln!("{}", verification.stderr);
-                }
-            }
-            if let Some(id) = &report.proposal_id {
-                println!("Proposal ID: {id}");
-            }
-            if let Some(id) = &report.application.recovery_id {
-                println!("Recovery ID: {id}");
-            }
-            if let Some(status) = report.application.rollback_status {
-                println!("Rollback: {status}");
-            }
-            if report.application.verification.is_none() {
-                println!(
-                    "{}",
-                    match (
-                        report.application.applied,
-                        thai,
-                        report.proposal_id.is_some()
-                    ) {
-                        (false, true, true) =>
-                            "บันทึกข้อเสนอแล้ว; ยังไม่ได้แก้ source ของ project หรือรันการตรวจสอบ",
-                        (false, false, true) =>
-                            "Proposal saved; no project source changed or verification commands run.",
-                        (true, true, _) => "เขียนไฟล์แล้ว; ยังไม่ได้รันการตรวจสอบ",
-                        (false, true, false) => "ข้อเสนอเท่านั้น; ยังไม่ได้เขียนไฟล์หรือรันการตรวจสอบ",
-                        (true, false, _) => "Applied; no verification commands were run.",
-                        (false, false, false) =>
-                            "Proposal only; no files changed or verification commands run.",
-                    }
-                );
-            }
-        } else {
-            println!("{}", report.guidance.offline_answer);
-            if !args.ai {
-                println!(
-                    "{}",
-                    if thai {
-                        "ใช้ --ai เพื่อขอข้อเสนอแก้ไข และเพิ่ม --apply เมื่อต้องการเขียนไฟล์"
-                    } else {
-                        "Use --ai to request a patch; add --apply to write the validated replacement."
-                    }
-                );
-            }
-        }
-    }
-    if let Some(error) = report.error {
-        bail!("{error}");
+        println!("{}", report.guidance.offline_answer);
     }
     Ok(())
 }

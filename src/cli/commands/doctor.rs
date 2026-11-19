@@ -4,7 +4,6 @@ use anyhow::{Context, Result, bail};
 use serde::Serialize;
 
 use crate::cli::{args::DoctorArgs, errors::safe_message};
-use crate::config::AiConfig;
 use crate::{config, knowledge, scanner};
 
 fn text<'a>(thai: bool, english: &'a str, translated: &'a str) -> &'a str {
@@ -131,66 +130,6 @@ fn knowledge_check(root: &Path, thai: bool) -> DoctorCheck {
     }
 }
 
-fn ai_check(ai: &AiConfig, thai: bool) -> DoctorCheck {
-    let result = crate::ai::credential(ai, |name| std::env::var(name).ok());
-    DoctorCheck {
-        name: "AI provider".into(),
-        ok: result.is_ok(),
-        detail: match result {
-            Err(error) => guidance(
-                thai,
-                &safe_message(&error),
-                text(
-                    thai,
-                    "set the provider API key in your environment, or use lbc config set ai.provider off for offline mode",
-                    "ตั้งค่า API key ของผู้ให้บริการในสภาพแวดล้อม หรือใช้ lbc config set ai.provider off เพื่อทำงานออฟไลน์",
-                ),
-                "lbc config show; lbc doctor; lbc doctor --connectivity",
-            ),
-            Ok(_) if ai.provider == "off" => text(
-                thai,
-                "off (deterministic mode); no API key or network required",
-                "off (โหมดกำหนดผลลัพธ์แน่นอน); ไม่ต้องใช้ API key หรือเครือข่าย",
-            )
-            .into(),
-            Ok(key) => format!(
-                "{}; model {}; URL {} ({}); {}",
-                if matches!(ai.provider.as_str(), "zai" | "glm") {
-                    "zai (glm)"
-                } else {
-                    &ai.provider
-                },
-                ai.effective_model(),
-                if ai.provider == "openrouter" {
-                    "https://openrouter.ai/api/v1"
-                } else {
-                    ai.effective_base_url()
-                },
-                if key.is_some() {
-                    text(
-                        thai,
-                        "API key detected; validity untested",
-                        "พบ API key; ยังไม่ได้ตรวจสอบความถูกต้อง",
-                    )
-                } else {
-                    text(thai, "no API key required", "ไม่จำเป็นต้องใช้ API key")
-                },
-                text(
-                    thai,
-                    "connectivity untested; next: lbc doctor --connectivity",
-                    "ยังไม่ได้ทดสอบการเชื่อมต่อ; คำสั่งถัดไป: lbc doctor --connectivity"
-                )
-            ),
-        },
-    }
-}
-
-#[derive(Debug, Serialize)]
-struct Connectivity {
-    status: &'static str,
-    detail: String,
-}
-
 #[derive(Debug, Serialize)]
 struct DoctorCheck {
     name: String,
@@ -203,7 +142,6 @@ struct DoctorReport {
     healthy: bool,
     checks: Vec<DoctorCheck>,
     health_scope: &'static str,
-    provider_connectivity: Connectivity,
 }
 
 pub fn run(args: DoctorArgs) -> Result<()> {
@@ -325,83 +263,6 @@ pub fn run(args: DoctorArgs) -> Result<()> {
         },
     });
 
-    let ai_config = loaded
-        .as_ref()
-        .map(|loaded| loaded.config.ai.clone())
-        .unwrap_or_default();
-    checks.push(if loaded.is_err() {
-        DoctorCheck {
-            name: "AI provider".into(),
-            ok: false,
-            detail: text(
-                thai,
-                "configuration invalid; provider settings could not be checked; fix Configuration, then run lbc doctor",
-                "การตั้งค่าไม่ถูกต้อง จึงตรวจสอบผู้ให้บริการไม่ได้ แก้การตั้งค่าแล้วเรียก lbc doctor"
-            ).into(),
-        }
-    } else {
-        ai_check(&ai_config, thai)
-    });
-    let connectivity = if loaded.is_err()
-        || ai_config.provider == "off"
-        || !checks.last().is_some_and(|c| c.ok)
-    {
-        Connectivity {
-            status: "unavailable",
-            detail: if loaded.is_err() {
-                text(
-                    thai,
-                    "configuration invalid; no connection attempted; fix Configuration, then run lbc doctor --connectivity",
-                    "การตั้งค่าไม่ถูกต้อง ยังไม่ได้เชื่อมต่อ แก้การตั้งค่าแล้วเรียก lbc doctor --connectivity"
-                )
-            } else if ai_config.provider == "off" {
-                text(
-                    thai,
-                    "AI off; no connection attempted; offline mode is ready",
-                    "AI ปิดอยู่ ยังไม่ได้เชื่อมต่อ พร้อมใช้งานออฟไลน์"
-                )
-            } else {
-                text(
-                    thai,
-                    "credentials missing; no connection attempted; set the provider API key, then run lbc doctor --connectivity",
-                    "ไม่พบข้อมูลรับรอง ยังไม่ได้เชื่อมต่อ ตั้งค่า API key แล้วเรียก lbc doctor --connectivity"
-                )
-            }.into(),
-        }
-    } else if !args.connectivity {
-        Connectivity {
-            status: "untested",
-            detail: text(
-                thai,
-                "no connection attempted; opt in with lbc doctor --connectivity (models endpoint only)",
-                "ยังไม่ได้เชื่อมต่อ หากต้องการตรวจสอบให้เรียก lbc doctor --connectivity (เฉพาะรายการโมเดล)"
-            ).into(),
-        }
-    } else {
-        match crate::ai::connectivity::check(&ai_config, args.connectivity_timeout) {
-            Ok(()) => Connectivity {
-                status: "available",
-                detail: text(
-                    thai,
-                    "models endpoint responded; generation and configured model availability untested",
-                    "ปลายทางรายการโมเดลตอบกลับแล้ว ยังไม่ได้ทดสอบการสร้างคำตอบหรือโมเดลที่ตั้งค่าไว้"
-                ).into(),
-            },
-            Err(error) => Connectivity {
-                status: "error",
-                detail: guidance(
-                    thai,
-                    &safe_message(&error),
-                    text(
-                        thai,
-                        "check provider URL, API key, service availability, and network; a successful probe does not verify generation",
-                        "ตรวจสอบ URL, API key, สถานะบริการ และเครือข่าย การเชื่อมต่อสำเร็จยังไม่ยืนยันการสร้างคำตอบ"
-                    ),
-                    "lbc config show; lbc doctor --connectivity"
-                ),
-            },
-        }
-    };
     let memory = loaded
         .as_ref()
         .map(|loaded| loaded.config.memory.clone())
@@ -428,14 +289,8 @@ pub fn run(args: DoctorArgs) -> Result<()> {
         check.detail = crate::security::redact_sensitive(&check.detail);
     }
     let report = DoctorReport {
-        healthy: checks.iter().all(|check| check.ok)
-            && (!args.connectivity || connectivity.status == "available"),
-        health_scope: if args.connectivity {
-            "local checks and provider models endpoint"
-        } else {
-            "local checks only; provider connectivity untested"
-        },
-        provider_connectivity: connectivity,
+        healthy: checks.iter().all(|check| check.ok),
+        health_scope: "local checks only",
         checks,
     };
     if args.json {
@@ -451,7 +306,6 @@ pub fn run(args: DoctorArgs) -> Result<()> {
                         "Configuration" => "การตั้งค่า",
                         "Project detection" => "การตรวจหาโครงการ",
                         "Local knowledge" => "ความรู้ในเครื่อง",
-                        "AI provider" => "ผู้ให้บริการ AI",
                         "Session memory" => "หน่วยความจำเซสชัน",
                         "Git safety" => "ความปลอดภัยของ Git",
                         name => name,
@@ -463,23 +317,9 @@ pub fn run(args: DoctorArgs) -> Result<()> {
             );
         }
         println!(
-            "{}: {}\n  {}\n",
-            text(thai, "Provider connectivity", "การเชื่อมต่อผู้ให้บริการ"),
-            report.provider_connectivity.status,
-            report.provider_connectivity.detail
-        );
-        println!(
             "{}: {}",
             text(thai, "Health scope", "ขอบเขตการตรวจสอบ"),
-            if thai {
-                if args.connectivity {
-                    "ตรวจสอบในเครื่องและปลายทางรายการโมเดล"
-                } else {
-                    "ตรวจสอบในเครื่องเท่านั้น ยังไม่ได้ทดสอบการเชื่อมต่อผู้ให้บริการ"
-                }
-            } else {
-                report.health_scope
-            }
+            text(thai, report.health_scope, "ตรวจสอบในเครื่องเท่านั้น")
         );
         println!(
             "{}\n  {}",

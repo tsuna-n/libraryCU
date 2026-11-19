@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use walkdir::WalkDir;
 
-use super::loader::parse_document;
+use super::{document::KnowledgeDocument, loader::parse_document_for_source};
 
 const MANIFEST_FILE: &str = "package.toml";
 const CHECKSUM_FILE: &str = "SHA256SUMS";
@@ -308,6 +308,25 @@ pub fn remove_package(name: &str, data_dir: &Path) -> Result<PathBuf> {
 
 /// Verify the generated integrity manifest and return the number of documents.
 pub fn verify_package_integrity(package_root: &Path) -> Result<usize> {
+    let (_, documents) = read_verified_package(package_root)?;
+    validate_documents(&documents)?;
+    Ok(documents.len())
+}
+
+/// Load the documents from the same bytes that passed checksum verification.
+pub(super) fn load_verified_package(
+    package_root: &Path,
+    source: &str,
+) -> Result<(String, Vec<KnowledgeDocument>)> {
+    let (manifest, contents) = read_verified_package(package_root)?;
+    let mut documents = Vec::with_capacity(contents.len());
+    parse_documents(&contents, package_root, source, |document| {
+        documents.push(document);
+    })?;
+    Ok((manifest, documents))
+}
+
+fn read_verified_package(package_root: &Path) -> Result<(String, Vec<(String, String)>)> {
     crate::security::files::reject_symlinks(package_root)?;
     let installed_paths = validate_installed_tree(package_root)?;
     let checksum_path = package_root.join(CHECKSUM_FILE);
@@ -318,15 +337,15 @@ pub fn verify_package_integrity(package_root: &Path) -> Result<usize> {
                 checksum_path.display()
             )
         })?;
-    let documents = collect_documents(package_root)?;
+    let documents = read_documents(package_root)?;
     let manifest =
         crate::security::files::read_text(&package_root.join(MANIFEST_FILE), 256 * 1024)?;
     let expected = package_checksums(&manifest, &documents);
-    if expected.keys().cloned().collect::<BTreeSet<_>>() != installed_paths {
+    if !expected.keys().eq(&installed_paths) {
         bail!("package checksum manifest does not match installed package files");
     }
     verify_checksums(&content, &expected)?;
-    Ok(documents.len())
+    Ok((manifest, documents))
 }
 
 fn verify_checksums(content: &str, expected: &BTreeMap<String, String>) -> Result<()> {
@@ -355,9 +374,7 @@ fn verify_checksums(content: &str, expected: &BTreeMap<String, String>) -> Resul
         }
     }
 
-    let expected_paths: BTreeSet<_> = expected.keys().cloned().collect();
-    let declared_paths: BTreeSet<_> = declared.keys().cloned().collect();
-    if expected_paths != declared_paths {
+    if !expected.keys().eq(declared.keys()) {
         bail!("package checksum manifest does not match installed package files");
     }
     for (path, digest) in expected {
@@ -426,6 +443,12 @@ fn sha256_hex(bytes: &[u8]) -> String {
 
 /// Collect and validate every markdown document below the package root.
 fn collect_documents(package_root: &Path) -> Result<Vec<(String, String)>> {
+    let documents = read_documents(package_root)?;
+    validate_documents(&documents)?;
+    Ok(documents)
+}
+
+fn read_documents(package_root: &Path) -> Result<Vec<(String, String)>> {
     crate::security::files::reject_symlinks(package_root)?;
     let mut documents = Vec::new();
     for entry in WalkDir::new(package_root).follow_links(false) {
@@ -458,25 +481,40 @@ fn collect_documents(package_root: &Path) -> Result<Vec<(String, String)>> {
         documents.push((relative, content));
     }
     documents.sort();
-    validate_documents(&documents)?;
     Ok(documents)
 }
 
 fn validate_documents(documents: &[(String, String)]) -> Result<()> {
+    parse_documents(documents, Path::new(""), "unknown", |_| {})
+}
+
+fn parse_documents(
+    documents: &[(String, String)],
+    package_root: &Path,
+    source: &str,
+    mut accept: impl FnMut(KnowledgeDocument),
+) -> Result<()> {
     let mut ids = HashSet::new();
     let mut paths = HashSet::new();
     for (relative, content) in documents {
         if !paths.insert(relative.replace('\\', "/").to_lowercase()) {
             bail!("duplicate package document path {relative:?}");
         }
-        let document = parse_document(relative, content)
-            .with_context(|| format!("invalid knowledge document {relative}"))?;
+        let document = parse_document_for_source(
+            relative,
+            content,
+            source,
+            &package_root.join(relative).to_string_lossy(),
+            false,
+        )
+        .with_context(|| format!("invalid knowledge document {relative}"))?;
         if !ids.insert(document.metadata.id.to_ascii_lowercase()) {
             bail!(
                 "duplicate knowledge ID {:?} in package",
                 document.metadata.id
             );
         }
+        accept(document);
     }
     Ok(())
 }
@@ -684,6 +722,9 @@ mod tests {
         write_package(&source);
         let installed = install_package(&source, &data).expect("install should succeed");
         assert_eq!(verify_package_integrity(&installed.path).unwrap(), 1);
+        let (_, documents) = load_verified_package(&installed.path, "package:demo-pack").unwrap();
+        assert_eq!(documents[0].source_id, "package:demo-pack:demo-doc");
+        assert_eq!(Path::new(&documents[0].path), installed.path.join("doc.md"));
 
         fs::write(installed.path.join("unexpected.bin"), b"not declared").unwrap();
         assert!(verify_package_integrity(&installed.path).is_err());
@@ -722,8 +763,13 @@ mod tests {
             .unwrap();
         }
 
-        fs::write(installed.path.join("doc.md"), "tampered").unwrap();
+        fs::write(
+            installed.path.join("doc.md"),
+            "---\nid: demo-doc\n---\n# Demo\n\nTampered body.",
+        )
+        .unwrap();
         assert!(verify_package_integrity(&installed.path).is_err());
+        assert!(load_verified_package(&installed.path, "package:demo-pack").is_err());
         let listed = list_packages(&data);
         assert_eq!(listed[0].integrity, "corrupt");
         assert_eq!(listed[0].documents, 0);

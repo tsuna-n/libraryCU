@@ -45,10 +45,6 @@ pub struct ExplanationReport {
     pub files_inspected: usize,
     pub project_evidence: Vec<EvidenceExcerpt>,
     pub warnings: Vec<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub ai: Option<crate::ai::AiContribution>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub ai_error: Option<String>,
 }
 
 pub fn explain(
@@ -89,11 +85,6 @@ pub fn explain_with_scope(
             )?
         }
     };
-    let matches: Vec<_> = retrieved
-        .results
-        .into_iter()
-        .filter(crate::answer::is_adequate)
-        .collect();
     let RuleOutcome {
         mut evidence,
         mut cause,
@@ -118,19 +109,18 @@ pub fn explain_with_scope(
         "{} bounded project file excerpt(s) supplied direct content evidence; project detection read {} small manifest(s).",
         project_evidence.len(), scan.file_contents_read
     ));
-    let knowledge = matches
-        .into_iter()
+    let knowledge = knowledge::retrieval::supporting_results(&retrieved.results)
         .take(3)
         .map(|result| KnowledgeReference {
             details: result.document.troubleshooting_details(),
             source_id: crate::security::redact_sensitive(&result.document.source_id),
             title: crate::security::redact_sensitive(&result.document.title),
             path: crate::security::redact_sensitive(&result.document.path),
-            match_reason: result.match_reason,
-            ranking_reasons: result.ranking_reasons,
-            excerpt: result.excerpt,
+            match_reason: result.match_reason.clone(),
+            ranking_reasons: result.ranking_reasons.clone(),
+            excerpt: result.excerpt.clone(),
             score: result.score,
-            verification_status: result.document.verification_status,
+            verification_status: result.document.verification_status.clone(),
         })
         .collect::<Vec<_>>();
     if confidence == Confidence::Unknown && !knowledge.is_empty() {
@@ -169,8 +159,6 @@ pub fn explain_with_scope(
         files_inspected: scan.files_inspected,
         project_evidence,
         warnings,
-        ai: None,
-        ai_error: None,
     })
 }
 

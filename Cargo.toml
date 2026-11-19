@@ -1,8 +1,8 @@
 [package]
 name = "librarycube"
-version = "0.7.0"
+version = "0.7.1"
 edition = "2024"
-description = "A local-first developer knowledge engine with offline retrieval and optional AI"
+description = "A local-first developer knowledge engine with offline retrieval"
 license = "MIT"
 
 [lib]
@@ -16,24 +16,20 @@ path = "src/main.rs"
 [dependencies]
 clap = { version = "4.6.6", features = ["derive"] }
 
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1", features = ["io-util", "macros", "process", "rt", "time"] }
 
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = { package = "yaml_serde", version = "0.10.7" }
 toml = "0.8"
 
-reqwest = { version = "0.12", features = ["json"] }
+form_urlencoded = "1.2"
 
 anyhow = "1"
 
 walkdir = "2"
 
-rusqlite = { version = "0.32", features = ["bundled"] }
-
 colored = "3"
-
-dialoguer = "0.11"
 
 libc = "0.2"
 

@@ -9,7 +9,6 @@ pub struct Config {
     pub output: OutputConfig,
     pub scanner: ScannerConfig,
     pub memory: MemoryConfig,
-    pub ai: AiConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -29,40 +28,6 @@ pub struct ScannerConfig {
 #[serde(default)]
 pub struct MemoryConfig {
     pub mode: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(default)]
-pub struct AiConfig {
-    pub provider: String,
-    pub model: String,
-    pub base_url: String,
-}
-
-impl AiConfig {
-    pub fn effective_base_url(&self) -> &str {
-        if !self.base_url.trim().is_empty() {
-            return &self.base_url;
-        }
-        match self.provider.as_str() {
-            "openai" => "https://api.openai.com/v1",
-            "zai" | "glm" => "https://open.bigmodel.cn/api/paas/v4",
-            "ollama" => "http://localhost:11434/v1",
-            _ => "",
-        }
-    }
-
-    pub fn effective_model(&self) -> &str {
-        if !self.model.trim().is_empty() {
-            return &self.model;
-        }
-        match self.provider.as_str() {
-            "openai" => "gpt-4o-mini",
-            "zai" | "glm" => "glm-4-flash",
-            "ollama" => "llama3.2",
-            _ => "",
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -93,16 +58,6 @@ impl Default for MemoryConfig {
     fn default() -> Self {
         Self {
             mode: "session".to_owned(),
-        }
-    }
-}
-
-impl Default for AiConfig {
-    fn default() -> Self {
-        Self {
-            provider: "off".to_owned(),
-            model: String::new(),
-            base_url: String::new(),
         }
     }
 }
@@ -178,11 +133,8 @@ pub(crate) fn set_value_with_preview(
                         .with_context(|| format!("{key} must be true or false"))?;
                 }
                 "memory.mode" => config.memory.mode = value.to_owned(),
-                "ai.provider" => config.ai.provider = value.to_owned(),
-                "ai.model" => config.ai.model = value.to_owned(),
-                "ai.base_url" => config.ai.base_url = value.to_owned(),
                 _ => bail!(
-                    "unsupported setting {key:?}; supported settings: output.language, scanner.max_file_size_kb, scanner.ignore_hidden, memory.mode, ai.provider, ai.model, ai.base_url"
+                    "unsupported setting {key:?}; supported settings: output.language, scanner.max_file_size_kb, scanner.ignore_hidden, memory.mode"
                 ),
             }
             Ok(())
@@ -243,26 +195,6 @@ pub(crate) fn validate(config: &Config) -> Result<()> {
     if !matches!(config.memory.mode.as_str(), "session" | "persistent") {
         bail!("memory.mode must be session or persistent");
     }
-    match config.ai.provider.as_str() {
-        "off" => {}
-        "openai" | "zai" | "glm" | "ollama" => {}
-        "openrouter" => {
-            if config.ai.effective_model().trim().is_empty() {
-                bail!("ai.model must be set when ai.provider is openrouter");
-            }
-        }
-        "openai-compat" => {
-            if config.ai.effective_model().trim().is_empty() {
-                bail!("ai.model must be set when ai.provider is openai-compat");
-            }
-            if config.ai.effective_base_url().trim().is_empty() {
-                bail!("ai.base_url must be set when ai.provider is openai-compat");
-            }
-        }
-        other => bail!(
-            "ai.provider must be off, openai, zai (glm), ollama, openrouter, or openai-compat (found {other:?})"
-        ),
-    }
     Ok(())
 }
 
@@ -297,75 +229,6 @@ mod tests {
         let loaded = load_from(path.clone())?;
         assert_eq!(loaded.config.output.language, "th");
         assert!(loaded.config.scanner.ignore_hidden);
-        fs::remove_file(path)?;
-        Ok(())
-    }
-
-    #[test]
-    fn ai_defaults_to_the_deterministic_mode() -> Result<()> {
-        let loaded = load_from(temporary_path("ai-default"))?;
-        assert_eq!(loaded.config.ai.provider, "off");
-        assert!(loaded.config.ai.model.is_empty());
-        Ok(())
-    }
-
-    #[test]
-    fn openai_compat_requires_a_base_url_and_model() -> Result<()> {
-        let root = tempfile::tempdir()?;
-        let path = root.path().join("config.toml");
-        fs::write(
-            &path,
-            "[ai]\nprovider = \"openai-compat\"\nmodel = \"llama3\"\n",
-        )?;
-        assert!(load_from(path.clone()).is_err());
-        fs::write(
-            &path,
-            "[ai]\nprovider = \"openai-compat\"\nmodel = \"llama3\"\nbase_url = \"http://127.0.0.1:11434/v1\"\n",
-        )?;
-        let loaded = load_from(path.clone())?;
-        assert_eq!(loaded.config.ai.provider, "openai-compat");
-        fs::remove_file(path)?;
-        Ok(())
-    }
-
-    #[test]
-    fn named_providers_use_effective_defaults_and_allow_overrides() -> Result<()> {
-        let root = tempfile::tempdir()?;
-        let path = root.path().join("config.toml");
-        fs::write(&path, "[ai]\nprovider = \"openai\"\n")?;
-        let loaded = load_from(path.clone())?;
-        assert_eq!(loaded.config.ai.provider, "openai");
-        assert_eq!(
-            loaded.config.ai.effective_base_url(),
-            "https://api.openai.com/v1"
-        );
-        assert_eq!(loaded.config.ai.effective_model(), "gpt-4o-mini");
-
-        fs::write(&path, "[ai]\nprovider = \"zai\"\n")?;
-        let loaded = load_from(path.clone())?;
-        assert_eq!(
-            loaded.config.ai.effective_base_url(),
-            "https://open.bigmodel.cn/api/paas/v4"
-        );
-        assert_eq!(loaded.config.ai.effective_model(), "glm-4-flash");
-
-        fs::write(&path, "[ai]\nprovider = \"ollama\"\n")?;
-        let loaded = load_from(path.clone())?;
-        assert_eq!(
-            loaded.config.ai.effective_base_url(),
-            "http://localhost:11434/v1"
-        );
-        assert_eq!(loaded.config.ai.effective_model(), "llama3.2");
-
-        // Custom model override on named provider
-        fs::write(&path, "[ai]\nprovider = \"openai\"\nmodel = \"gpt-4o\"\n")?;
-        let loaded = load_from(path.clone())?;
-        assert_eq!(loaded.config.ai.effective_model(), "gpt-4o");
-        assert_eq!(
-            loaded.config.ai.effective_base_url(),
-            "https://api.openai.com/v1"
-        );
-
         fs::remove_file(path)?;
         Ok(())
     }

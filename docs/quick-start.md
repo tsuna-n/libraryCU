@@ -1,7 +1,7 @@
 # Five-minute quick start
 
 [Install lbc](installation.md), then open a terminal in a project directory.
-The following workflow uses no AI, API key, or network connection.
+The workflow runs offline.
 
 ## Set up once
 
@@ -9,18 +9,14 @@ The following workflow uses no AI, API key, or network connection.
 lbc setup
 ```
 
-Choose offline mode. Setup creates the current directory’s `.lbc/knowledge` and
-personal notes directories and shows the config location. It never asks for or
-saves API keys; it only checks their presence in the process environment and
-makes no network request. Existing config is preserved unless
-you explicitly choose changes. For unattended offline defaults on a fresh install:
+Setup creates the current directory’s `.lbc/knowledge` and personal notes
+directories and shows the config path. For unattended setup:
 
 ```bash
 lbc setup --yes
 ```
 
-An existing provider setting is retained; normal knowledge commands still make
-no provider request without `--ai`. Use `--provider off` to explicitly disable AI.
+Use `--project PATH` to initialize a specific project.
 
 ## Three commands: save, find, reuse
 
@@ -85,47 +81,16 @@ destination question is asked. Optional cause/check text uses `--cause` and
 
 Logs must be regular UTF-8 files of at most 2 MiB; fenced context is truncated to
 12 KiB. Shared secret recognition redacts known patterns, not every possible
-secret, so review the preview. Capture needs no AI, network, or new dependencies.
+secret, so review the preview.
 
 Use the actual qualified ID printed by capture or search with `lbc inspect ID`.
 `lbc ask "How do I resolve E0308?"` answers from adequate local evidence.
 [More examples](usage-examples.md) cover importing Markdown and editing notes.
 
-## Optional AI
+## Use knowledge in another tool
 
-Offline mode is the default for a fresh config. To opt in later:
-
-```bash
-lbc setup --provider openai
-```
-
-Setup configures a provider/model, not credentials. Load `OPENAI_API_KEY` into your
-process environment using your secret manager or a masked prompt; never put a
-real key in setup arguments, shell history, config, or committed files.
-For example, Bash can read a key without echoing or storing it in shell history:
-
-```bash
-read -r -s -p 'OpenAI API key: ' OPENAI_API_KEY
-export OPENAI_API_KEY
-printf '\n'
-lbc ask "How do I resolve E0308?" --ai
-unset OPENAI_API_KEY
-```
-
-Windows PowerShell (masked input, current process only):
-
-```powershell
-$credential = Get-Credential -UserName 'api' -Message 'Enter your API key as the password'
-$env:OPENAI_API_KEY = $credential.GetNetworkCredential().Password
-lbc ask "How do I resolve E0308?" --ai
-Remove-Item Env:OPENAI_API_KEY
-Remove-Variable credential
-```
-
-`--ai` sends bounded, redacted retrieved passages and project evidence to the
-selected provider. Pattern-based redaction cannot detect every secret: review
-sensitive content first. Ollama is optional local AI; no provider is needed for
-core workflows. See [provider options](cli-reference.md#optional-ai).
+Use `lbc search E0308 --json` in scripts. External coding agents can use the
+same JSON or connect to the [read-only MCP server](mcp.md).
 
 ## If something fails
 
@@ -134,5 +99,4 @@ core workflows. See [provider options](cli-reference.md#optional-ai).
 - Permission/storage error: use real, non-symlinked directories owned by your user.
 - Run `lbc doctor` for local checks or `lbc COMMAND --help` for flags.
 
-Normal `doctor` does not probe providers. Connectivity checks require the
-explicit `--connectivity` flag. [Detailed behavior and limits](cli-reference.md).
+[Detailed behavior and limits](cli-reference.md).

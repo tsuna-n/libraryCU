@@ -8,9 +8,9 @@ Run `lbc COMMAND --help` for the complete flag list.
 ## Developer tools and project memory
 
 `lbc mcp --project PATH [--project-only]` starts an optional read-only MCP stdio
-server. Its three tools search, inspect, and explain using existing local cores;
-they do not execute commands, enable AI, or modify source. The project directory
-is required and fixed for the session. See [MCP, Codex CLI, and OpenCode](mcp.md).
+server. Its three tools search, inspect, and explain using the same local
+retrieval and diagnostic code as the CLI. The project directory is required and
+fixed for the session. See [MCP, Codex CLI, and OpenCode](mcp.md).
 
 `search`, `ask`, and `explain` accept `--project-only` to exclude all shared
 knowledge stores. Default scope remains project plus user/package/built-in
@@ -26,11 +26,11 @@ examples](editor-integration.md) send selections and logs without shell evaluati
 
 ## Output and troubleshooting
 
-`--quiet` (`-q`) hides optional warnings and progress, keeping command results,
+`--quiet` (`-q`) hides optional warnings, keeping command results,
 errors, previews and confirmation prompts. `--no-color` disables generated color
 and terminal escape sequences; the presence of `NO_COLOR` does the same. These
-flags work before or after a subcommand. Progress appears only on a terminal;
-results go to stdout and warnings, errors and chat prompts go to stderr.
+flags work before or after a subcommand. Results go to stdout. Warnings, errors,
+and chat prompts go to stderr.
 
 `search --limit N` and `list --limit N` return at most N matches/entries, where N
 is a positive integer. Defaults are unchanged: search text shows at most 10
@@ -43,11 +43,11 @@ lbc --quiet list --limit 5 --json > entries.json
 lbc doctor --json > doctor.json
 ```
 
-JSON retains its existing field names and types. `--quiet` does not remove warning
-or error fields from JSON reports. Runtime errors exit 1, invalid CLI arguments
-exit 2, and help/version exit 0. A failing doctor still writes its JSON report
-before exiting 1. Failures before a report can be built leave stdout empty and
-explain the cause, fix and next command on stderr.
+JSON keeps warning and error fields even with `--quiet`. Runtime errors exit 1,
+invalid CLI arguments exit 2, and help/version exit 0. A failing doctor still
+writes its JSON report before exiting 1. Failures before a report can be built
+leave stdout empty and explain the cause, fix and next command on stderr.
+See the [upgrade notes](#upgrading-to-the-offline-cli) for removed JSON fields.
 
 Error guidance and doctor use `output.language = "en"` or `"th"`; `"auto"` uses
 `LC_ALL`, `LC_MESSAGES`, then `LANG` for these UI messages. For example,
@@ -55,30 +55,28 @@ Error guidance and doctor use `output.language = "en"` or `"th"`; `"auto"` uses
 `คำสั่งถัดไป`) while keeping command names and JSON keys stable. Invalid config
 falls back to English. TOML/YAML parse diagnostics omit source values to avoid
 printing credentials; YAML diagnostics retain the error location. Recognizable
-credentials and provider API-key values are masked in error messages.
+credentials are masked in error messages.
 
 `doctor` checks the configuration, readable knowledge store directories,
 document validity, effective Git ignore rules and tracked private `.lbc` paths
 without creating stores, changing notes, opening persistent
 history, or repairing files. Missing optional stores are normal on first use;
 follow `lbc setup` guidance when you want to create them. Invalid paths,
-permissions, symlinks and metadata receive repair instructions. Doctor checks AI
-settings and key presence locally; only `lbc doctor --connectivity` authorizes a
-network probe to the models endpoint. It never generates an AI answer. There is
-no automatic repair operation.
+permissions, symlinks and metadata receive repair instructions. Doctor JSON
+reports `healthy`, `health_scope`, and `checks`.
 
 ## Setup
 
-`lbc setup` guides local configuration and shows the selected paths.
-`lbc setup --yes` uses offline defaults on a fresh installation and preserves
-existing configuration. It creates the exact project directory’s
-`.lbc/knowledge` and the personal notes directory without contacting a provider.
+`lbc setup` shows the selected paths and asks for confirmation.
+`lbc setup --yes` skips confirmation, uses defaults for a fresh installation,
+and preserves existing settings. It creates the exact project directory’s
+`.lbc/knowledge` and the personal notes directory.
 It also creates `.lbc/.gitignore` with private defaults when that file is absent;
 existing ignore rules are preserved. See [Git safety](#git-safety).
 
-Optional flags: `--project PATH`, `--provider off|openai|zai|glm|ollama|openrouter|openai-compat`,
-`--model MODEL`, `--base-url URL`, and `--json` (requires `--yes`).
-Credentials come from environment variables, never setup arguments or config.
+Use `--project PATH` to select a directory. Use `--yes --json` for unattended
+setup with machine-readable output. Setup JSON reports `os`, `project`,
+`stack`, `config_path`, `project_knowledge`, and `personal_knowledge`.
 
 Setup displays the resolved knowledge and configuration paths. `LBC_CONFIG`,
 `XDG_CONFIG_HOME` and `XDG_DATA_HOME` keep their existing meanings. Without these
@@ -86,7 +84,7 @@ or `HOME`, a fresh Windows installation uses `.config/lbc` and `.local/share/lbc
 under `USERPROFILE`, so personal notes follow you between projects. Existing
 working-directory fallback stores are preserved in place; no files are moved.
 Configuration updates preserve unknown TOML keys, though comments/formatting may
-be rewritten. Setup never runs provider connectivity checks.
+be rewritten.
 
 ## Capture a solved problem
 
@@ -137,8 +135,7 @@ suggestions go to stderr.
 
 Log files must be regular UTF-8 files no larger than 2 MiB. Context is fenced and
 truncated to at most 12 KiB. Shared secret recognition removes known patterns but
-cannot guarantee every secret is removed; review the preview. Capture uses no
-AI, network, or new dependencies.
+cannot guarantee every secret is removed. Review the preview before saving.
 
 ## Add, find, inspect, and edit knowledge
 
@@ -414,30 +411,45 @@ letters, Unicode, ANSI colors, and CRLF logs are supported. Selected known rules
 cover TypeScript type/module errors, Node module resolution, and Go undefined
 identifiers. These rules supply general guidance, not a project-verified cause.
 
-## Experimental: propose and apply a small patch
+## Diagnostic guidance and saved proposals
+
+`fix` reads a diagnostic and reports local guidance without writing source.
+Its JSON retains the former offline shape with `status: "offline_guidance"`,
+`applied: false`, `verification_status: "unverified"`, and the `guidance`
+report. Patch, proposal, verification, and recovery fields remain null.
 
 ```bash
-lbc fix build.log --project ./my-project             # Offline guidance
-lbc fix build.log --project ./my-project --ai        # Preview a replacement
-lbc fix build.log --project ./my-project --ai --apply # Generate and apply
-lbc fix --stdin --project ./my-project --ai --json < build.log
-lbc fix build.log --project ./my-project --ai --apply --verify "cargo check --offline"
-lbc rollback fix-ABC123 --project ./my-project --json # Use the emitted recovery_id
+lbc fix build.log --project ./app
+lbc fix --stdin --project ./app --json < build.log
 ```
 
-`fix --ai` retrieves adequate local knowledge before requesting one exact
-`before`/`after` replacement near the first diagnostic's line. The provider cannot
-choose another target file. `--apply` requires `--ai`; each invocation generates
-a fresh proposal, so an apply invocation can differ from an earlier preview.
-Without `--verify`, proposed and applied patches remain `unverified`. Add
-`--verify "COMMAND"` with `--ai --apply` to run your chosen executable and arguments
-in the exact project directory. Arguments use shell-style quoting on every OS;
-quote Windows paths with spaces, preferably using forward slashes. No shell is
-launched implicitly, so pipes, redirection, and variable expansion are not shell
-operations. On Windows, invoke an executable such as `node.exe` directly; shell
-scripts require an explicitly selected interpreter. The provider cannot select
-the command. Only use verification commands you trust: they inherit your
-environment and can execute project code, access the network, or change files.
+Use `apply-proposal` for a reviewed, authenticated proposal saved by an earlier
+version. It revalidates the source, records recovery before writing, and can
+run an optional verification command. A successful application without a
+verification command is marked `unverified`.
+
+```bash
+lbc apply-proposal proposal-ID --project ./app --verify "cargo check --offline" --json
+lbc rollback fix-ID --project ./app --json
+```
+
+Use the saved proposal's ID and the `recovery_id` from the application.
+Records under `<project>/.lbc/proposals/` bind the ID, canonical project,
+diagnostic target and line, original SHA-256, and exact before/after replacement.
+Proposals expire after 30 days. Application refuses tampered records, moves to
+another project, changed source, unsafe paths, and unsafe permissions. All
+platforms enforce the owner and ACL policy. On Unix, directories use mode 0700
+and records and keys use mode 0600. Keep the directory and recovery key private.
+
+An unchanged proposal can be applied again after rollback within its validity
+window.
+
+`--verify "COMMAND"` runs the selected executable and arguments in the exact
+project directory. Arguments use shell-style quoting on every OS. Quote Windows
+paths that contain spaces, preferably using forward slashes. LBC launches the
+executable directly. Pipes, redirection, and variable expansion require an
+explicitly selected shell. The command inherits your environment and can execute
+project code, access the network, or change files.
 
 The deadline is 120 seconds; `--verify-timeout 30` changes it (1–3600 seconds).
 Standard input is closed. Each output stream retains at most 32 KiB, redacts
@@ -452,7 +464,7 @@ source snapshots. Version 2 records are authenticated with HMAC-SHA256 using a
 random project-local key at `<project>/.lbc/recovery.key`; altered records and
 keys with unsafe ownership, permissions, or ACL grants are refused. A failed, unavailable,
 or timed-out verifier triggers rollback and exits nonzero. `lbc rollback ID
---project PATH` also restores an applied patch in a later invocation without AI.
+--project PATH` also restores an applied patch in a later invocation.
 Both forms refuse to overwrite source that no longer matches the recorded applied
 content. Only the selected file is restored; side effects of the verification
 command are outside the rollback. LBC keeps at most 100 records and removes
@@ -462,8 +474,7 @@ Keep `.lbc/fixes/` and `.lbc/recovery.key` out of version control. Power-loss
 durability is not guaranteed.
 
 The exact `--project` directory is the boundary. Targets must be regular UTF-8
-files of at most 256 KiB; the seven-line excerpt is at most 8 KiB, and provider
-patch JSON is at most 8 KiB. Replacements must match uniquely, intersect the
+files of at most 256 KiB. Replacements must match uniquely, intersect the
 reported line, and keep the resulting file within 256 KiB. Symlinked paths,
 hidden/generated targets, recognized `.gitignore` matches, and targets containing
 recognizable secrets are refused. Source content is checked again before atomic
@@ -472,93 +483,33 @@ anchored to an opened parent-directory descriptor and rejects a replaced parent;
 other platforms retain portable component checks. Advisory locks still require
 cooperating writers.
 
-JSON reports contain `status` (`offline_guidance`, `proposed`, `applied`,
-`verified`, `rolled_back`, or `failed`), `applied`, `verification_status`,
-`guidance`, `patch`, `error`, `recovery_id`, `verification`, and `rollback_status`.
-Verification status is `unverified`, `passed`, `failed`, `timed_out`, or `error`;
-the optional verification object includes exit code, captured stdout/stderr,
-truncation, and execution error. `applied` becomes false after successful rollback.
-An AI/patch failure preserves offline guidance and exits nonzero; preflight
-input/configuration errors go to stderr. Without `--ai`, fix makes no provider
-connection and changes no project files.
+`apply-proposal --json` reports status, patch, proposal and recovery IDs,
+verification, and error. Verification states are `unverified`, `passed`,
+`failed`, `timed_out`, or `error`. When verification runs, its report includes
+the exit code, retained stdout and stderr, truncation status, and execution error.
+Refused applications exit nonzero.
 
-Save a reviewed preview for a separate offline application:
+## Upgrading to the offline CLI
 
-```bash
-lbc fix build.log --project ./app --ai --save-proposal --json
-lbc apply-proposal proposal-ID --project ./app --verify "cargo check" --json
-lbc rollback fix-ID --project ./app --json
-```
-
-Use the actual `proposal_id` returned by the first command. The preview changes
-no project source; the opt-in save writes a private authenticated record under
-`PROJECT/.lbc/proposals/`. Records bind ID, canonical project, diagnostic target
-and line, original SHA-256 and exact before/after replacement. Unix directories
-are mode 0700 and records/key are 0600; all platforms enforce the existing owner/
-ACL policy. Saving prunes to 100 records / 30 days; expired proposals cannot apply.
-Tampering, moving records to another project, changed source or unsafe paths/
-permissions are refused. This protects against edits without the private key;
-it does not defend against the account owner or an attacker possessing that key.
-
-`apply-proposal` never calls AI or loads AI configuration. It revalidates the
-source and boundaries, records recovery before writing, and shares the same
-explicit verification/automatic rollback workflow as `fix --ai --apply`.
-It requires no error log. An unchanged proposal can be applied again after a
-rollback within its validity window. Existing `fix --ai` remains a transient
-preview, and `fix --ai --apply` still generates a fresh proposal before applying;
-`--save-proposal` conflicts with `--apply`. Fix JSON adds nullable `proposal_id`;
-existing keys and statuses remain. A successful write without verification is
-still `unverified`. `apply-proposal --json` reports status, patch, proposal and
-recovery IDs, verification and error; refused applications exit nonzero.
-
-## Optional AI
-
-Answer generation contacts providers only when `--ai` is present.
-`doctor --connectivity` separately opts into a model-list probe:
-
-```bash
-lbc ask "How do I resolve the demo port conflict?" --ai
-lbc explain build.log --ai
-lbc chat --ai
-```
-
-Configure a named provider preset (`openai`, `zai`/`glm`, `ollama`), OpenRouter, or a custom OpenAI-compatible endpoint:
-
-```toml
-[ai]
-provider = "zai" # off | openai | zai | glm | ollama | openrouter | openai-compat
-# Optional for named presets (sensible defaults provided):
-# model = "glm-4-flash"
-# base_url = "https://open.bigmodel.cn/api/paas/v4"
-```
-
-### Supported AI Providers
-
-| Provider | Description | Default Endpoint | Default Model | Environment Variable |
-|---|---|---|---|---|
-| `openai` | OpenAI Platform | `https://api.openai.com/v1` | `gpt-4o-mini` | `OPENAI_API_KEY` |
-| `zai` / `glm` | Zhipu AI (BigModel) | `https://open.bigmodel.cn/api/paas/v4` | `glm-4-flash` | `ZAI_API_KEY` or `GLM_API_KEY` |
-| `ollama` | Local Ollama server | `http://localhost:11434/v1` | `llama3.2` | None required (`OLLAMA_API_KEY` optional) |
-| `openrouter` | OpenRouter gateway | `https://openrouter.ai/api/v1` | Set via `ai.model` | `OPENROUTER_API_KEY` |
-| `openai-compat` | Custom self-hosted server | Configured via `ai.base_url` | Configured via `ai.model` | `OPENAI_API_KEY`, `ZAI_API_KEY`, or `GLM_API_KEY` |
-
-Requests have a timeout and bounded input/output budgets. In terminal mode, `--ai` returns only the concrete edits to make (`Change`/`From`/`To`, or `แก้`/`จาก`/`เป็น`) and does not print the full offline explanation first. Selected note excerpts, source IDs, and bounded project evidence are redacted before sending. Notes are labeled as untrusted data in the prompt. If the provider fails, stderr and JSON expose the failure while the offline answer remains available. Check local configuration and credential presence with `lbc doctor`. Normal doctor
-makes no connection and reports provider connectivity as `untested` (or
-`unavailable` when AI is off or prerequisites are missing). A detected key does
-not establish its validity or provider availability.
-
-```bash
-lbc doctor --json
-lbc doctor --connectivity --connectivity-timeout 5 --json
-```
-
-`--connectivity` explicitly sends a bounded GET to the configured provider's
-`/models` endpoint, with its configured credential, a 1–45 second deadline and no
-redirects. No question, project context or generation request is sent. A valid
-model-list response reports `available`; it does not prove generation or the
-configured model works. Connection/HTTP/JSON/timeout errors report `error` and
-exit nonzero. JSON retains `healthy` and `checks`, adding `health_scope` and
-`provider_connectivity`; `healthy` without the opt-in describes local checks.
+- Remove `--ai` from `ask`, `explain`, `chat`, and `fix`. `fix` now offers
+  diagnostic guidance, and its previous generation, application, save, and
+  verification flags (`--apply`, `--save-proposal`, `--verify`, and
+  `--verify-timeout`) are removed from `fix`. `apply-proposal` still accepts
+  the two verification flags.
+- Remove `--provider`, `--model`, and `--base-url` from `setup` and
+  `--connectivity` and `--connectivity-timeout` from `doctor`. Update JSON
+  consumers that use `provider`, `environment_variables`, `credentials`, or
+  `connectivity` from setup, or `provider_connectivity` or the AI provider
+  check from doctor. Ordinary offline `ask` and `explain` JSON retains its
+  existing shape.
+- The `ai.provider`, `ai.model`, and `ai.base_url` config setters are removed.
+  `config show` omits the `ai` field. LBC ignores a legacy `[ai]` table and
+  preserves it when updating supported settings. Provider credential lookup
+  has been removed.
+- Existing Markdown and YAML metadata, stores, installed packages, backups,
+  and qualified IDs work in place. Keep an existing authenticated proposal's
+  project location and private recovery key if you still need to apply it.
+- Give external agents access through [CLI JSON or read-only MCP](mcp.md).
 
 ## English and Thai output
 
@@ -570,20 +521,28 @@ lbc ask "แก้ปัญหาพอร์ตของ demo service อย่
 lbc config set output.language auto
 ```
 
-Supported values are `en`, `th`, and `auto`. `auto` selects Thai when the current question contains Thai characters and otherwise falls back to English. Built-in notes include clean English and Thai sections, so their title and excerpt follow the selected language. Retrieval supports Unicode and matches Thai terms present in a note's title, body, tags, or keywords; unmarked user notes are not translated automatically in offline mode. Commands, paths, error codes, source IDs, and JSON keys remain unchanged.
+Supported values are `en`, `th`, and `auto`. `auto` selects Thai when the
+current question contains Thai characters and otherwise falls back to English.
+Built-in note titles and excerpts follow the selected language. Retrieval
+supports Unicode and matches Thai terms in titles, bodies, tags, or keywords.
+User note text appears as written. Commands, paths, error codes, source IDs,
+and JSON keys remain unchanged.
 
 ## Optional chat and history
 
-The default is honest session-only memory:
+The default memory mode is `session`.
 
 ```toml
 [memory]
 mode = "session"
 ```
 
-`lbc chat` keeps at most 12 messages and a bounded character budget inside that process. `/clear` clears it; `/exit` or EOF ends the session. Default chat writes no history file, and independent `lbc ask` invocations are stateless. Knowledge added with `lbc add` is separate and is not deleted when chat exits.
+`lbc chat` retrieves evidence independently for each question. The default mode
+stores no transcript. `/exit` or EOF ends the session. Knowledge saved with
+`lbc add` is stored separately.
 
-Persistent history is explicit opt-in:
+Persistent history keeps at most 12 messages within a bounded character budget.
+`/clear` clears that history. Set `memory.mode` to `persistent` to enable it.
 
 ```bash
 lbc config set memory.mode persistent
@@ -636,8 +595,8 @@ Checksums detect corruption, not publisher authenticity. Legacy packages without
 checksums are listed as `unverified`. When a Python error
 has no adequate specific match, `ask` may cite the generic traceback playbook
 with `answer_status: "general_guidance"`. It explicitly states that evidence for
-a specific fix is insufficient; `fix --ai` does not use that fallback as adequate
-evidence. English/Thai selection applies to the bilingual passages.
+a specific fix is insufficient. English/Thai selection applies to the bilingual
+passages.
 
 Other read-only commands:
 
@@ -662,9 +621,8 @@ The [2026-11-08 release audit](release-readiness-2026-11-08.md) records fresh
 GitHub/CircleCI findings, local fixes, validation and the remaining owner gates.
 No production release was published by this work.
 
-The current source version is `0.7.0`; its release candidate is documented in
-the [v0.7.0 release notes](release-0.7.0.md). Hosted/native signing gates and
-owner approval must pass before publishing production assets.
+The current source version is `0.7.1`. Publishing production assets requires
+hosted CI, native signing, and owner approval. [Changelog](../CHANGELOG.md).
 As rechecked on 2026-11-12, GitHub does expose an empty public `v0.5.0`
 Release despite its DRAFT title/body. This is a release-state inconsistency,
 not a production release; there are no verified production assets to install.
@@ -695,22 +653,26 @@ The tag workflow now requires Windows Authenticode and macOS Developer ID,
 hardened runtime, notarization and a stapled DMG before production packaging.
 These executable jobs have not run with production credentials. Candidates
 remain unsigned on Windows and ad-hoc signed on macOS; no production native
-trust or valid production `v0.7.0` release is claimed. See the
+trust or valid production `v0.7.1` release is claimed. See the
 [native signing and independent verification runbook](native-code-signing.md).
 The DMG is the offline-ticket delivery path; a raw tar cannot carry a stapled
 ticket. Certificate trust does not guarantee absence of SmartScreen prompts.
 
 ## Safety boundaries
 
-`search`, `inspect`, `ask`, `explain`, `scan`, and `doctor` do not change project sources, install packages, run suggested repairs, or execute arbitrary shell commands. Explicit add/edit/package/config/history-clear operations, backup/export/import operations, `fix --ai --save-proposal`, `fix --ai --apply`, `apply-proposal`, and `rollback` write their selected data targets. `fix --verify` additionally executes the user-selected verification command. Common keys, bearer values, provider tokens, authorization headers, passwords, database URLs, and known token formats are redacted from remote context and persistent history.
+`search`, `inspect`, `ask`, `explain`, `scan`, `fix`, and `doctor` report
+results without changing project sources or executing suggested commands.
+`apply-proposal` and `rollback` can write the selected source file.
+`apply-proposal --verify` executes the user-selected verification command.
 
-Redaction handles multiple credentials per line, quoted structured keys, URI user information, and Unicode prefixes. Private-key blocks are redacted before passage selection while preserving line numbers. It is pattern-based, not a guarantee that arbitrary secrets are detected: review sensitive notes before opting into remote AI. Config display masks recognizable credentials without changing the saved value.
+Redaction covers common credentials in errors, diagnostic context, and
+persistent history. It handles multiple credentials per line, quoted keys, URI
+user information, and Unicode prefixes. Private-key blocks are redacted before
+passage selection while preserving line numbers. Review sensitive text before
+sharing CLI or MCP output, since redaction recognizes specific patterns.
 
-Input limits: questions/search queries are at most 8 KiB; notes are at most 256 KiB **including serialized metadata**; error-log input is at most 2 MiB. AI user context is limited to 32,000 Unicode characters, with separate per-field limits and retrieved knowledge prioritized ahead of chat history. Each provider request has a 45-second timeout and a 2 MiB response limit.
-Streaming counts all wire bytes, including hidden reasoning and framing. It
-preserves UTF-8 split across HTTP chunks, stops at `[DONE]`, and redacts before
-callbacks/display. An incomplete logical line is held until its newline or
-completion so a credential split across content deltas cannot escape redaction.
+Questions and search queries are limited to 8 KiB, notes to 256 KiB including
+serialized metadata, and diagnostic input to 2 MiB.
 
 Note creation publishes a fully written temporary file without overwriting an existing target. Edits atomically replace a validated document; failed editor launches and cancellations clean up temporary files. Builtin overrides preserve retrieval metadata, and changed bodies reset verification to `unverified`. Editor arguments support quoting without launching a shell implicitly. Bounded text readers reject special files and symlinked path components (including parent directories); use real, non-symlinked storage paths.
 
@@ -758,7 +720,7 @@ states, and SHA-256 digests match the canonical manifest. See
 [CircleCI CI/CD setup](circleci.md) for the one-time token setup and release
 procedure.
 
-CLI tests use isolated XDG stores and a local mock HTTP provider; CI needs no API key or live service. Socket-restricted environments must allow loopback for provider tests; those tests fail rather than silently skip. The real timeout regression takes approximately 45 seconds.
+CLI tests use isolated XDG stores and local fixtures.
 
 To repeat the CLI walkthrough against the release binary, outside the source checkout (the fixtures set their own working directories):
 

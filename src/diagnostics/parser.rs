@@ -21,6 +21,7 @@ pub fn parse_diagnostics(input: &str) -> Vec<Diagnostic> {
         let text = lines[index].trim();
         if let Some(diagnostic) = parse_compiler_line(text)
             .or_else(|| parse_node_error(text, lines.get(index + 1).copied()))
+            .or_else(|| parse_git_conflict(text))
         {
             diagnostics.push(diagnostic);
             python_traceback = false;
@@ -74,6 +75,7 @@ pub fn parse_diagnostics(input: &str) -> Vec<Diagnostic> {
             && parse_python_location(lines[cursor].trim()).is_none()
             && parse_compiler_line(lines[cursor].trim()).is_none()
             && parse_node_error(lines[cursor].trim(), lines.get(cursor + 1).copied()).is_none()
+            && parse_git_conflict(lines[cursor].trim()).is_none()
         {
             if let Some(location) = parse_location(lines[cursor]) {
                 file = Some(location.0);
@@ -262,6 +264,23 @@ fn parse_python_exception(line: &str) -> Option<(String, String)> {
     ))
 }
 
+fn parse_git_conflict(line: &str) -> Option<Diagnostic> {
+    let (kind, path) = line
+        .strip_prefix("CONFLICT (")?
+        .split_once("): Merge conflict in ")?;
+    if !matches!(kind, "content" | "add/add") || path.is_empty() {
+        return None;
+    }
+    Some(Diagnostic {
+        source: Some("git".into()),
+        code: None,
+        message: "Merge conflict".into(),
+        file: None,
+        line: None,
+        column: None,
+    })
+}
+
 fn parse_error_header(line: &str) -> Option<(Option<String>, String)> {
     let line = line.trim_start();
     if let Some(rest) = line.strip_prefix("error[") {
@@ -362,6 +381,23 @@ mod tests {
             assert_eq!(parsed.source, None, "{log}");
             assert_eq!(parsed.file, None, "{log}");
         }
+    }
+
+    #[test]
+    fn git_conflicts_keep_distinct_diagnostics_and_strip_path_noise() {
+        let input = "error: could not compile\r\n\x1b[31mCONFLICT (content): Merge conflict in \"settings \\303\\251.toml\"\x1b[0m\r\nAutomatic merge failed; fix conflicts and then commit the result.";
+        let parsed = parse_diagnostics(input);
+        assert_eq!(parsed.len(), 2);
+        assert_eq!(parsed[0].source.as_deref(), Some("cargo"));
+        assert_eq!(parsed[1].source.as_deref(), Some("git"));
+        assert_eq!(parsed[1].message, "Merge conflict");
+        assert_eq!(parsed[1].file, None);
+        assert_eq!(
+            parse_primary("CONFLICT (database): concurrent update")
+                .unwrap()
+                .source,
+            None
+        );
     }
 
     #[test]

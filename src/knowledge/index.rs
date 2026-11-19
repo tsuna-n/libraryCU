@@ -137,7 +137,7 @@ impl KnowledgeIndex {
     }
 
     pub fn search_with_language(&self, query: &str, language: &str) -> Vec<SearchResult> {
-        self.search_with_context(query, language, None)
+        self.search_with_context(query, language, None, |_, results| results)
     }
 
     pub(super) fn search_with_project(
@@ -145,8 +145,9 @@ impl KnowledgeIndex {
         query: &str,
         language: &str,
         project: &crate::scanner::ProjectInfo,
+        select: impl FnOnce(&str, Vec<SearchResult>) -> Vec<SearchResult>,
     ) -> Vec<SearchResult> {
-        self.search_with_context(query, language, Some(project))
+        self.search_with_context(query, language, Some(project), select)
     }
 
     fn search_with_context(
@@ -154,12 +155,14 @@ impl KnowledgeIndex {
         query: &str,
         language: &str,
         project: Option<&crate::scanner::ProjectInfo>,
+        select: impl FnOnce(&str, Vec<SearchResult>) -> Vec<SearchResult>,
     ) -> Vec<SearchResult> {
         let normalized = query.trim().to_lowercase();
         if normalized.is_empty() {
             return Vec::new();
         }
         let terms = query_terms(&normalized);
+        let query_language = query_language(query);
 
         let mut scores = vec![0u32; self.documents.len()];
         let mut matched_terms = vec![vec![false; terms.len()]; self.documents.len()];
@@ -177,13 +180,16 @@ impl KnowledgeIndex {
             }
         };
 
-        for (position, document) in self.documents.iter().enumerate() {
-            if let Some(code) = &document.metadata.error_code
-                && contains_term(&normalized, &code.to_lowercase())
-            {
-                credit(position, CODE_WEIGHT, CODE_WEIGHT, "exact error code");
+        for (code, positions) in &self.by_error_code {
+            if contains_term(&normalized, code) {
+                for &position in positions {
+                    credit(position, CODE_WEIGHT, CODE_WEIGHT, "exact error code");
+                }
             }
-            if contains_identifier(&normalized, &document.source_id.to_lowercase())
+        }
+        for (position, document) in self.documents.iter().enumerate() {
+            let source_id = document.source_id.to_lowercase();
+            if contains_identifier(&normalized, &source_id)
                 || normalized == document.metadata.id.to_lowercase()
             {
                 credit(
@@ -193,7 +199,7 @@ impl KnowledgeIndex {
                     "exact identifier",
                 );
                 for (index, term) in terms.iter().enumerate() {
-                    if contains_term(&document.source_id.to_lowercase(), term) {
+                    if contains_term(&source_id, term) {
                         matched_terms[position][index] = true;
                     }
                 }
@@ -211,12 +217,14 @@ impl KnowledgeIndex {
                         "keyword match",
                     );
                 }
-                if contains_term(&self.bodies[position], term) {
+                let hits = term_matches(&self.bodies[position], term)
+                    .take(MAX_BODY_HITS as usize)
+                    .count() as u32;
+                if hits > 0 {
                     matched_terms[position][term_index] = true;
-                    let hits = term_hits(&self.bodies[position], term) as u32;
                     credit(
                         position,
-                        TERM_BODY_WEIGHT * hits.min(MAX_BODY_HITS),
+                        TERM_BODY_WEIGHT * hits,
                         TERM_BODY_WEIGHT,
                         "keyword match",
                     );
@@ -253,7 +261,6 @@ impl KnowledgeIndex {
                 if (phrase.contains(' ') || phrase.chars().any(is_thai))
                     && contains_term(&normalized, &phrase)
                 {
-                    query_phrases.push(phrase.clone());
                     phrase_lengths[position] = phrase_lengths[position].max(phrase.chars().count());
                     credit(position, METADATA_WEIGHT, METADATA_WEIGHT, "metadata match");
                     for (index, term) in terms.iter().enumerate() {
@@ -261,6 +268,7 @@ impl KnowledgeIndex {
                             matched_terms[position][index] = true;
                         }
                     }
+                    query_phrases.push(phrase);
                 }
             }
         }
@@ -295,7 +303,7 @@ impl KnowledgeIndex {
 
         // An explicit language is useful context for weak lexical matches.
         // Exact error codes still take priority, and unclassified user notes remain eligible.
-        if let Some(language) = query_language(query) {
+        if let Some(language) = query_language {
             for (position, document) in self.documents.iter().enumerate() {
                 if best_signal[position] < IDENTIFIER_WEIGHT
                     && let Some(other) = document
@@ -317,10 +325,18 @@ impl KnowledgeIndex {
             .filter(|(position, _)| scores[*position] > 0)
             .map(|(position, document)| {
                 let mut localized = document.clone();
-                localized.title = localized_title(document, language);
-                localized.body = localized_body(&document.body, language).to_owned();
+                if language == "th"
+                    && let Some(title) = &document.metadata.title_th
+                    && !title.trim().is_empty()
+                {
+                    localized.title.clone_from(title);
+                }
+                let body = localized_body(&document.body, language);
+                if body.len() != document.body.len() {
+                    localized.body.clear();
+                    localized.body.push_str(body);
+                }
                 SearchResult {
-                    document: localized.clone(),
                     source_id: localized.source_id.clone(),
                     title: localized.title.clone(),
                     kind: localized.kind.clone(),
@@ -333,7 +349,7 @@ impl KnowledgeIndex {
                         if source_weight(&document.source) > 0 {
                             context.push(format!("source preference: {}", document.source));
                         }
-                        if let Some(language) = query_language(query)
+                        if let Some(language) = query_language
                             && document
                                 .metadata
                                 .language
@@ -345,7 +361,8 @@ impl KnowledgeIndex {
                         }
                         context
                     },
-                    excerpt: make_excerpt(&localized.body, &terms),
+                    document: localized,
+                    excerpt: String::new(),
                     matched_terms: matched_terms[position].iter().filter(|hit| **hit).count(),
                     query_terms: terms.len(),
                 }
@@ -430,7 +447,18 @@ impl KnowledgeIndex {
                 .then_with(|| right.score.cmp(&left.score))
                 .then_with(|| left.document.title.cmp(&right.document.title))
                 .then_with(|| left.source_id.cmp(&right.source_id))
+                .then_with(|| left.source_locator.cmp(&right.source_locator))
         });
+        let mut results = select(&normalized, results);
+        for result in &mut results {
+            let code = result
+                .document
+                .metadata
+                .error_code
+                .as_deref()
+                .filter(|_| result.match_reason == "exact error code");
+            result.excerpt = make_excerpt(&result.document.body, &terms, code);
+        }
         results
     }
 }
@@ -469,19 +497,6 @@ pub(super) fn contains_identifier(query: &str, id: &str) -> bool {
                 .next()
                 .is_some_and(identifier)
     })
-}
-
-fn localized_title(document: &KnowledgeDocument, language: &str) -> String {
-    if language == "th" {
-        document
-            .metadata
-            .title_th
-            .clone()
-            .filter(|title| !title.trim().is_empty())
-            .unwrap_or_else(|| document.title.clone())
-    } else {
-        document.title.clone()
-    }
 }
 
 fn localized_body<'a>(body: &'a str, language: &str) -> &'a str {
@@ -538,7 +553,7 @@ fn query_terms(normalized: &str) -> Vec<String> {
 }
 
 pub(crate) fn contains_term(text: &str, term: &str) -> bool {
-    term_hits(text, term) > 0
+    term_matches(text, term).next().is_some()
 }
 
 fn language_family(value: &str) -> Option<&'static str> {
@@ -568,21 +583,16 @@ fn query_language(query: &str) -> Option<&'static str> {
     language
 }
 
-fn term_hits(text: &str, term: &str) -> usize {
-    if term.is_empty() {
-        return 0;
-    }
-    if term.chars().any(is_thai) {
-        return text.matches(term).count();
-    }
-    text.match_indices(term)
-        .filter(|(start, _)| {
-            let end = start + term.len();
-            let word = |c: char| c.is_alphanumeric() || c == '_';
-            !text[..*start].chars().next_back().is_some_and(word)
-                && !text[end..].chars().next().is_some_and(word)
-        })
-        .count()
+fn term_matches<'a>(text: &'a str, term: &'a str) -> impl Iterator<Item = (usize, &'a str)> {
+    let thai = term.chars().any(is_thai);
+    text.match_indices(term).filter(move |(start, _)| {
+        !term.is_empty()
+            && (thai || {
+                let word = |c: char| c.is_alphanumeric() || c == '_';
+                !text[..*start].chars().next_back().is_some_and(word)
+                    && !text[start + term.len()..].chars().next().is_some_and(word)
+            })
+    })
 }
 
 fn trim_thai_question_words(mut term: &str) -> &str {
@@ -683,11 +693,12 @@ fn looks_like_python_failure(normalized: &str) -> bool {
         })
 }
 
-fn make_excerpt(body: &str, terms: &[String]) -> String {
+fn make_excerpt(body: &str, terms: &[String], code: Option<&str>) -> String {
     // Detect multiline secrets before paragraph selection can discard their markers.
     let redacted = crate::security::redact_sensitive(body);
     let body = redacted.as_str();
-    let paragraphs: Vec<_> = body
+    let code = code.map(str::to_lowercase);
+    let selected = body
         .split("\n\n")
         .map(str::trim)
         .filter(|part| {
@@ -696,48 +707,47 @@ fn make_excerpt(body: &str, terms: &[String]) -> String {
                 && !part.starts_with("```")
                 && !part.starts_with("<!--")
         })
-        .collect();
-    let selected_index = paragraphs
-        .iter()
         .enumerate()
         .max_by_key(|(index, paragraph)| {
             let lowered = paragraph.to_lowercase();
             (
+                code.as_ref()
+                    .is_some_and(|code| contains_term(&lowered, code)),
                 terms
                     .iter()
-                    .map(|term| lowered.matches(term.as_str()).count())
-                    .sum::<usize>(),
+                    .filter(|term| contains_term(&lowered, term))
+                    .count(),
                 Reverse(*index),
             )
         })
-        .map(|(index, _)| index)
-        .unwrap_or(0);
-    let selected = paragraphs
-        .get(selected_index)
-        .copied()
+        .map(|(_, paragraph)| paragraph)
         .unwrap_or_else(|| body.trim());
-    let clean = selected
-        .lines()
-        .map(str::trim)
-        .filter(|line| !line.is_empty())
-        .collect::<Vec<_>>()
-        .join("\n");
-    truncate_chars(&clean, 700)
-}
-
-fn truncate_chars(input: &str, limit: usize) -> String {
-    if input.chars().count() <= limit {
-        return input.to_owned();
-    }
-    let mut value: String = input.chars().take(limit).collect();
-    value.push('…');
-    value
+    let end = selected
+        .char_indices()
+        .nth(700)
+        .map_or(selected.len(), |(end, _)| end);
+    selected[..end].to_owned()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::knowledge::KnowledgeMetadata;
+
+    #[test]
+    fn excerpts_prefer_exact_codes_and_preserve_source_whitespace() {
+        let body = "Restart the service. Restart the service.\n\nERR_LOCK_TIMEOUT: retry after the lock clears.\n  Check the current lock owner.";
+        let excerpt = make_excerpt(
+            body,
+            &["restart".into(), "service".into()],
+            Some("err_lock_timeout"),
+        );
+        assert_eq!(
+            excerpt,
+            "ERR_LOCK_TIMEOUT: retry after the lock clears.\n  Check the current lock owner."
+        );
+        assert!(body.contains(&excerpt));
+    }
 
     #[test]
     fn comparable_evidence_prefers_project_user_package_then_builtin() {

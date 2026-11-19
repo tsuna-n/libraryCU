@@ -6,10 +6,7 @@ use crate::{config, output};
 pub fn run(command: ConfigCommand) -> Result<()> {
     match command {
         ConfigCommand::Show { json } => {
-            let mut loaded = config::load()?;
-            loaded.config.ai.base_url =
-                crate::security::redact_sensitive(&loaded.config.ai.base_url);
-            loaded.config.ai.model = crate::security::redact_sensitive(&loaded.config.ai.model);
+            let loaded = config::load()?;
             if json {
                 println!("{}", serde_json::to_string_pretty(&loaded.config)?);
             } else {

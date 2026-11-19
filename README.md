@@ -2,7 +2,7 @@
 
 libraryCube (`lbc`) is a **local-first developer knowledge engine**.
 Save solutions as Markdown, find them when an error returns, and reuse what
-worked. Your notes stay on your machine. Core commands work offline; AI is optional.
+worked. The engine runs offline and uses deterministic retrieval over local knowledge.
 
 **Save. Find. Reuse.**
 
@@ -11,11 +11,9 @@ worked. Your notes stay on your machine. Core commands work offline; AI is optio
 Prebuilt binaries need **no Rust**. Platforms: Windows x86-64, Linux x86-64
 (glibc), and universal macOS (Apple Silicon and Intel).
 
-**Current source version: 0.7.0.** The `v0.7.0` release is being prepared;
-verified binary assets are not published yet. The existing public `v0.5.0`
-Release still has **zero assets**, as checked on 2026-11-12. Use the source
-installation below until verified binaries are available.
-See [v0.7.0 release notes](docs/release-0.7.0.md).
+**Current source version is 0.7.1.** Use the source installation below until
+verified binary assets are available. The public `v0.5.0` release had zero assets
+when checked on 2026-11-12. [Changelog](CHANGELOG.md).
 
 Once available, download your platform archive from
 [GitHub Releases](https://github.com/tsuna-n/libraryCU/releases).
@@ -28,19 +26,19 @@ A checksum downloaded beside an untrusted archive is not independent authenticat
 Linux:
 
 ```bash
-bash install.sh --archive ~/Downloads/lbc-0.7.0-x86_64-unknown-linux-gnu.tar.gz --sha256 TRUSTED_SHA256
+bash install.sh --archive ~/Downloads/lbc-0.7.1-x86_64-unknown-linux-gnu.tar.gz --sha256 TRUSTED_SHA256
 ```
 
 macOS:
 
 ```bash
-bash install.sh --archive ~/Downloads/lbc-0.7.0-universal-apple-darwin.tar.gz --sha256 TRUSTED_SHA256
+bash install.sh --archive ~/Downloads/lbc-0.7.1-universal-apple-darwin.tar.gz --sha256 TRUSTED_SHA256
 ```
 
 Windows PowerShell:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Archive "$HOME\Downloads\lbc-0.7.0-x86_64-pc-windows-msvc.zip" -Sha256 TRUSTED_SHA256
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Archive "$HOME\Downloads\lbc-0.7.1-x86_64-pc-windows-msvc.zip" -Sha256 TRUSTED_SHA256
 ```
 
 Unix installs to `~/.local/bin`; ensure it is on `PATH`. Windows installs to
@@ -64,10 +62,9 @@ Run this from the project directory:
 lbc setup
 ```
 
-Choose offline mode for no API key or network dependency. For scripts,
-`lbc setup --yes` creates fresh offline defaults and preserves existing config.
-Setup shows your project knowledge, personal notes, and config paths. It never
-contacts AI providers. [Setup and optional AI](docs/quick-start.md#optional-ai).
+Setup initializes your project and personal knowledge directories and shows
+their paths and the config path. Use `lbc setup --yes` in scripts to skip
+confirmation. [Setup details](docs/quick-start.md#set-up-once).
 
 ## Five-minute quick start
 
@@ -105,17 +102,18 @@ upward for a project root.
 
 The everyday commands are `learn`, `add`, `search`, `ask`, `inspect`, `edit`,
 and `explain`. Try `lbc --help` or `lbc COMMAND --help`.
-Optional `--ai` enhances retrieved evidence and sends bounded, redacted context
-to your configured provider. Review sensitive notes before enabling it.
-`fix`, `apply-proposal`, and `rollback` are experimental source-changing tools.
+`fix` offers local diagnostic guidance. `apply-proposal` and `rollback` remain
+available for compatible saved proposals and recovery records.
 
-For coding agents, `lbc mcp --project /absolute/path/to/project --project-only`
-exposes three read-only tools over stdio. See the [Codex CLI and OpenCode
-setup](docs/mcp.md). Optional [VS Code tasks and Neovim Lua](docs/editor-integration.md)
-send selections or error logs through the CLI. `search`, `ask`, and `explain`
-also accept `--project-only`; [project memory](docs/project-memory.md) explains
-scope and context ranking. Historical knowledge remains guidance to check
-against the current problem.
+Codex, Claude Code, OpenCode, and other coding agents can consume CLI
+`--json` output or use
+`lbc mcp --project /absolute/path/to/project --project-only` for three read-only
+tools over stdio. See the [Codex CLI and OpenCode setup](docs/mcp.md).
+Optional [VS Code tasks and Neovim Lua](docs/editor-integration.md) send
+selections or error logs through the CLI. `search`, `ask`, and `explain` also
+accept `--project-only`. See [project memory](docs/project-memory.md) for scope
+and context ranking. Historical knowledge remains guidance to check against the
+current problem.
 
 Back up project knowledge with `lbc backup create ./knowledge-backup.json` and
 restore with `lbc backup restore ./knowledge-backup.json`; use `--user` for
@@ -132,20 +130,31 @@ IDs, custom YAML metadata, and exact previous revisions. Install the optional
 `lbc knowledge install --bundled python-fastapi-basics`; use
 `lbc knowledge list` to check installed packages and integrity.
 
+## Upgrading to the offline CLI
+
+Existing Markdown knowledge, project and user stores, installed packages, and
+qualified source IDs work in place. Remove `--ai` and provider options from
+scripts. See the [upgrade notes](docs/cli-reference.md#upgrading-to-the-offline-cli)
+for config, JSON, and saved proposal compatibility.
+
 ## Learn more
 
 - [Quick start](docs/quick-start.md): capture, search, and explain offline
 - [Installation](docs/installation.md): binaries, verification, PATH, uninstall, and source builds
-- [CLI reference](docs/cli-reference.md): commands, Markdown, AI, storage, safety, and development
+- [CLI reference](docs/cli-reference.md): commands, Markdown, storage, safety, and development
 - [Complete usage examples](docs/usage-examples.md): detailed command walkthroughs
 - [Product direction](docs/product-direction.md) and [roadmap](ROADMAP.md)
 - [Changelog](CHANGELOG.md) and [security policy](SECURITY.md)
 
 ## Release status and integrity
 
-The `v0.7.0` candidate requires hosted CI, source identity checks, native signing
-and owner approval before production publication. See the
-[release notes](docs/release-0.7.0.md).
+Publishing `v0.7.1` requires hosted CI, source identity checks, native signing,
+and owner approval. [Release procedure](docs/circleci.md).
+
+Use `lbc-main-reviewed-signed-ci` as the GitHub ruleset name for `main`.
+Version tags use separate rulesets for creation and immutability.
+[Repository controls guide](docs/repository-controls/README.md).
+
 The empty public `v0.5.0` Release is not a verified production artifact set.
 [Release evidence](docs/release-readiness-2026-11-08.md),
 [full 25-file verification](docs/circleci.md#reproducible-independent-verification),
@@ -157,3 +166,5 @@ See [development checks](docs/cli-reference.md#development). No release is
 published by building or testing this checkout.
 The [onboarding validation report](docs/onboarding-validation.md) records local
 test results and the remaining native-platform limits.
+The [offline retrieval optimization report](docs/retrieval-offline-optimization.md)
+records the before-and-after accuracy, timing, and memory measurements.

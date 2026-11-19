@@ -1,5 +1,6 @@
 use std::{
-    collections::{HashMap, HashSet},
+    borrow::Cow,
+    collections::{HashMap, HashSet, hash_map::Entry},
     fs,
     path::{Path, PathBuf},
 };
@@ -180,19 +181,29 @@ fn load_all_documents_with_roots(
         let mut entries = directories;
         entries.sort_by_key(|entry| entry.file_name());
         for entry in entries {
-            if packages::package_has_integrity_manifest(&entry.path())
-                && let Err(error) = packages::verify_package_integrity(&entry.path())
-            {
-                invalid.push(InvalidDocument {
-                    path: entry.path().display().to_string(),
-                    error: format!("package integrity verification failed: {error}"),
-                });
-                continue;
-            }
-            let manifest_path = entry.path().join("package.toml");
-            let manifest = crate::security::files::read_text(&manifest_path, MAX_DOCUMENT_BYTES)
-                .with_context(|| format!("failed to read {}", manifest_path.display()))
-                .and_then(|content| packages::parse_manifest(&content));
+            let path = entry.path();
+            let name = entry.file_name();
+            let source = format!("package:{}", name.to_string_lossy());
+            let manifest_path = path.join("package.toml");
+            let (manifest, verified) = if packages::package_has_integrity_manifest(&path) {
+                match packages::load_verified_package(&path, &source) {
+                    Ok((manifest, documents)) => (Ok(manifest), Some(documents)),
+                    Err(error) => {
+                        invalid.push(InvalidDocument {
+                            path: path.display().to_string(),
+                            error: format!("package integrity verification failed: {error}"),
+                        });
+                        continue;
+                    }
+                }
+            } else {
+                (
+                    crate::security::files::read_text(&manifest_path, MAX_DOCUMENT_BYTES)
+                        .with_context(|| format!("failed to read {}", manifest_path.display())),
+                    None,
+                )
+            };
+            let manifest = manifest.and_then(|content| packages::parse_manifest(&content));
             let manifest = match manifest {
                 Ok(manifest) => manifest,
                 Err(error) => {
@@ -203,22 +214,18 @@ fn load_all_documents_with_roots(
                     continue;
                 }
             };
-            if entry.file_name() != std::ffi::OsStr::new(&manifest.name) {
+            if name != std::ffi::OsStr::new(&manifest.name) {
                 invalid.push(InvalidDocument {
                     path: manifest_path.display().to_string(),
                     error: "package manifest name does not match its directory name".to_owned(),
                 });
                 continue;
             }
-            let source = format!("package:{}", manifest.name);
-            collect_source(
-                &entry.path(),
-                &source,
-                &entry.path(),
-                false,
-                &mut documents,
-                &mut invalid,
-            );
+            if let Some(verified) = verified {
+                documents.extend(verified);
+            } else {
+                collect_source(&path, &source, &path, false, &mut documents, &mut invalid);
+            }
         }
     }
     collect_project_sources(project_root, &mut documents, &mut invalid);
@@ -259,26 +266,28 @@ fn finish_documents(
 /// Keep one effective copy when the same note is both embedded in the binary
 /// and visible from a source checkout (or copied unchanged into another store).
 fn mark_repeated_content(documents: &mut [KnowledgeDocument]) {
-    let mut seen: HashMap<(KnowledgeMetadata, String), usize> = HashMap::new();
-    for position in 0..documents.len() {
-        let key = (
-            documents[position].metadata.clone(),
-            documents[position].body.clone(),
-        );
-        if let Some(previous) = seen.get(&key).copied() {
-            let previous_priority = source_priority(&documents[previous].source);
-            let current_priority = source_priority(&documents[position].source);
-            if current_priority > previous_priority {
-                documents[previous].effective = false;
-                documents[previous].overridden_by = Some(documents[position].source_id.clone());
-                seen.insert(key, position);
-            } else {
-                documents[position].effective = false;
-                documents[position].overridden_by = Some(documents[previous].source_id.clone());
+    let mut seen: HashMap<(&KnowledgeMetadata, &str), usize> = HashMap::new();
+    let mut overrides = Vec::new();
+    for (position, document) in documents.iter().enumerate() {
+        match seen.entry((&document.metadata, &document.body)) {
+            Entry::Vacant(entry) => {
+                entry.insert(position);
             }
-        } else {
-            seen.insert(key, position);
+            Entry::Occupied(mut entry) => {
+                let previous = *entry.get();
+                if source_priority(&document.source) > source_priority(&documents[previous].source)
+                {
+                    overrides.push((previous, position));
+                    entry.insert(position);
+                } else {
+                    overrides.push((position, previous));
+                }
+            }
         }
+    }
+    for (duplicate, preferred) in overrides {
+        documents[duplicate].effective = false;
+        documents[duplicate].overridden_by = Some(documents[preferred].source_id.clone());
     }
 }
 
@@ -546,7 +555,11 @@ pub fn parse_document_for_source(
     if content.contains('\0') {
         anyhow::bail!("knowledge document must not contain NUL characters");
     }
-    let content = content.replace('\r', "");
+    let content = if content.contains('\r') {
+        Cow::Owned(content.replace('\r', ""))
+    } else {
+        Cow::Borrowed(content)
+    };
     let Some(after_opening) = content.strip_prefix("---\n") else {
         anyhow::bail!("missing YAML frontmatter");
     };

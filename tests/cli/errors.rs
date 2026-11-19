@@ -5,7 +5,6 @@ fn invalid_config_errors_hide_source_values_and_offer_recovery() {
     for content in [
         "[ai]\nmodel = \"unlabelled-private-value\n",
         "[scanner]\nmax_file_size_kb = \"unlabelled-private-value\"\n",
-        "[ai]\nprovider = \"unlabelled-private-value\"\n",
     ] {
         let home = tempfile::tempdir().unwrap();
         let config = home.path().join("config.toml");
@@ -56,10 +55,12 @@ fn missing_files_offer_localized_actionable_errors_on_stderr() {
 #[test]
 fn parser_errors_never_echo_invalid_values_and_keep_usage_status() {
     for args in [
-        vec!["setup", "--provider", "unlabelled-private-value"],
         vec![
-            "doctor",
-            "--connectivity-timeout",
+            "apply-proposal",
+            "proposal-fixture",
+            "--verify",
+            "check",
+            "--verify-timeout",
             "unlabelled-private-value",
         ],
         vec!["--unlabelled-private-value"],
@@ -82,10 +83,7 @@ fn parser_errors_identify_required_fields_and_invalid_options_safely() {
             vec!["list", "--limit", "unlabelled-private-value"],
             "--limit",
         ),
-        (
-            vec!["setup", "--provider", "unlabelled-private-value"],
-            "openai",
-        ),
+        (vec!["search", "--limit", "0", "query"], "--limit"),
     ] {
         let home = tempfile::tempdir().unwrap();
         let output = isolated_lbc(home.path()).args(args).output().unwrap();

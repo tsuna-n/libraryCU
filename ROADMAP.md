@@ -1,16 +1,16 @@
 # libraryCube roadmap — Save, Find, Reuse
 
 libraryCube (`lbc`) is a local-first developer knowledge engine. Prioritize the
-loop `find previous knowledge → solve → learn → reuse next time`. AI is optional;
-enterprise capabilities are Future / Post-1.0, contingent on actual demand.
+loop `find previous knowledge → solve → learn → reuse next time`. The engine runs
+offline. Enterprise capabilities are Future / Post-1.0, contingent on actual demand.
 
 [Product direction, feature classification, architecture, and migration plan](docs/product-direction.md)
 define scope. [AGENT.md](AGENT.md) defines contributor constraints.
 The [archived enterprise roadmap](docs/archive/enterprise-roadmap.md) preserves
 previous ideas and historical checklists without making them current requirements.
 
-Milestones below are product targets, not claims of released versions. Cargo
-remains 0.5.0. Historical release/security receipts remain in the dedicated
+Milestones below are product targets. Historical release and security receipts
+remain in the dedicated
 [acceptance ledger](docs/v0.5-completion-checklist.md) and
 [release runbook](docs/release-0.5.0.md); a passing repository test does not prove
 production signing, administrator controls, native trust, or publication.
@@ -33,11 +33,11 @@ Existing capabilities to retain and continuously test:
 - Safe non-overwriting capture and atomic edits, locking, boundary validation.
 - Offline search/ask/explain, adequate evidence, locators, truthful verification.
 - Explicit overrides, duplicate-ID rejection, external Markdown reload.
-- Clear no-match behavior, bounded project context, optional AI fallback.
+- Clear no-match behavior and bounded project context.
 - Existing Linux/macOS/Windows validation and proportional distribution safety.
 
 Acceptance: save → search → inspect → edit → retrieve uses current content with
-no AI credentials or network; invalid documents are reported without hiding valid
+local files alone. Invalid documents are reported without hiding valid
 knowledge. Source collisions remain distinct and no migration loses notes.
 Release readiness is evaluated separately through existing distribution runbooks.
 
@@ -57,11 +57,10 @@ Remaining milestone work:
 
 - [ ] Observe actual developer sessions and improve the under-one-minute path.
 - [ ] Improve metadata hints based on ambiguous real captures without overguessing.
-- [ ] Offer optional AI capture assistance only after the deterministic flow is excellent.
 
 Acceptance: capture a solved incident and retrieve its problem, previous solution,
 and historical check on the next command, entirely offline. Do not require a
-Markdown template, provider setup, or schema tutorial.
+Markdown template or schema tutorial.
 
 ## v0.7 — Retrieval V2
 
@@ -74,7 +73,6 @@ and exposed ranking reasons using the existing weighted lexical implementation.
 - [ ] Reduce unrelated supplemental citations and document abstention decisions.
 - [ ] Track Top-1, Top-3, precision, irrelevant citation rate, no-match correctness,
   project-specific retrieval, and latency with fixed labels and distinct denominators.
-- [ ] Optional embedded semantic retrieval only after deterministic quality gates.
 
 Acceptance: exact codes and IDs beat weaker overlap, comparably relevant project
 knowledge gets preference, unrelated queries abstain, and evidence identity and
@@ -112,7 +110,7 @@ recoverable; health hints do not silently rewrite or discard developer knowledge
 - [ ] Fast CLI measured on realistic libraries, with median and P95 latency.
 - [ ] Supported Linux/macOS/Windows behavior verified on native platforms.
 - [ ] Clear installation, capture, source, maintenance, and offline documentation.
-- [ ] Safe optional AI integration grounded in selected evidence.
+- [ ] Stable CLI JSON and read-only stdio MCP for external tools.
 - [ ] Proportional security and distribution checks required by the chosen release path.
 
 Ready when a developer can capture, find, inspect, edit, understand, and reuse
@@ -129,10 +127,9 @@ Preserved ideas, contingent on demonstrated demand; do not expand them now:
 - Managed server/SaaS, multi-tenant administration, organization deployment/pilots.
 - Organization analytics and productivity dashboards.
 - GUI/TUI extensions, editor integrations, marketplace, executable plugin SDK.
-- Advanced semantic recommendations and automatic capture suggestions.
+- Automatic capture suggestions.
 - Autonomous coding/multi-agent tooling and distributed vector services.
 
-Existing fix/proposal/apply/verification/rollback stays experimental with its safety
-checks and command compatibility. Existing chat/history stays optional supporting
-knowledge Q&A. Neither drives milestones. More providers, model routing, and
-enterprise abstractions wait behind useful local capture and retrieval.
+`fix` provides local diagnostic guidance. `apply-proposal` and `rollback`
+preserve their checks for existing saved proposals and recovery records.
+Chat and history support local knowledge Q&A.

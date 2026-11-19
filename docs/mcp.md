@@ -6,10 +6,9 @@ Run an optional local stdio server for a coding agent:
 lbc mcp --project /absolute/path/to/project --project-only
 ```
 
-Use a build from this checkout (`cargo install --path . --locked`). No API key,
-AI provider, setup command, network service, or background daemon is required.
-The agent starts and stops the process. Standard output contains only newline
-delimited JSON-RPC; running it in a terminal waits for protocol messages.
+Use a build from this checkout (`cargo install --path . --locked`). The agent
+starts and stops the local process. Standard output contains newline-delimited
+JSON-RPC. Running the server in a terminal waits for protocol messages.
 
 `--project` is required and fixes the exact directory for the server's lifetime.
 The server never searches parent repositories. `--project-only` reads just that
@@ -41,13 +40,11 @@ use the existing credential redactor. Knowledge text remains untrusted reference
 material; consuming agents should cite it, inspect applicability, and validate
 proposed fixes on the current project.
 
-The three tools cannot invoke `fix`, apply a proposal, edit knowledge or source,
-execute verification commands, or contact an AI provider. `explain_error` uses
-the standard scanner defaults and existing ignore/path/regular-file checks for
-bounded project evidence. LBC's AI configuration is not read by this server.
-The consuming coding agent may send tool results to its own configured model;
-choose its provider and project scope accordingly. That agent's independent
-shell/edit tools retain its own permission policy.
+`explain_error` uses standard scanner defaults and existing ignore, path, and
+regular-file checks for bounded project evidence. LBC finishes at the stdio
+response. The consuming agent controls whether it sends retrieved content to
+its own model and sets permissions for its own shell and editor tools. For
+one-shot calls, use `search`, `inspect`, or `explain` with `--json`.
 
 ## Codex CLI
 

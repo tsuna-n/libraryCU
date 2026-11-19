@@ -1,5 +1,6 @@
 use super::*;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::thread;
 
 const SOURCE: &str = "fn main() { let value: i32 = \"3\"; }\n";
 const LOG: &str = "error[E0308]: mismatched types\n --> main.rs:1:28\n";
@@ -42,13 +43,11 @@ fn verifier_command() -> String {
 #[test]
 fn verify_success_and_explicit_rollback_work_across_processes() {
     let home = fixture();
-    let server = mock(home.path(), r#"{"before":"\"3\"","after":"3"}"#, "en", None);
+    let id = saved_proposal(home.path());
     let output = isolated_lbc(home.path())
         .args([
-            "fix",
-            "error.log",
-            "--ai",
-            "--apply",
+            "apply-proposal",
+            &id,
             "--json",
             "--verify",
             &verifier_command(),
@@ -56,7 +55,6 @@ fn verify_success_and_explicit_rollback_work_across_processes() {
         .env("LBC_VERIFY_FIXTURE", "pass")
         .output()
         .unwrap();
-    server.join().unwrap();
     assert!(
         output.status.success(),
         "{}",
@@ -105,7 +103,7 @@ fn verify_success_and_explicit_rollback_work_across_processes() {
 fn verification_failures_restore_source_but_preserve_later_edits() {
     for mode in ["fail", "timeout", "missing", "edit", "noisy"] {
         let home = fixture();
-        let server = mock(home.path(), r#"{"before":"\"3\"","after":"3"}"#, "en", None);
+        let id = saved_proposal(home.path());
         let command = if mode == "missing" {
             "lbc-nonexistent-verifier-492718".into()
         } else {
@@ -113,10 +111,8 @@ fn verification_failures_restore_source_but_preserve_later_edits() {
         };
         let output = isolated_lbc(home.path())
             .args([
-                "fix",
-                "error.log",
-                "--ai",
-                "--apply",
+                "apply-proposal",
+                &id,
                 "--json",
                 "--verify",
                 &command,
@@ -126,7 +122,6 @@ fn verification_failures_restore_source_but_preserve_later_edits() {
             .env("LBC_VERIFY_FIXTURE", mode)
             .output()
             .unwrap();
-        server.join().unwrap();
         let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
         assert_eq!(output.status.success(), mode == "noisy", "{mode}: {report}");
         assert!(!String::from_utf8_lossy(&output.stdout).contains("private-verifier-marker"));
@@ -159,82 +154,6 @@ fn verification_failures_restore_source_but_preserve_later_edits() {
     }
 }
 
-#[test]
-fn invalid_verification_never_contacts_the_provider_or_writes() {
-    let home = fixture();
-    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-    listener.set_nonblocking(true).unwrap();
-    ai_config(home.path(), listener.local_addr().unwrap(), "en");
-    for args in [
-        vec!["fix", "error.log", "--verify", "cargo check"],
-        vec!["fix", "error.log", "--ai", "--apply", "--verify", "'"],
-        vec!["fix", "error.log", "--ai", "--apply", "--verify", ""],
-        vec![
-            "fix",
-            "error.log",
-            "--ai",
-            "--apply",
-            "--verify",
-            "cargo check",
-            "--verify-timeout",
-            "0",
-        ],
-    ] {
-        assert!(
-            !isolated_lbc(home.path())
-                .args(args)
-                .output()
-                .unwrap()
-                .status
-                .success()
-        );
-    }
-    assert_eq!(
-        listener.accept().unwrap_err().kind(),
-        std::io::ErrorKind::WouldBlock
-    );
-    assert_eq!(
-        std::fs::read_to_string(home.path().join("main.rs")).unwrap(),
-        SOURCE
-    );
-    assert!(!home.path().join(".lbc/fixes").exists());
-}
-
-#[test]
-fn verified_text_in_english_and_thai_does_not_claim_checks_were_skipped() {
-    for language in ["en", "th"] {
-        let home = fixture();
-        let server = mock(
-            home.path(),
-            r#"{"before":"\"3\"","after":"3"}"#,
-            language,
-            None,
-        );
-        let output = isolated_lbc(home.path())
-            .args([
-                "fix",
-                "error.log",
-                "--ai",
-                "--apply",
-                "--verify",
-                &verifier_command(),
-            ])
-            .env("LBC_VERIFY_FIXTURE", "pass")
-            .output()
-            .unwrap();
-        server.join().unwrap();
-        assert!(output.status.success());
-        let text = String::from_utf8_lossy(&output.stdout);
-        assert!(text.contains(if language == "th" {
-            "ผลการตรวจสอบ: passed"
-        } else {
-            "Verification: passed"
-        }));
-        assert!(text.contains("Recovery ID: fix-"));
-        assert!(!text.contains("no verification commands") && !text.contains("ยังไม่ได้รันการตรวจสอบ"));
-    }
-}
-
 fn fixture() -> tempfile::TempDir {
     let home = tempfile::tempdir().unwrap();
     std::fs::create_dir_all(home.path().join("config/lbc")).unwrap();
@@ -247,59 +166,18 @@ fn fixture() -> tempfile::TempDir {
 }
 
 fn saved_proposal(home: &Path) -> String {
-    let server = mock(home, r#"{"before":"\"3\"","after":"3"}"#, "en", None);
-    let output = isolated_lbc(home)
-        .args(["fix", "error.log", "--ai", "--save-proposal", "--json"])
-        .output()
+    let diagnostic = librarycube::diagnostics::parse_primary(LOG).unwrap();
+    let target = librarycube::fixer::Target::read(home, &diagnostic).unwrap();
+    let patch = target
+        .validate_response(r#"{"before":"\"3\"","after":"3"}"#)
         .unwrap();
-    server.join().unwrap();
-    assert!(
-        output.status.success(),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert_eq!(report["status"], "proposed");
-    assert_eq!(
-        std::fs::read_to_string(home.join("main.rs")).unwrap(),
-        SOURCE
-    );
-    report["proposal_id"].as_str().unwrap().into()
+    librarycube::fixer::proposal::save(&target, &patch).unwrap()
 }
 
 #[test]
-fn saved_proposal_terminal_distinguishes_private_record_from_project_source() {
-    let home = fixture();
-    let server = mock(home.path(), r#"{"before":"\"3\"","after":"3"}"#, "en", None);
-    let output = isolated_lbc(home.path())
-        .args(["fix", "error.log", "--ai", "--save-proposal"])
-        .output()
-        .unwrap();
-    server.join().unwrap();
-    assert!(output.status.success());
-    let text = String::from_utf8(output.stdout).unwrap();
-    assert!(text.contains("Proposal ID: proposal-"));
-    assert!(text.contains("Proposal saved; no project source changed"));
-    assert!(!text.contains("no files changed"));
-    assert_eq!(
-        std::fs::read_to_string(home.path().join("main.rs")).unwrap(),
-        SOURCE
-    );
-    assert_eq!(
-        std::fs::read_dir(home.path().join(".lbc/proposals"))
-            .unwrap()
-            .count(),
-        1
-    );
-}
-
-#[test]
-fn saved_proposal_applies_exact_preview_without_provider_and_preserves_later_edits() {
+fn saved_proposal_applies_exact_preview_and_preserves_later_edits() {
     let home = fixture();
     let id = saved_proposal(home.path());
-    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-    listener.set_nonblocking(true).unwrap();
-    ai_config(home.path(), listener.local_addr().unwrap(), "en");
     let output = isolated_lbc(home.path())
         .args(["apply-proposal", &id, "--json"])
         .output()
@@ -313,10 +191,6 @@ fn saved_proposal_applies_exact_preview_without_provider_and_preserves_later_edi
     assert_eq!(report["status"], "applied");
     assert_eq!(report["patch"]["after"], "3");
     assert_eq!(report["verification_status"], "unverified");
-    assert_eq!(
-        listener.accept().unwrap_err().kind(),
-        std::io::ErrorKind::WouldBlock
-    );
     let replay = isolated_lbc(home.path())
         .args(["apply-proposal", &id, "--json"])
         .output()
@@ -343,7 +217,7 @@ fn saved_proposal_applies_exact_preview_without_provider_and_preserves_later_edi
 }
 
 #[test]
-fn saved_proposal_reuses_verification_and_recovery_even_with_invalid_ai_config() {
+fn saved_proposal_works_even_with_invalid_configuration() {
     for mode in ["pass", "fail", "timeout", "edit"] {
         let home = fixture();
         let id = saved_proposal(home.path());
@@ -383,79 +257,9 @@ fn saved_proposal_reuses_verification_and_recovery_even_with_invalid_ai_config()
     }
 }
 
-fn ai_config(home: &Path, address: std::net::SocketAddr, language: &str) {
-    std::fs::write(home.join("config/lbc/config.toml"), format!(
-        "[ai]\nprovider = \"openai-compat\"\nmodel = \"fixture\"\nbase_url = \"http://{address}/v1\"\n[output]\nlanguage = \"{language}\"\n"
-    )).unwrap();
-}
-
-fn mock(
-    home: &Path,
-    content: &str,
-    language: &str,
-    edit: Option<(PathBuf, String)>,
-) -> thread::JoinHandle<serde_json::Value> {
-    let listener =
-        TcpListener::bind("127.0.0.1:0").expect("mock provider needs loopback permission");
-    listener.set_nonblocking(true).unwrap();
-    ai_config(home, listener.local_addr().unwrap(), language);
-    let body = serde_json::json!({"model":"fixture", "choices":[{"message":{"content":content}}]})
-        .to_string();
-    thread::spawn(move || {
-        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
-        let mut stream = loop {
-            match listener.accept() {
-                Ok((stream, _)) => break stream,
-                Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
-                    assert!(std::time::Instant::now() < deadline, "no provider request");
-                    thread::sleep(std::time::Duration::from_millis(10));
-                }
-                Err(error) => panic!("{error}"),
-            }
-        };
-        stream.set_nonblocking(false).unwrap();
-        stream
-            .set_read_timeout(Some(std::time::Duration::from_secs(5)))
-            .unwrap();
-        let mut bytes = Vec::new();
-        let request = loop {
-            let mut buffer = [0; 4096];
-            let count = stream.read(&mut buffer).unwrap();
-            assert!(count > 0 && bytes.len() < 256 * 1024);
-            bytes.extend_from_slice(&buffer[..count]);
-            if let Some(end) = bytes.windows(4).position(|part| part == b"\r\n\r\n") {
-                let length: usize = String::from_utf8_lossy(&bytes[..end])
-                    .lines()
-                    .find_map(|line| {
-                        line.to_ascii_lowercase()
-                            .strip_prefix("content-length:")?
-                            .trim()
-                            .parse()
-                            .ok()
-                    })
-                    .unwrap();
-                if bytes.len() >= end + 4 + length {
-                    break serde_json::from_slice::<serde_json::Value>(
-                        &bytes[end + 4..end + 4 + length],
-                    )
-                    .unwrap();
-                }
-            }
-        };
-        if let Some((path, content)) = edit {
-            std::fs::write(path, content).unwrap();
-        }
-        write!(stream, "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).unwrap();
-        request
-    })
-}
-
 #[test]
-fn fix_offline_and_invalid_apply_make_zero_provider_connections() {
+fn fix_shows_guidance_without_modifying_source() {
     let home = fixture();
-    let listener = TcpListener::bind("127.0.0.1:0").expect("loopback required");
-    listener.set_nonblocking(true).unwrap();
-    ai_config(home.path(), listener.local_addr().unwrap(), "auto");
     let output = isolated_lbc(home.path())
         .args(["fix", "error.log", "--json"])
         .output()
@@ -476,11 +280,7 @@ fn fix_offline_and_invalid_apply_make_zero_provider_connections() {
         .output()
         .unwrap();
     assert!(!output.status.success());
-    assert!(String::from_utf8_lossy(&output.stderr).contains("--ai"));
-    assert_eq!(
-        listener.accept().unwrap_err().kind(),
-        std::io::ErrorKind::WouldBlock
-    );
+    assert_eq!(output.status.code(), Some(2));
     assert_eq!(
         std::fs::read_to_string(home.path().join("main.rs")).unwrap(),
         SOURCE
@@ -497,7 +297,7 @@ fn fix_help_and_input_failures_are_explicit() {
         .unwrap();
     assert!(output.status.success());
     let help = String::from_utf8_lossy(&output.stdout);
-    for flag in ["--ai", "--apply", "--json", "--project", "--stdin"] {
+    for flag in ["--json", "--project", "--stdin"] {
         assert!(help.contains(flag));
     }
     for args in [
@@ -540,195 +340,6 @@ fn fix_stdin_auto_language_uses_the_complete_current_input() {
 }
 
 #[test]
-fn fix_ai_preview_and_apply_keep_json_and_localized_text_honest() {
-    for (apply, json, language) in [
-        (false, true, "en"),
-        (true, true, "en"),
-        (false, false, "en"),
-        (true, false, "th"),
-    ] {
-        let home = fixture();
-        std::fs::write(
-            home.path().join("unrelated.txt"),
-            "API_KEY=private-unrelated-marker",
-        )
-        .unwrap();
-        std::fs::write(
-            home.path().join("note.md"),
-            "Use exact E0308 mismatched types guidance. API_KEY=private-note-marker\n",
-        )
-        .unwrap();
-        let added = isolated_lbc(home.path())
-            .args([
-                "add",
-                "--id",
-                "fixture",
-                "--title",
-                "E0308 mismatched types",
-                "--file",
-                "note.md",
-            ])
-            .output()
-            .unwrap();
-        assert!(added.status.success());
-        let server = mock(
-            home.path(),
-            r#"{"before":"\"3\"","after":"3"}"#,
-            language,
-            None,
-        );
-        let mut command = isolated_lbc(home.path());
-        command.args(["fix", "error.log", "--ai"]);
-        if apply {
-            command.arg("--apply");
-        }
-        if json {
-            command.arg("--json");
-        }
-        let output = command.output().unwrap();
-        assert!(
-            output.status.success(),
-            "{}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-        let request = server.join().unwrap();
-        let user = request["messages"][1]["content"].as_str().unwrap();
-        assert!(user.contains("builtin:rust-e0308"));
-        assert!(user.contains("user:fixture"));
-        assert!(user.contains("TARGET"));
-        assert!(!user.contains("private-unrelated-marker"));
-        assert!(!user.contains("private-note-marker"));
-        assert!(user.chars().count() <= librarycube::ai::prompt::MAX_PROMPT_CHARS);
-        assert!(
-            request["messages"][0]["content"]
-                .as_str()
-                .unwrap()
-                .contains("untrusted")
-        );
-        if json {
-            let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-            assert_eq!(report["status"], if apply { "applied" } else { "proposed" });
-            assert_eq!(report["applied"], apply);
-            assert_eq!(report["verification_status"], "unverified");
-            assert_eq!(report["patch"]["path"], "main.rs");
-        } else {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            assert!(stdout.contains(if language == "th" {
-                "ยังไม่ได้รันการตรวจสอบ"
-            } else {
-                "Proposal only"
-            }));
-        }
-        assert_eq!(
-            std::fs::read_to_string(home.path().join("main.rs")).unwrap(),
-            if apply {
-                SOURCE.replace("\"3\"", "3")
-            } else {
-                SOURCE.to_owned()
-            }
-        );
-        assert!(!home.path().join("data/lbc/history").exists());
-    }
-}
-
-#[test]
-fn fix_provider_or_validation_failure_retains_offline_json_and_source() {
-    for content in [
-        "not JSON",
-        r#"{"before":"missing","after":"new"}"#,
-        r#"{"before":"\"3\"","after":"3","path":"../outside.rs"}"#,
-        r#"{"before":"\"3\"","after":"API_KEY=do-not-persist-this"}"#,
-        "",
-    ] {
-        let home = fixture();
-        let server = mock(home.path(), content, "en", None);
-        let output = isolated_lbc(home.path())
-            .args(["fix", "error.log", "--ai", "--apply", "--json"])
-            .output()
-            .unwrap();
-        server.join().unwrap();
-        assert!(!output.status.success());
-        let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-        assert_eq!(report["status"], "failed");
-        assert_eq!(report["applied"], false);
-        assert!(
-            !report["guidance"]["offline_answer"]
-                .as_str()
-                .unwrap()
-                .is_empty()
-        );
-        assert!(report["error"].is_string());
-        assert!(!String::from_utf8_lossy(&output.stdout).contains("do-not-persist-this"));
-        assert!(!String::from_utf8_lossy(&output.stderr).contains("do-not-persist-this"));
-        assert_eq!(
-            std::fs::read_to_string(home.path().join("main.rs")).unwrap(),
-            SOURCE
-        );
-    }
-}
-
-#[test]
-fn fix_detects_source_changed_while_provider_was_running() {
-    let home = fixture();
-    let server = mock(
-        home.path(),
-        r#"{"before":"\"3\"","after":"3"}"#,
-        "en",
-        Some((home.path().join("main.rs"), "concurrent user edit\n".into())),
-    );
-    let output = isolated_lbc(home.path())
-        .args(["fix", "error.log", "--ai", "--apply", "--json"])
-        .output()
-        .unwrap();
-    server.join().unwrap();
-    assert!(!output.status.success());
-    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert!(report["error"].as_str().unwrap().contains("source changed"));
-    assert_eq!(
-        std::fs::read_to_string(home.path().join("main.rs")).unwrap(),
-        "concurrent user edit\n"
-    );
-}
-
-#[test]
-fn unsafe_or_ungrounded_fix_never_connects_to_provider() {
-    let home = fixture();
-    let listener = TcpListener::bind("127.0.0.1:0").expect("loopback required");
-    listener.set_nonblocking(true).unwrap();
-    ai_config(home.path(), listener.local_addr().unwrap(), "en");
-    for (log, source) in [
-        (
-            "error[E0308]: mismatched types\n --> ../outside.rs:1:1",
-            SOURCE,
-        ),
-        (LOG, "API_KEY=never-send-source-secret\n"),
-        (
-            "error: completelynovel frobnicator\n --> main.rs:1:1",
-            SOURCE,
-        ),
-    ] {
-        std::fs::write(home.path().join("error.log"), log).unwrap();
-        std::fs::write(home.path().join("main.rs"), source).unwrap();
-        let output = isolated_lbc(home.path())
-            .args(["fix", "error.log", "--ai", "--apply", "--json"])
-            .output()
-            .unwrap();
-        assert!(!output.status.success());
-        let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-        assert_eq!(report["applied"], false);
-        assert!(!String::from_utf8_lossy(&output.stdout).contains("never-send-source-secret"));
-        assert_eq!(
-            std::fs::read_to_string(home.path().join("main.rs")).unwrap(),
-            source
-        );
-    }
-    assert_eq!(
-        listener.accept().unwrap_err().kind(),
-        std::io::ErrorKind::WouldBlock
-    );
-}
-
-#[test]
 fn python_package_install_search_explain_and_fix_work_together() {
     let home = fixture();
     let package = Path::new(env!("CARGO_MANIFEST_DIR")).join("packages/python-fastapi-basics");
@@ -760,26 +371,25 @@ fn python_package_install_search_explain_and_fix_work_together() {
             .any(|item| item["path"] == "main.py")
     );
     assert!(!report["knowledge"].as_array().unwrap().is_empty());
-    let server = mock(
-        home.path(),
-        r#"{"before":"missing_name","after":"\"hello\""}"#,
-        "en",
-        None,
-    );
     let output = isolated_lbc(home.path())
-        .args(["fix", "error.log", "--ai", "--json"])
+        .args(["fix", "error.log", "--json"])
         .output()
         .unwrap();
-    let request = server.join().unwrap();
     assert!(
         output.status.success(),
         "{}",
         String::from_utf8_lossy(&output.stderr)
     );
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     assert!(
-        request
-            .to_string()
-            .contains("package:python-fastapi-basics:")
+        report["guidance"]["passages"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|passage| passage["source_id"]
+                .as_str()
+                .unwrap()
+                .starts_with("package:python-fastapi-basics:"))
     );
     assert_eq!(
         std::fs::read_to_string(home.path().join("main.py")).unwrap(),
@@ -822,57 +432,4 @@ fn python_package_install_search_explain_and_fix_work_together() {
         .unwrap();
     assert!(output.status.success());
     assert!(String::from_utf8_lossy(&output.stdout).contains("package:python-fastapi-basics:"));
-}
-
-#[test]
-fn fix_uses_explicit_project_boundary_and_does_not_execute_generated_code() {
-    let parent = fixture();
-    let child = parent.path().join("child");
-    std::fs::create_dir(&child).unwrap();
-    std::fs::write(child.join("main.rs"), SOURCE).unwrap();
-    // Outside this explicitly selected child, despite a project marker above it.
-    std::fs::write(
-        child.join("error.log"),
-        "error[E0308]: mismatched types\n --> ../main.rs:1:1\n",
-    )
-    .unwrap();
-    let output = isolated_lbc(parent.path())
-        .args([
-            "fix",
-            "child/error.log",
-            "--project",
-            "child",
-            "--ai",
-            "--apply",
-            "--json",
-        ])
-        .output()
-        .unwrap();
-    assert!(!output.status.success());
-    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert_eq!(report["applied"], false);
-    assert_eq!(
-        std::fs::read_to_string(parent.path().join("main.rs")).unwrap(),
-        SOURCE
-    );
-
-    let replacement = "{ std::fs::write(\"executed-marker\", \"bad\").unwrap(); 3 }";
-    let content = serde_json::json!({"before":"\"3\"", "after":replacement}).to_string();
-    let server = mock(parent.path(), &content, "en", None);
-    let output = isolated_lbc(parent.path())
-        .args(["fix", "error.log", "--ai", "--apply", "--json"])
-        .output()
-        .unwrap();
-    server.join().unwrap();
-    assert!(
-        output.status.success(),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-    assert!(
-        std::fs::read_to_string(parent.path().join("main.rs"))
-            .unwrap()
-            .contains("executed-marker")
-    );
-    assert!(!parent.path().join("executed-marker").exists());
 }

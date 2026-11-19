@@ -10,8 +10,8 @@ classification, current architecture, and incremental migration/refactor plan.
 ledgers remain historical evidence, not blockers for knowledge capture work.
 
 Apply principles in this order: knowledge-first, local-first, deterministic-first,
-developer-owned, offline-capable, simple CLI UX, evidence-based retrieval,
-AI-optional, safe by default, enterprise only when real demand exists.
+developer-owned, offline-only, simple CLI UX, evidence-based retrieval,
+safe by default, enterprise only when real demand exists.
 
 Keep the source model project → user → installed package → builtin when relevance
 is comparable. Preserve qualified IDs and explicit override semantics. Do not
@@ -19,8 +19,9 @@ introduce organization/team/cloud sources during the refocus.
 
 The primary CLI is add, learn, search, ask, inspect, edit, explain. List, index,
 doctor, config, knowledge packages, and scanner support it. Chat/history is optional
-knowledge Q&A. Fix/apply-proposal/rollback is experimental; preserve compatibility
-and its recovery/security checks. Do not silently rename or remove commands.
+knowledge Q&A. Fix provides local diagnostic guidance. Apply-proposal and
+rollback retain their compatibility, security checks, and recovery behavior for
+existing records. Document any changes to commands.
 
 For knowledge changes, verify actual save/retrieve/project/exact-code/no-match/
 edit/external-Markdown/learn/explain workflows offline. Run `cargo fmt --check`,
@@ -83,60 +84,19 @@ Development effort should prioritize these areas.
 
 ---
 
-## 3. AI Is Optional
+## 3. Offline Engine
 
-All essential libraryCube functionality must work without:
-
-```text
-API keys
-LLMs
-cloud services
-Ollama
-vector databases
-remote servers
-```
-
-AI may improve results.
-
-AI must not be required to access the user's own knowledge.
-
-Correct architecture:
-
-```text
-local retrieval
-    ↓
-evidence
-    ↓
-optional AI
-```
-
-Incorrect architecture:
-
-```text
-user query
-    ↓
-AI provider
-    ↓
-answer
-```
+Keep libraryCube offline. External agents can use CLI JSON and read-only MCP
+over stdio. Model inference, credentials, and network calls belong to the
+external agent.
 
 ---
 
-## 4. Retrieval Before Generation
+## 4. Ground Answers in Local Evidence
 
-Always prefer existing knowledge over generated content.
-
-Before asking an AI model for an answer:
-
-1. search local knowledge
-2. rank evidence
-3. determine whether evidence is adequate
-4. expose relevant sources
-5. only then optionally use AI
-
-Never fabricate a local source.
-
-Never imply generated knowledge already existed in the local library.
+Search local knowledge, rank relevant evidence, and expose the sources used.
+If evidence is insufficient, report that and offer investigation steps. Preserve
+the distinction between retrieved guidance and a check run on the current problem.
 
 ---
 
@@ -293,7 +253,7 @@ Aider
 Cline
 ```
 
-Code generation and automated patching may exist as optional tooling.
+External coding agents can retrieve evidence through CLI JSON or read-only MCP.
 
 The differentiator of libraryCube must remain:
 
@@ -305,7 +265,7 @@ persistent local developer knowledge
 
 ## 12. Code Modification Is Experimental
 
-Functions that modify project source code, including AI-generated patches, must remain secondary to knowledge functionality.
+Saved proposal application and recovery remain secondary to knowledge functionality.
 
 They must:
 
@@ -381,7 +341,7 @@ citation quality
 abstention
 ```
 
-before provider expansion or enterprise features.
+before enterprise features.
 
 ---
 
@@ -539,9 +499,8 @@ The conceptual architecture should remain close to:
                  ↓
               Explain
                  │
-          ┌──────┴──────┐
-          ↓             ↓
-       Offline      Optional AI
+                 ↓
+      CLI text / JSON / stdio MCP
 ```
 
 New modules should have a clear place within or around this architecture.
@@ -604,7 +563,7 @@ Do not add it.
 
 All development decisions should preserve this principle:
 
-> Knowledge first. Local first. AI optional.
+> Knowledge first. Local first. Offline.
 
 Or, in operational terms:
 
