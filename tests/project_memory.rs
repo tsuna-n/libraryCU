@@ -293,12 +293,6 @@ fn historical_success_is_not_confirmation_for_the_current_problem() {
             .verification_status
             .contains("did not rerun")
     );
-    let request = answer::build_ai_request(&report, "test", &[]);
-    assert!(
-        request
-            .system
-            .contains("Historical knowledge is not verification of the current problem")
-    );
     let explained = diagnostics::explain_with_scope(
         "startup failure",
         home.path(),
@@ -308,12 +302,6 @@ fn historical_success_is_not_confirmation_for_the_current_problem() {
     .unwrap();
     assert_eq!(explained.confidence, Confidence::RetrievedKnowledge);
     assert!(explained.cause.contains("has not been verified"));
-    let request = librarycube::ai::build_request(&explained, "startup failure", "test");
-    assert!(
-        request
-            .system
-            .contains("Historical knowledge is not verification of the current problem")
-    );
 }
 
 #[cfg(unix)]

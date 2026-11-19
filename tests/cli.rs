@@ -1,8 +1,7 @@
-use std::io::{Read, Write};
+use std::io::Write;
 use std::net::TcpListener;
 use std::process::{Command, Stdio};
-use std::sync::{LazyLock, mpsc};
-use std::thread;
+use std::sync::LazyLock;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[path = "cli/doctor.rs"]
@@ -21,8 +20,6 @@ mod learn;
 mod output;
 #[path = "cli/setup.rs"]
 mod setup;
-#[path = "cli/streaming.rs"]
-mod streaming;
 #[path = "cli/transfer.rs"]
 mod transfer;
 
@@ -81,11 +78,7 @@ fn lbc() -> Command {
         .env("XDG_DATA_HOME", DEFAULT_TEST_HOME.join("data"))
         .env("XDG_CONFIG_HOME", DEFAULT_TEST_HOME.join("config"))
         .env("XDG_CACHE_HOME", DEFAULT_TEST_HOME.join("cache"))
-        .env_remove("LBC_CONFIG")
-        .env_remove("OPENROUTER_API_KEY")
-        .env_remove("OPENAI_API_KEY")
-        .env_remove("GLM_API_KEY")
-        .env_remove("ZAI_API_KEY");
+        .env_remove("LBC_CONFIG");
     command
 }
 
@@ -96,11 +89,7 @@ fn isolated_lbc(home: &std::path::Path) -> Command {
         .env("XDG_DATA_HOME", home.join("data"))
         .env("XDG_CONFIG_HOME", home.join("config"))
         .env("XDG_CACHE_HOME", home.join("cache"))
-        .env_remove("LBC_CONFIG")
-        .env_remove("OPENROUTER_API_KEY")
-        .env_remove("OPENAI_API_KEY")
-        .env_remove("GLM_API_KEY")
-        .env_remove("ZAI_API_KEY");
+        .env_remove("LBC_CONFIG");
     command
 }
 
@@ -302,7 +291,7 @@ fn explain_reads_rust_error_from_a_pipeline() {
 }
 
 #[test]
-fn doctor_checks_local_components_without_ai() {
+fn doctor_checks_local_components() {
     let nonce = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_nanos())
@@ -318,95 +307,12 @@ fn doctor_checks_local_components_without_ai() {
     assert!(stdout.contains("Configuration"));
     assert!(stdout.contains("Project detection"));
     assert!(stdout.contains("Local knowledge"));
-    assert!(stdout.contains("AI provider"));
-    assert!(stdout.contains("deterministic mode"));
+    assert!(stdout.contains("local checks only"));
     assert!(stdout.contains("healthy"));
 }
 
-fn write_ai_config(provider: &str, extra: &str) -> std::path::PathBuf {
-    let nonce = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_nanos())
-        .unwrap_or_default();
-    let directory = std::env::temp_dir().join(format!("lbc-ai-{provider}-{nonce}"));
-    std::fs::create_dir_all(&directory).expect("temporary config directory should be creatable");
-    let path = directory.join("config.toml");
-    std::fs::write(
-        &path,
-        format!("[ai]\nprovider = \"{provider}\"\nmodel = \"test-model\"\n{extra}"),
-    )
-    .expect("temporary config should be writable");
-    path
-}
-
 #[test]
-fn explain_help_documents_the_ai_flag() {
-    let output = lbc()
-        .args(["explain", "--help"])
-        .output()
-        .expect("lbc explain --help should run");
-    assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("--ai"), "help did not document --ai");
-}
-
-#[test]
-fn config_show_reports_the_ai_section() {
-    let nonce = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_nanos())
-        .unwrap_or_default();
-    let missing = std::env::temp_dir().join(format!("lbc-ai-default-{nonce}/config.toml"));
-    let output = lbc()
-        .args(["config", "show"])
-        .env("LBC_CONFIG", missing)
-        .output()
-        .expect("lbc config show should run");
-    assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("Provider:        off"));
-}
-
-#[test]
-fn explain_ai_falls_back_to_the_deterministic_report_when_the_provider_is_unreachable() {
-    let config_path = write_ai_config("openai-compat", "base_url = \"http://127.0.0.1:9/v1\"\n");
-    let mut child = lbc()
-        .args(["explain", "--ai"])
-        .env("LBC_CONFIG", &config_path)
-        .env_remove("OPENAI_API_KEY")
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .expect("lbc explain --ai should start");
-    let mut stdin = child.stdin.take().expect("stdin should be piped");
-    stdin
-        .write_all(
-            b"error[E0382]: borrow of moved value: `name`\n --> src/main.rs:10:5\n value moved here\n",
-        )
-        .expect("error input should be written");
-    drop(stdin);
-    let output = child
-        .wait_with_output()
-        .expect("lbc explain --ai should finish");
-    assert!(
-        output.status.success(),
-        "fallback must keep the command successful"
-    );
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("libraryCube diagnostic"));
-    assert!(stdout.contains("Known diagnostic rule"));
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(
-        stderr.contains("AI enhancement failed"),
-        "stderr should explain the fallback: {stderr}"
-    );
-    std::fs::remove_dir_all(config_path.parent().unwrap())
-        .expect("temporary config directory should be removable");
-}
-
-#[test]
-fn explain_json_omits_ai_when_not_requested() {
+fn explain_json_keeps_deterministic_report_shape() {
     let mut child = lbc()
         .args(["explain", "--json"])
         .stdin(Stdio::piped())
@@ -422,10 +328,8 @@ fn explain_json_omits_ai_when_not_requested() {
     assert!(output.status.success());
     let report: serde_json::Value =
         serde_json::from_slice(&output.stdout).expect("report should be valid JSON");
-    assert!(
-        report.get("ai").is_none(),
-        "ai must stay omitted without --ai"
-    );
+    assert!(report.get("ai").is_none());
+    assert!(report.get("ai_error").is_none());
     assert_eq!(report["confidence"], "known_rule");
 }
 
@@ -717,7 +621,7 @@ fn e0308_is_answered_from_builtin_knowledge_without_a_special_rule() {
 }
 
 #[test]
-fn config_and_doctor_mask_url_credentials_without_modifying_config() {
+fn config_and_doctor_ignore_legacy_provider_config_and_preserve_its_data() {
     let home = tempfile::tempdir().unwrap();
     let path = home.path().join("config/lbc/config.toml");
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -731,10 +635,20 @@ fn config_and_doctor_mask_url_credentials_without_modifying_config() {
         let result = isolated_lbc(home.path()).args(args).output().unwrap();
         assert!(result.status.success());
         let output = String::from_utf8_lossy(&result.stdout);
-        assert!(!output.contains("fixture-user") && !output.contains("fixture-password"));
-        assert!(output.contains("[REDACTED]"));
+        for legacy_value in ["openai-compat", "fixture-user", "fixture-password"] {
+            assert!(!output.contains(legacy_value));
+        }
         assert_eq!(std::fs::read_to_string(&path).unwrap(), content);
     }
+    let updated = isolated_lbc(home.path())
+        .args(["config", "set", "output.language", "th"])
+        .output()
+        .unwrap();
+    assert!(updated.status.success());
+    let original: toml::Value = content.parse().unwrap();
+    let current: toml::Value = std::fs::read_to_string(path).unwrap().parse().unwrap();
+    assert_eq!(current["ai"], original["ai"]);
+    assert_eq!(current["output"]["language"].as_str(), Some("th"));
 }
 
 #[test]
@@ -877,7 +791,7 @@ fn unhealthy_doctor_emits_json_and_fails() {
     std::fs::create_dir_all(home.path().join("config/lbc")).unwrap();
     std::fs::write(
         home.path().join("config/lbc/config.toml"),
-        "[ai]\nprovider = 'openrouter'\nmodel = 'test-model'\n",
+        "[scanner]\nmax_file_size_kb = 0\n",
     )
     .unwrap();
     let result = isolated_lbc(home.path())
@@ -893,7 +807,7 @@ fn unhealthy_doctor_emits_json_and_fails() {
             .as_array()
             .unwrap()
             .iter()
-            .any(|check| check["name"] == "AI provider" && check["ok"] == false)
+            .any(|check| check["name"] == "Configuration" && check["ok"] == false)
     );
 }
 
@@ -968,71 +882,7 @@ fn default_chat_does_not_create_history_and_persistent_chat_does() {
 }
 
 #[test]
-fn timed_out_provider_preserves_the_offline_answer() {
-    let home = tempfile::tempdir().unwrap();
-    let listener =
-        TcpListener::bind("127.0.0.1:0").expect("loopback sockets required for timeout regression");
-    listener.set_nonblocking(true).unwrap();
-    let address = listener.local_addr().unwrap();
-    let (stop, stopped) = mpsc::channel();
-    let server = thread::spawn(move || {
-        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
-        let stream = loop {
-            match listener.accept() {
-                Ok((stream, _)) => break stream,
-                Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
-                    assert!(
-                        std::time::Instant::now() < deadline,
-                        "provider received no connection"
-                    );
-                    thread::sleep(std::time::Duration::from_millis(10));
-                }
-                Err(error) => panic!("accept failed: {error}"),
-            }
-        };
-        // Deliberately send no HTTP headers. Release the connection after the
-        // client's real 45-second deadline rather than simulating an error.
-        let _ = stopped.recv_timeout(std::time::Duration::from_secs(55));
-        drop(stream);
-    });
-    std::fs::create_dir_all(home.path().join("config/lbc")).unwrap();
-    std::fs::write(
-        home.path().join("config/lbc/config.toml"),
-        format!(
-            "[ai]\nprovider = 'openai-compat'\nmodel = 'mock'\nbase_url = 'http://{address}/v1'\n"
-        ),
-    )
-    .unwrap();
-    let result = isolated_lbc(home.path())
-        .args(["ask", "E0308 mismatched types", "--ai", "--json"])
-        .current_dir(home.path())
-        .output()
-        .unwrap();
-    let _ = stop.send(());
-    server.join().unwrap();
-    assert!(result.status.success());
-    let report: serde_json::Value = serde_json::from_slice(&result.stdout).unwrap();
-    assert!(report.get("ai").is_none());
-    assert!(
-        report["ai_error"].as_str().unwrap().contains("timed out"),
-        "{report}"
-    );
-    assert!(
-        report["offline_answer"]
-            .as_str()
-            .unwrap()
-            .contains("builtin:rust-e0308")
-    );
-    assert!(
-        report["offline_answer"]
-            .as_str()
-            .unwrap()
-            .contains("Mismatched types")
-    );
-}
-
-#[test]
-fn offline_commands_never_connect_to_the_configured_provider() {
+fn offline_commands_ignore_legacy_provider_config() {
     let home = tempfile::tempdir().unwrap();
     let listener = TcpListener::bind("127.0.0.1:0")
         .expect("loopback sockets required for the privacy regression test");
@@ -1089,8 +939,11 @@ fn offline_commands_never_connect_to_the_configured_provider() {
         vec!["inspect", "project:rust-e0308-database-mismatch", "--json"],
         vec!["index", "--json"],
         vec!["list", "--json"],
-        vec!["ask", "intergalactic nebula frobnication", "--ai", "--json"],
-        vec!["explain", "unrelated.log", "--ai", "--json"],
+        vec!["ask", "intergalactic nebula frobnication", "--json"],
+        vec!["explain", "unrelated.log", "--json"],
+        vec!["fix", "capture.log", "--json"],
+        vec!["config", "show", "--json"],
+        vec!["doctor", "--json"],
     ] {
         let result = isolated_lbc(home.path()).args(args).output().unwrap();
         assert!(result.status.success());
@@ -1117,226 +970,9 @@ fn offline_commands_never_connect_to_the_configured_provider() {
     }
     match listener.accept() {
         Err(error) => assert_eq!(error.kind(), std::io::ErrorKind::WouldBlock),
-        Ok(_) => panic!("a command contacted the provider without --ai"),
+        Ok(_) => panic!("a command contacted the legacy provider"),
     }
     assert!(!home.path().join("data/lbc/history").exists());
-}
-
-#[test]
-fn mock_ai_receives_retrieved_passage_and_redacts_secrets() {
-    let home = temporary_home("mock-ai");
-    std::fs::create_dir_all(home.join("config/lbc")).unwrap();
-    let note = home.join("note.md");
-    std::fs::write(
-        &note,
-        "Use the unique ORANGE-CEDAR recovery procedure.\n\nAPI_KEY=never-send-this-secret\n",
-    )
-    .unwrap();
-    let added = isolated_lbc(&home)
-        .args([
-            "add",
-            "--id",
-            "orange-cedar",
-            "--title",
-            "Orange cedar recovery",
-            "--file",
-        ])
-        .arg(&note)
-        .output()
-        .unwrap();
-    assert!(added.status.success());
-
-    let listener = TcpListener::bind("127.0.0.1:0").expect(
-        "mock provider requires loopback sockets; rerun outside a socket-restricted sandbox",
-    );
-    listener.set_nonblocking(true).unwrap();
-    let address = listener.local_addr().unwrap();
-    let (sender, receiver) = mpsc::channel();
-    let server = thread::spawn(move || {
-        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
-        let (mut stream, _) = loop {
-            match listener.accept() {
-                Ok(connection) => break connection,
-                Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
-                    assert!(
-                        std::time::Instant::now() < deadline,
-                        "mock provider received no request"
-                    );
-                    thread::sleep(std::time::Duration::from_millis(10));
-                }
-                Err(error) => panic!("mock provider accept failed: {error}"),
-            }
-        };
-        stream.set_nonblocking(false).unwrap();
-        stream
-            .set_read_timeout(Some(std::time::Duration::from_secs(5)))
-            .unwrap();
-        let mut request = Vec::new();
-        let mut buffer = [0_u8; 4096];
-        let mut expected = None;
-        loop {
-            let count = stream.read(&mut buffer).unwrap();
-            if count == 0 {
-                break;
-            }
-            request.extend_from_slice(&buffer[..count]);
-            if expected.is_none()
-                && let Some(header_end) = request.windows(4).position(|part| part == b"\r\n\r\n")
-            {
-                let headers = String::from_utf8_lossy(&request[..header_end]);
-                let content_length = headers.lines().find_map(|line| {
-                    line.to_ascii_lowercase()
-                        .strip_prefix("content-length:")
-                        .and_then(|value| value.trim().parse::<usize>().ok())
-                });
-                expected = content_length.map(|length| header_end + 4 + length);
-            }
-            if expected.is_some_and(|length| request.len() >= length) {
-                break;
-            }
-        }
-        sender
-            .send(String::from_utf8_lossy(&request).into_owned())
-            .unwrap();
-        let body = r#"{"model":"mock-model","choices":[{"message":{"content":"Grounded response.\n\nConfidence: medium"}}]}"#;
-        write!(
-            stream,
-            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-            body.len(),
-            body
-        )
-        .unwrap();
-    });
-    std::fs::write(
-        home.join("config/lbc/config.toml"),
-        format!("[ai]\nprovider = \"openai\"\nbase_url = \"http://{address}/v1\"\n"),
-    )
-    .unwrap();
-    let output = isolated_lbc(&home)
-        .args(["ask", "How does orange cedar recovery work?", "--project"])
-        .arg(&home)
-        .args(["--ai", "--json"])
-        .env("OPENAI_API_KEY", "sk-fixture-provider-key")
-        .output()
-        .unwrap();
-    assert!(
-        output.status.success(),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-    server.join().unwrap();
-    let request = receiver.recv().unwrap();
-    assert!(request.contains("ORANGE-CEDAR"));
-    assert!(request.contains("user:orange-cedar"));
-    assert!(!request.contains("never-send-this-secret"));
-    let (_, request_body) = request.split_once("\r\n\r\n").unwrap();
-    assert!(!request_body.contains("sk-fixture-provider-key"));
-    let request_json: serde_json::Value = serde_json::from_str(request_body).unwrap();
-    assert_eq!(request_json["model"], "gpt-4o-mini");
-    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert_eq!(report["ai"]["provider"], "openai");
-    assert_eq!(report["ai"]["analysis"], "Grounded response.");
-    std::fs::remove_dir_all(home).unwrap();
-}
-
-#[test]
-fn ask_ai_prints_only_the_concrete_edit_response() {
-    let home = temporary_home("concise-ai");
-    std::fs::create_dir_all(home.join("config/lbc")).unwrap();
-    let listener = TcpListener::bind("127.0.0.1:0").expect(
-        "mock provider requires loopback sockets; rerun outside a socket-restricted sandbox",
-    );
-    let address = listener.local_addr().unwrap();
-    let (sender, receiver) = mpsc::channel();
-    let server = thread::spawn(move || {
-        let (mut stream, _) = listener.accept().expect("mock provider should accept");
-        stream
-            .set_read_timeout(Some(std::time::Duration::from_secs(5)))
-            .unwrap();
-        let mut request = Vec::new();
-        let mut buffer = [0_u8; 4096];
-        let mut expected = None;
-        loop {
-            let count = stream.read(&mut buffer).unwrap();
-            if count == 0 {
-                break;
-            }
-            request.extend_from_slice(&buffer[..count]);
-            if expected.is_none()
-                && let Some(header_end) = request.windows(4).position(|part| part == b"\r\n\r\n")
-            {
-                let headers = String::from_utf8_lossy(&request[..header_end]);
-                let content_length = headers.lines().find_map(|line| {
-                    line.to_ascii_lowercase()
-                        .strip_prefix("content-length:")
-                        .and_then(|value| value.trim().parse::<usize>().ok())
-                });
-                expected = content_length.map(|length| header_end + 4 + length);
-            }
-            if expected.is_some_and(|length| request.len() >= length) {
-                break;
-            }
-        }
-        sender
-            .send(String::from_utf8_lossy(&request).into_owned())
-            .unwrap();
-        let body = concat!(
-            "data: {\"model\":\"mock-model\",\"choices\":[{\"delta\":{\"content\":\"Change: src/main.rs:10\\nFrom: old()\\nTo: new()\\n\\nConfi\"}}]}\n\n",
-            "data: {\"model\":\"mock-model\",\"choices\":[{\"delta\":{\"content\":\"dence: high\"}}]}\n\n",
-            "data: [DONE]\n\n",
-        );
-        write!(
-            stream,
-            "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-            body.len(),
-            body
-        )
-        .unwrap();
-    });
-    std::fs::write(
-        home.join("config/lbc/config.toml"),
-        format!(
-            "[ai]\nprovider = \"openai-compat\"\nmodel = \"mock-model\"\nbase_url = \"http://{address}/v1\"\n"
-        ),
-    )
-    .unwrap();
-
-    let output = isolated_lbc(&home)
-        .args(["ask", "E0308", "--project"])
-        .arg(&home)
-        .arg("--ai")
-        .output()
-        .unwrap();
-    assert!(
-        output.status.success(),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-    server.join().unwrap();
-
-    let request = receiver.recv().unwrap();
-    let payload = request
-        .split_once("\r\n\r\n")
-        .map(|(_, body)| body)
-        .expect("HTTP request should contain a body");
-    let payload: serde_json::Value = serde_json::from_str(payload).unwrap();
-    assert_eq!(payload["max_tokens"], 512);
-    assert!(
-        payload["messages"][0]["content"]
-            .as_str()
-            .unwrap()
-            .contains("Return only the edits")
-    );
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("Required changes"), "{stdout}");
-    assert!(stdout.contains("Change: src/main.rs:10"), "{stdout}");
-    assert!(stdout.contains("From: old()"), "{stdout}");
-    assert!(stdout.contains("To: new()"), "{stdout}");
-    assert!(!stdout.contains("libraryCube answer"), "{stdout}");
-    assert!(!stdout.contains("Retrieved guidance"), "{stdout}");
-    assert!(!stdout.contains("Confidence:"), "{stdout}");
-    std::fs::remove_dir_all(home).unwrap();
 }
 
 #[test]
@@ -1564,63 +1200,5 @@ fn offline_ask_json_does_not_echo_question_credentials() {
     assert!(output.status.success());
     assert!(!String::from_utf8_lossy(&output.stdout).contains("fixture-question-secret"));
     let _: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    std::fs::remove_dir_all(home).unwrap();
-}
-
-#[test]
-fn doctor_reports_named_ai_providers_and_detects_keys() {
-    let home = temporary_home("doctor-named-ai");
-    let config_dir = home.join("config/lbc");
-    std::fs::create_dir_all(&config_dir).unwrap();
-
-    // 1. OpenAI without key
-    std::fs::write(
-        config_dir.join("config.toml"),
-        "[ai]\nprovider = \"openai\"\n",
-    )
-    .unwrap();
-    let output = isolated_lbc(&home).arg("doctor").output().unwrap();
-    assert!(!output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("OPENAI_API_KEY is not set"));
-
-    // 2. OpenAI with key
-    let output = isolated_lbc(&home)
-        .arg("doctor")
-        .env("OPENAI_API_KEY", "sk-test")
-        .output()
-        .unwrap();
-    assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("API key detected"));
-    assert!(stdout.contains("gpt-4o-mini"));
-    assert!(stdout.contains("https://api.openai.com/v1"));
-
-    // 3. ZAI with ZAI_API_KEY
-    std::fs::write(config_dir.join("config.toml"), "[ai]\nprovider = \"zai\"\n").unwrap();
-    let output = isolated_lbc(&home)
-        .arg("doctor")
-        .env("ZAI_API_KEY", "test-zai")
-        .output()
-        .unwrap();
-    assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("zai (glm)"));
-    assert!(stdout.contains("glm-4-flash"));
-    assert!(stdout.contains("https://open.bigmodel.cn/api/paas/v4"));
-
-    // 4. Ollama without key is healthy
-    std::fs::write(
-        config_dir.join("config.toml"),
-        "[ai]\nprovider = \"ollama\"\n",
-    )
-    .unwrap();
-    let output = isolated_lbc(&home).arg("doctor").output().unwrap();
-    assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("ollama"));
-    assert!(stdout.contains("llama3.2"));
-    assert!(stdout.contains("http://localhost:11434/v1"));
-
     std::fs::remove_dir_all(home).unwrap();
 }

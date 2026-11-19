@@ -180,7 +180,7 @@ pub fn load(root: &Path, id: &str) -> Result<(Target, Patch)> {
     let target = Target::read(&root, &diagnostic)?;
     ensure!(
         rollback::encode_hex(&Sha256::digest(target.original.as_bytes())) == fields.original_sha256,
-        "proposal source changed; generate and review a fresh proposal"
+        "proposal source changed; review the current file"
     );
     let patch = target.validate_response(&serde_json::to_string(&Replacement {
         before: fields.before,

@@ -37,21 +37,9 @@ pub fn print_config(loaded: &LoadedConfig) {
         if loaded.config.memory.mode == "persistent" {
             "explicitly enabled; redacted bounded history is restored"
         } else {
-            "disabled; chat context exists only in the active process"
+            "disabled; chat history is not saved"
         }
     );
-    println!("\nAI");
-    match loaded.config.ai.provider.as_str() {
-        "off" => println!("  Provider:        off (deterministic mode)"),
-        provider => {
-            println!("  Provider:        {provider}");
-            println!("  Model:           {}", loaded.config.ai.effective_model());
-            let base_url = loaded.config.ai.effective_base_url();
-            if !base_url.is_empty() {
-                println!("  Base URL:        {base_url}");
-            }
-        }
-    }
 }
 
 pub fn print_scan(report: &ScanReport, show_tree: bool) {

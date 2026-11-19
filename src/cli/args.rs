@@ -7,11 +7,11 @@ use clap::{Args, Parser, Subcommand};
     name = "lbc",
     version,
     about = "libraryCube - local-first developer knowledge engine",
-    after_help = "Save: lbc learn / add\nFind: lbc search\nReuse: lbc ask / explain\nAI is optional. Core knowledge workflows work offline.",
+    after_help = "Save: lbc learn / add\nFind: lbc search\nReuse: lbc ask / explain\nKnowledge workflows work offline.",
     propagate_version = true
 )]
 pub struct Cli {
-    /// Suppress optional warnings and progress; keep results and errors
+    /// Suppress optional warnings while keeping results and errors
     #[arg(long, short = 'q', global = true)]
     pub quiet: bool,
     /// Disable color and terminal escape sequences (also honors NO_COLOR)
@@ -23,7 +23,7 @@ pub struct Cli {
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
-    /// Initialize local knowledge stores and optional AI configuration
+    /// Initialize local knowledge stores and configuration
     Setup(SetupArgs),
     /// Add a Markdown entry to your knowledge library
     Add(AddArgs),
@@ -59,9 +59,9 @@ pub enum Command {
     Scan(ScanArgs),
     /// Explain compiler or runtime errors
     Explain(ExplainArgs),
-    /// Experimental: generate a minimal AI patch grounded in local knowledge
+    /// Show local guidance for a diagnostic
     Fix(FixArgs),
-    /// Experimental: apply a saved proposal without contacting AI
+    /// Experimental: apply a previously saved proposal
     ApplyProposal(ApplyProposalArgs),
     /// Experimental support: restore a recorded fix if its target still matches
     Rollback(RollbackArgs),
@@ -88,14 +88,7 @@ pub struct SetupArgs {
     /// Initialize PATH/.lbc/knowledge (default: current directory)
     #[arg(long, value_name = "PATH")]
     pub project: Option<PathBuf>,
-    /// Optional AI provider; existing configuration is kept by default
-    #[arg(long, value_parser = ["off", "openai", "zai", "glm", "ollama", "openrouter", "openai-compat"])]
-    pub provider: Option<String>,
-    #[arg(long)]
-    pub model: Option<String>,
-    #[arg(long)]
-    pub base_url: Option<String>,
-    /// Use safe defaults without prompts; new configurations use AI off
+    /// Initialize without prompting for confirmation
     #[arg(long)]
     pub yes: bool,
     #[arg(long, requires = "yes")]
@@ -267,8 +260,6 @@ pub struct AskArgs {
     #[arg(long)]
     pub project_only: bool,
     #[arg(long)]
-    pub ai: bool,
-    #[arg(long)]
     pub json: bool,
 }
 
@@ -276,8 +267,6 @@ pub struct AskArgs {
 pub struct ChatArgs {
     #[arg(long, default_value = ".")]
     pub project: PathBuf,
-    #[arg(long)]
-    pub ai: bool,
 }
 
 #[derive(Debug, Subcommand)]
@@ -324,9 +313,6 @@ pub struct ExplainArgs {
     /// Output machine-readable JSON
     #[arg(long)]
     pub json: bool,
-    /// Extend the deterministic analysis with the configured AI provider
-    #[arg(long)]
-    pub ai: bool,
     /// Project path used for contextual evidence
     #[arg(long, default_value = ".")]
     pub project: PathBuf,
@@ -343,21 +329,6 @@ pub struct FixArgs {
     /// Read error output from stdin
     #[arg(long)]
     pub stdin: bool,
-    /// Request an AI patch using bounded local evidence
-    #[arg(long)]
-    pub ai: bool,
-    /// Apply the validated patch after generating it
-    #[arg(long, requires = "ai")]
-    pub apply: bool,
-    /// Save the validated preview privately for later apply-proposal
-    #[arg(long, requires = "ai", conflicts_with = "apply")]
-    pub save_proposal: bool,
-    /// Run an explicit command after application; failure attempts single-file rollback
-    #[arg(long, value_name = "COMMAND", requires = "apply")]
-    pub verify: Option<String>,
-    /// Verification deadline in seconds (includes output collection)
-    #[arg(long, default_value_t = 120, value_parser = clap::value_parser!(u64).range(1..=3600), requires = "verify")]
-    pub verify_timeout: u64,
     /// Output machine-readable JSON
     #[arg(long)]
     pub json: bool,
@@ -368,7 +339,7 @@ pub struct FixArgs {
 
 #[derive(Debug, Args)]
 pub struct RollbackArgs {
-    /// ID printed by fix --apply
+    /// Recovery ID printed by apply-proposal
     pub id: String,
     #[arg(long, default_value = ".")]
     pub project: PathBuf,
@@ -436,12 +407,6 @@ pub enum ConfigCommand {
 
 #[derive(Debug, Args)]
 pub struct DoctorArgs {
-    /// Explicitly contact the configured provider's models endpoint (no generation)
-    #[arg(long)]
-    pub connectivity: bool,
-    /// Connectivity deadline in seconds
-    #[arg(long, default_value_t = 5, value_parser = clap::value_parser!(u64).range(1..=45), requires = "connectivity")]
-    pub connectivity_timeout: u64,
     /// Output machine-readable JSON
     #[arg(long)]
     pub json: bool,

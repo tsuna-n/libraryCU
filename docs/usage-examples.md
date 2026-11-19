@@ -1,7 +1,8 @@
 # Complete libraryCube usage examples
 
-The core workflow is Save → Find → Reuse. AI and chat are optional supporting
-features; fix/apply-proposal/rollback is experimental source-changing tooling.
+The core workflow is Save → Find → Reuse. Chat and history support repeated
+local questions. Saved proposal application and rollback are available for
+compatible records from earlier releases.
 See [product direction](product-direction.md) for scope and compatibility.
 
 ## Capture today's solution with `learn`
@@ -48,13 +49,10 @@ because built-in knowledge already matches. `--json` requires `--yes`; stdout is
 JSON, with previews and duplicate suggestions on stderr. New entries get IDs,
 titles, metadata hints, tags, and UTC timestamps; explicit IDs never overwrite
 and generated collisions get a suffix. Verification is historical text, never
-executed: empty means `unverified`, supplied means `recorded-check`. Capture needs
-no AI, network, or new dependencies.
+executed: empty means `unverified`, supplied means `recorded-check`.
 
-This guide covers the knowledge and analysis commands in libraryCube 0.5.0. Commands run
-offline unless `--ai` is explicitly supplied. Paths, scores, and document counts
-in the sample output will vary by machine. An ellipsis (`...`) means that only a
-relevant part of a longer result is shown.
+Paths, scores, and document counts in the sample output vary by machine.
+An ellipsis (`...`) marks omitted output.
 
 ## 1. Install and get help
 
@@ -68,34 +66,6 @@ cargo build --release
 cargo install --path . --locked
 lbc --version
 lbc --help
-```
-
-Example output:
-
-```text
-lbc 0.5.0
-
-libraryCube - terminal knowledge library
-
-Usage: lbc <COMMAND>
-
-Commands:
-  add        Add a Markdown entry to your knowledge library
-  list       List effective knowledge entries
-  inspect    Show a complete knowledge entry
-  edit       Replace the body of a writable knowledge entry
-  index      Validate and rebuild the in-memory retrieval index
-  ask        Answer a question from retrieved local knowledge
-  chat       Start a bounded interactive question session
-  history    Inspect or clear explicitly persisted chat history
-  scan       Inspect the current project
-  explain    Explain compiler or runtime errors
-  fix        Generate a minimal AI patch grounded in local knowledge
-  rollback   Restore a patch from a local recovery record
-  search     Search local technical knowledge
-  config     View or modify LBC configuration
-  doctor     Check the LBC environment
-  knowledge  Manage installable knowledge packages
 ```
 
 If the binary is not installed on `PATH`, replace `lbc` with
@@ -455,9 +425,8 @@ Status: retrieved guidance; not verified against this project
 ```
 
 `ask` retrieves before answering and cites the passages it used. When no adequate
-match exists, it provides investigation steps instead of inventing a fix. Without
-`--ai`, it makes no provider request. Separate `ask` invocations do not share
-chat history.
+match exists, it provides investigation steps instead of inventing a fix.
+Each `ask` invocation is independent.
 
 ## 9. `explain`: analyze compiler or runtime errors
 
@@ -562,120 +531,29 @@ Knowledge documents
 The scanner detects common languages, build systems, containers, and a limited
 set of frameworks. Inventory counts do not imply that every file body was read.
 
-## 11. Optional AI
-
-Answer generation contacts a provider only with `--ai`.
-`doctor --connectivity` separately opts into a bounded models-endpoint check:
-
-```bash
-lbc ask "How do I resolve the demo port conflict?" --ai
-lbc explain ./build.log --project ./demo-project --ai
-lbc chat --project ./demo-project --ai
-```
-
-### OpenAI (GPT-4o, GPT-4o-mini)
-
-Configure the built-in `openai` provider (defaults to `https://api.openai.com/v1` and `gpt-4o-mini`):
-
-```bash
-lbc config set ai.provider openai
-# Optional: customize model (default is gpt-4o-mini)
-lbc config set ai.model gpt-4o
-export OPENAI_API_KEY='sk-...'
-lbc ask "How do I resolve the demo port conflict?" --ai
-```
-
-### Zhipu AI / ZAI (GLM-4, GLM-4-flash)
-
-Configure the built-in `zai` (or `glm`) provider (defaults to `https://open.bigmodel.cn/api/paas/v4` and `glm-4-flash`):
-
-```bash
-lbc config set ai.provider zai
-# Optional: customize model (default is glm-4-flash)
-lbc config set ai.model glm-4-plus
-export ZAI_API_KEY='your-zhipu-api-key'   # or export GLM_API_KEY='...'
-lbc ask "How do I resolve the demo port conflict?" --ai
-```
-
-### Ollama (Local AI)
-
-Configure the built-in `ollama` provider (defaults to `http://localhost:11434/v1` and `llama3.2`, no API key required):
-
-```bash
-lbc config set ai.provider ollama
-# Optional: customize model (default is llama3.2)
-lbc config set ai.model qwen2.5-coder:7b
-```
-
-Prepare and run Ollama:
-
-```bash
-ollama pull qwen2.5-coder:7b
-ollama serve
-```
-
-An AI answer is intentionally limited to the concrete edits you need to make. It does not repeat the full offline answer first:
-
-```text
-Required changes (ollama / qwen2.5-coder:7b)
-
-Change: src/main.rs:10
-From: takes_ownership(name)
-To: takes_ownership(&name)
-```
-
-### OpenRouter
-
-```bash
-lbc config set ai.provider openrouter
-lbc config set ai.model openai/gpt-4o-mini
-export OPENROUTER_API_KEY='YOUR_API_KEY'
-lbc ask "Explain Rust ownership" --ai
-```
-
-### Custom OpenAI-compatible endpoint
-
-For self-hosted vLLM, LM Studio, or local servers at custom URLs:
-
-```bash
-lbc config set ai.model my-custom-model
-lbc config set ai.base_url http://127.0.0.1:8000/v1
-lbc config set ai.provider openai-compat
-```
-
-Do not commit API keys. Selected passages and evidence are bounded and redacted,
-but pattern-based redaction cannot recognize every secret. If a provider fails,
-the offline answer remains available and JSON includes `ai_error`:
-
-```text
-! AI unavailable: failed to reach the OpenAI-compatible endpoint; showing the
-offline answer
-```
-
-## 12. `chat`, session memory, and history
+## 11. `chat`, session memory, and history
 
 ```bash
 lbc chat
 lbc chat --project ./demo-project
-lbc chat --project ./demo-project --ai
 ```
 
 ```text
-libraryCube chat — /clear clears this session; /exit ends it
+libraryCube chat — /clear clears history; /exit ends the session
 > What does E0308 mean?
 Retrieved guidance:
 
 [builtin:rust-e0308] Rust E0308 - Mismatched types
 ...
 > /clear
-Session context cleared.
+Chat history cleared.
 > /exit
 ```
 
-`/clear` clears context, `/exit` ends the session, and EOF (`Ctrl-D` on Unix)
-also exits. Session history is bounded by message count and characters.
+`/clear` clears saved history when persistence is enabled. `/exit` or EOF
+(`Ctrl-D` on Unix) ends the session. Each question retrieves its own evidence.
 
-The default memory mode exists only inside the active process:
+The default memory mode leaves no transcript:
 
 ```bash
 lbc config set memory.mode session
@@ -711,7 +589,7 @@ Persistent messages are bounded and redacted. Project contents are not persisted
 by default. `/clear` in persistent mode also deletes stored history. Knowledge
 added with `add` is separate and is never removed when chat exits.
 
-## 13. Language and configuration
+## 12. Language and configuration
 
 Select English, Thai, or automatic output:
 
@@ -761,10 +639,7 @@ Scanner
 Memory
   Mode:            session
   History:         /home/alice/.local/share/lbc/history/default.json
-  Persistence:     disabled; chat context exists only in the active process
-
-AI
-  Provider:        off (deterministic mode)
+  Persistence:     disabled; chat history is not saved
 ```
 
 Supported `config set` keys:
@@ -774,16 +649,12 @@ output.language
 scanner.max_file_size_kb
 scanner.ignore_hidden
 memory.mode
-ai.provider
-ai.model
-ai.base_url
 ```
 
-Disable AI configuration with `lbc config set ai.provider off`. The default
-configuration path is `$XDG_CONFIG_HOME/lbc/config.toml`, falling back to
+The default configuration path is `$XDG_CONFIG_HOME/lbc/config.toml`, falling back to
 `~/.config/lbc/config.toml`.
 
-## 14. `doctor`: check the environment
+## 13. `doctor`: check the environment
 
 ```bash
 lbc doctor
@@ -804,9 +675,6 @@ libraryCube doctor
 ✓ Local knowledge
   12 documents available
 
-✓ AI provider
-  off (deterministic mode); set ai.provider to enable AI explanations
-
 ✓ Session memory
   session-only mode; no history is written to /home/alice/.local/share/lbc/history/default.json
 
@@ -825,7 +693,7 @@ else
 fi
 ```
 
-## 15. `knowledge`: installable packages
+## 14. `knowledge`: installable packages
 
 A package contains `package.toml` and one or more valid Markdown documents:
 
@@ -899,7 +767,7 @@ packages without that manifest are listed as `unverified`; corrupt packages are
 listed as `corrupt` and excluded from retrieval. Packages live under
 `$XDG_DATA_HOME/lbc/knowledge`, with a fallback under `~/.local/share/lbc`.
 
-## 16. JSON in scripts
+## 15. JSON in scripts
 
 `add`, `list`, `inspect`, `edit`, `index`, `ask`, `search`, `explain`, `scan`,
 `config show`, `doctor`, and `history` support JSON through their respective
@@ -936,75 +804,34 @@ lbc doctor --json |
   jq '.checks[] | {name, ok, detail}'
 ```
 
-A JSON command writes one object or array to stdout. Warnings and explicit AI
-fallback notices may be written to stderr.
+A JSON command writes one object or array to stdout. Warnings go to stderr.
 
-## 17. `fix`: offline guidance, patch preview, and explicit application
+## 16. `fix` and saved proposals
 
 ```bash
-lbc knowledge install ./packages/python-fastapi-basics
 lbc fix error.log --project ./demo-project
-lbc fix error.log --project ./demo-project --ai
-lbc fix error.log --project ./demo-project --ai --apply --json
-lbc fix --stdin --project ./demo-project --ai --json < error.log
+lbc fix --stdin --project ./demo-project --json < error.log
 ```
 
-The package-install example runs from this source checkout and adds 40 bilingual
-Python/FastAPI notes to the selected user store. Rust built-in guidance needs no
-package installation. Standard Python traceback locations can supply the target
-file just as rustc locations can.
+`fix` reports diagnostic guidance from local evidence without changing project
+files. Its JSON reports `status: "offline_guidance"` and the `guidance` report.
+For unknown Python failures, `ask --json` can report `general_guidance` with a
+traceback playbook when evidence is insufficient for a specific repair.
 
-Plain `fix` returns offline guidance without a provider connection. `--ai`
-proposes one replacement, and `--apply` additionally writes it; `--apply` alone
-is an argument error. Each invocation generates a new proposal. Application
-does not reuse a prior preview. Verification runs only with an explicit command:
+If you have a reviewed, authenticated proposal saved by an earlier version,
+apply it with its existing proposal ID:
 
 ```bash
-lbc fix error.log --project ./demo-project --ai --apply \
+lbc apply-proposal proposal-ID --project ./demo-project \
   --verify "cargo check --offline" --verify-timeout 120 --json
-lbc rollback fix-ABC123 --project ./demo-project --json
+lbc rollback fix-ID --project ./demo-project --json
 ```
 
-Replace `fix-ABC123` with the `recovery_id` printed by your apply operation.
-The command runs directly in the project with closed stdin and no implicit shell.
-It inherits the environment and can run project code or access the network.
-On Windows quote paths with spaces, for example
-`--verify "'C:/Program Files/nodejs/node.exe' check.js"`.
-Output is bounded/redacted. Failure or timeout attempts single-file rollback;
-later edits prevent automatic overwrite and leave the recovery record for manual
-inspection. Version 2 records are HMAC-authenticated using the private
-`.lbc/recovery.key`. LBC retains at most 100 records for 30 days, pruning when a
-new record is prepared. Version 1 records require manual recovery. Keep the
-records and key out of version control.
-See [verification and recovery semantics](cli-reference.md#experimental-propose-and-apply-a-small-patch)
-for command side effects, descendant-process limits, and output limits.
+Replace `fix-ID` with the `recovery_id` from `apply-proposal`. Verification
+runs only when you supply a command. A failing or timed-out verifier attempts
+single-file rollback. See the [proposal and recovery rules](cli-reference.md#diagnostic-guidance-and-saved-proposals).
 
-The first diagnostic must locate a regular UTF-8 file inside the exact project
-directory. The original and resulting file are limited to 256 KiB. A maximum
-seven-line excerpt and provider patch JSON are each limited to 8 KiB. Hidden,
-generated, recognized gitignored, symlinked, secret-bearing, and special-file
-targets are rejected. Before text must match uniquely near the reported line.
-Detected source changes abort application; successful replacement retains file
-permissions. Unix publication rejects a swapped parent directory. Existing Unix
-lock files must be regular, owned by the current effective user, and grant no
-group or other permissions. Advisory locks still require cooperating writers,
-and power-loss durability is not guaranteed.
-
-`--json` reports `status`, boolean `applied`, `verification_status`,
-offline `guidance`, optional `patch` (`path`, `before`, `after`,
-`verification_status`), and optional `error`. Status is `offline_guidance`,
-`proposed`, `applied`, `verified`, `rolled_back`, or `failed`. Additional fields are
-`recovery_id`, `verification`, and `rollback_status`. Without `--verify`,
-verification remains `unverified`; otherwise it is `passed`, `failed`,
-`timed_out`, or `error`. AI/validation/application failures preserve
-offline JSON and return a nonzero exit code; input/configuration failures are
-reported on stderr before a report can be built.
-
-For unknown Python failures, `ask --json` may report `general_guidance` with a
-generic traceback playbook. This is explicitly insufficient evidence for a
-specific repair; patch generation requires an adequate match.
-
-## 18. Storage, limits, and safety boundaries
+## 17. Storage, limits, and safety boundaries
 
 | Data | Default location |
 | --- | --- |
@@ -1024,31 +851,10 @@ Important limits:
 - `ask` and `search` query: 8 KiB.
 - Knowledge document including metadata: 256 KiB.
 - Diagnostic log: 2 MiB.
-- AI user context: 32,000 Unicode characters.
-- Provider response: 2 MiB.
-- Provider timeout: 45 seconds.
 
-Special files and symlinked components in knowledge paths are rejected. `search`,
-`inspect`, `ask`, `explain`, `scan`, and `doctor` do not modify project sources or
-execute suggested commands. Provider calls require explicit `--ai` use;
-user-selected `fix --verify` commands can independently access the network.
-Review sensitive content before using a remote provider because
-redaction is pattern-based rather than a universal secret detector.
+Special files and symlinked components in knowledge paths are rejected. Analysis
+commands leave project sources intact. Review CLI and MCP output before sharing
+sensitive text, since redaction recognizes specific patterns.
 
-See the [readiness audit](readiness-audit.md) for known limitations.
-
-## Separate preview and offline application (v0.5)
-
-```bash
-lbc fix build.log --project ./app --ai --save-proposal --json
-# Read patch.before/after and proposal_id in the JSON before continuing.
-lbc apply-proposal proposal-ID --project ./app --verify "cargo check" --json
-lbc rollback fix-ID --project ./app --json
-lbc doctor --json
-lbc doctor --connectivity --connectivity-timeout 5 --json
-```
-
-Replace placeholder IDs with the actual returned IDs. The first command opts
-into AI and private proposal persistence; application makes no provider call.
-Normal doctor remains offline; the explicit probe tests only the models endpoint,
-not generation. See README for retention, source-integrity and JSON semantics.
+See the [CLI upgrade notes](cli-reference.md#upgrading-to-the-offline-cli) for
+compatibility with earlier versions.

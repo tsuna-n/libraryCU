@@ -8,9 +8,8 @@ Both examples pass an explicit project directory and use `--project-only` to
 retrieve from that project's `.lbc/knowledge` and legacy `knowledge/` directories
 only. Initialize or populate that
 project store separately with `lbc setup --project /path/to/project` and
-`lbc learn --project /path/to/project`. They run the normal
-offline explanation path; adding `--ai` would opt into your configured provider.
-Neither example edits the source buffer or applies fixes.
+`lbc learn --project /path/to/project`. The examples display the offline
+diagnostic report in the editor or task terminal.
 
 ## VS Code
 

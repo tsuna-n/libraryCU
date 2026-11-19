@@ -2,12 +2,12 @@
 
 Decision: refocus libraryCube (`lbc`) on a small, reliable, local-first developer
 knowledge engine. This supersedes the enterprise sequence in the
-[archived roadmap](archive/enterprise-roadmap.md). The version remains 0.5.0;
-this decision is not a release or a claim that historical production gates passed.
+[archived roadmap](archive/enterprise-roadmap.md).
 
 Save solutions, notes, debugging knowledge, and project-specific fixes as local
 Markdown. Find evidence deterministically. Reuse previous solutions, then capture
-the next result. The product is useful without AI or a network connection.
+the next result. The engine runs offline. External coding agents access local
+evidence through CLI JSON or the read-only MCP server.
 
 ## Principles, in priority order
 
@@ -15,28 +15,27 @@ the next result. The product is useful without AI or a network connection.
 2. Local-first
 3. Deterministic-first
 4. Developer-owned
-5. Offline-capable
+5. Offline-only
 6. Simple CLI UX
 7. Evidence-based retrieval
-8. AI-optional
-9. Safe by default
-10. Enterprise features only when real demand exists
+8. Safe by default
+9. Enterprise features only when real demand exists
 
 The primary loop is `search / ask / explain → solve → learn → retrieve next time`.
-Capture, search, inspection, editing, and diagnostic reuse must work without model
-APIs, Ollama, external vector databases, Python services, or cloud services.
+Capture, search, inspection, editing, and diagnostic reuse use local sources.
+Any model use happens in the calling tool.
 
 ## Repository findings and feature classification
 
-Classification follows the actual dispatch, storage, retrieval, scanner, AI,
-history, and fixer modules, rather than the previous roadmap's labels.
+Classification follows the dispatch, storage, retrieval, scanner, history, and
+fixer modules.
 
 | Feature / command | Status | Implementation and reason |
 |---|---|---|
 | `add` | CORE | Imports Markdown bodies through a locked, non-overwriting writer. |
 | `learn` | CORE | Captures a solved problem with context and a recorded check; uses the same writer. |
 | `search` | CORE | Deterministic local retrieval with excerpts, qualified IDs, and ranking reasons. |
-| `ask` | CORE | Answers from adequate retrieved local passages; optional `--ai` enhancement. |
+| `ask` | CORE | Answers from adequate retrieved local passages. |
 | `inspect` | CORE | Full document, source, writability, and verification transparency. |
 | `edit` | CORE | Atomic maintenance; changed bodies invalidate recorded verification status. |
 | `explain` | CORE | Diagnostic parsing plus the shared knowledge index and bounded project evidence. |
@@ -45,24 +44,21 @@ history, and fixer modules, rather than the previous roadmap's labels.
 | `list` | SUPPORTING | Browse effective entries. |
 | `index` | SUPPORTING | Validates/rebuilds retrieval state in memory; no persistent cache is claimed. |
 | `knowledge install/list/remove` | SUPPORTING | Explicit local package management, integrity checks, and atomic publication. |
-| `doctor`, `config` | SUPPORTING | Diagnose local health and configure the CLI; connectivity is opt-in. |
+| `doctor`, `config` | SUPPORTING | Diagnose local health and configure the CLI. |
 | `scan` / scanner | SUPPORTING | Detect stack/manifests and bounded diagnostic context; inventory is not analysis of every file. |
-| AI providers | SUPPORTING, OPTIONAL | Existing providers enhance retrieved evidence; provider expansion is not a priority. |
+| `mcp` and CLI JSON | SUPPORTING | Expose structured local evidence to external agents and integrations. |
 | `chat` | SUPPORTING, OPTIONAL | Repeated knowledge Q&A already uses shared retrieval; no autonomous tools. |
 | `history` | SUPPORTING, OPTIONAL | Manages explicitly persisted, redacted chat history; session history is not canonical knowledge. |
-| `fix` | EXPERIMENTAL | AI patch preview and explicit application modify source; secondary to knowledge. |
-| `apply-proposal` | EXPERIMENTAL SUPPORT | Applies reviewed saved bytes offline with stale-target/integrity checks. |
+| `fix` | SUPPORTING | Reports diagnostic guidance from local evidence. |
+| `apply-proposal` | EXPERIMENTAL SUPPORT | Applies authenticated proposals saved by earlier releases after revalidating source. |
 | `rollback`, explicit verification | EXPERIMENTAL SUPPORT | Recovery and honest executed-check outcomes needed by source changes. |
 | Safe writes, locks, boundaries, redaction | SUPPORTING | Protect real local operations; retain security regressions. |
 | Release signing/SBOM/provenance/native trust | SUPPORTING | Distribution safeguards; dedicated runbooks, separate production gates. |
 | SSO, RBAC, enterprise policy/audit/control plane | FUTURE / POST-1.0 | Roadmap ideas, not implemented CLI commands or current dependencies. |
 | Organization/team/cloud knowledge server | FUTURE / POST-1.0 | Not part of the existing source loader; no new source hierarchy. |
-| Legacy/remove candidates | NONE YET | No existing command is removed merely because it is secondary. |
 
-The unnecessary complexity was principally the enterprise-first milestone
-sequence and infrastructure-heavy introduction. Source-changing tooling is large
-but already separated in `fixer` modules and valuable for recovery. Keep its
-safety engineering and compatibility; do not rewrite the core around it.
+Keep compatibility and safety checks for existing saved proposals and recovery
+records in the separate `fixer` modules.
 
 ## Architecture: existing boundaries and intended evolution
 
@@ -79,9 +75,9 @@ retrieval: normalize → exact code / ID → title / metadata / lexical ranking
        ↓
 adequate evidence + reasons + locators + verification status
        ↓
-search / ask / explain → offline output → optional AI explanation
-       ↑                                     ↓
-scanner: bounded local context       separate experimental fixer
+search / ask / explain → CLI text or JSON / read-only MCP
+       ↑
+scanner: bounded local context
 ```
 
 `src/knowledge/storage.rs` owns safe publication; `document.rs` describes optional
@@ -90,13 +86,12 @@ sources and handles validation/overrides; `index.rs` performs deterministic
 ranking; `retrieval.rs` is shared by search, ask, chat, and diagnostics.
 `answer.rs` selects adequate passages. `diagnostics` parses logs and adds local
 rules and bounded scanner evidence. CLI modules handle prompts and presentation.
-`ai` receives deliberately bounded, redacted evidence. `fixer` owns proposals,
+`mcp.rs` exposes evidence through local stdio. `fixer` owns saved proposal
 application, executed verification, and recovery independently of capture.
 
-Current retrieval is an in-memory weighted lexical index, **not FTS or BM25**.
-SQLite is already used for opt-in history, not canonical knowledge. Normalizing
-queries, exact-code precedence, complete metadata phrases, word boundaries,
-deduplicated terms, language filtering, and abstention already exist.
+Current retrieval uses an in-memory weighted lexical index. Ranking uses
+normalized queries, exact-code precedence, complete metadata phrases, word
+boundaries, deduplicated terms, language filtering, and abstention.
 The refocus adds exact entry-ID matching and a bounded source preference only
 after a real match. Exact codes and IDs remain ahead of weaker matches; full
 title/metadata-phrase signals retain their existing precedence for lexical matches.
@@ -105,10 +100,9 @@ Project then user
 then package preference applies among comparably relevant matches; it cannot
 create relevance. Ranking reasons are visible in text and JSON.
 
-Next: measure lexical precision on larger incident corpora before introducing a
-rebuildable SQLite FTS5/BM25 index. Optional embedded semantic retrieval comes
-after deterministic quality, never as a normal-usage requirement. Evidence
-selection should improve precision rather than fill result quotas.
+Measure lexical precision on larger incident corpora before introducing a
+rebuildable SQLite FTS5/BM25 index. Use those measurements to improve the
+precision of selected evidence.
 
 ## Capture and project memory
 
@@ -124,8 +118,7 @@ diagnostics offline into observed problem, error code, language/tool hints, and
 sanitized fenced Context. Unknown logs need a user-supplied Problem; every capture
 needs a real Solution. Logs must be regular UTF-8 files of at most 2 MiB, and
 context is truncated to 12 KiB. Shared secret recognition is not a complete
-guarantee; the user reviews the preview. No AI, network, or new dependencies are
-needed.
+guarantee. The user reviews the preview.
 
 For scripts:
 
@@ -166,8 +159,6 @@ otherwise it is `unverified`. Existing `user-reported` notes remain supported.
 These describe an author's record, not a freshly tested fix. Source preference
 does not establish a root cause or correctness. No adequate evidence means an
 explicit no-match or labeled general investigation guidance.
-`ask --ai` also abstains without adequate knowledge, and `explain --ai` abstains
-when neither retrieved knowledge nor a known diagnostic rule supplies evidence.
 
 ## Migration and incremental refactor plan
 
@@ -180,15 +171,14 @@ when neither retrieved knowledge nor a known diagnostic rule supplies evidence.
 3. **Retrieval (small first step here, V2 planned):** exact entry IDs, source
    preference, visible reasons, and learned solution reuse. FTS/BM25 and broader
    evaluation are future measured changes, not claimed implementation.
-4. **CLI/documentation:** keep compatibility aliases/top-level commands;
-   reconsider an `experimental` group only with a documented deprecation path.
-   Keep ordinary knowledge workflows first. Do not add provider abstractions.
+4. **Offline CLI:** remove in-process model integration. Keep local knowledge
+   commands and [document compatibility changes](cli-reference.md#upgrading-to-the-offline-cli).
+   Provide evidence to external callers through CLI JSON or read-only MCP.
 5. **Evaluation:** retain frozen baseline cases and gradually add anonymized real
    incidents, project memory, external edits, no-match and collision cases.
 
-No user-store, package, project-directory, ID, config, or command migration is
-needed for these changes. Older Markdown lacks the new optional timestamps and
-remains valid. `project:ID` stays the existing identity; project scope supplies
+Existing user stores, packages, project directories, and IDs work in place.
+Older Markdown remains valid with optional timestamps absent. `project:ID` stays the existing identity; project scope supplies
 the namespace. Do not invent incompatible `project:repo:ID` keys. Explicit
 overrides, duplicate-ID rejection, and the existing identical-content deduplication
 remain compatible. A future format change must detect old data, migrate safely,
@@ -200,11 +190,11 @@ The [validation record](product-refocus-validation.md) audits all requested
 deliverables and records current tests, benchmark results, and remaining limits.
 
 Changed-behavior evidence belongs in `tests/cli/learn.rs`, index unit tests,
-and the existing offline/provider, edit, filesystem, privacy, and fixer tests.
+and the existing offline, edit, filesystem, privacy, and fixer tests.
 Verify capture → search → inspect → ask/explain → edit → retrieve, project
 isolation, exact code/ID precedence, unrelated abstention, external Markdown
 reload, cancellation/EOF, duplicate preservation, historical-check semantics,
-secret redaction, and no AI connections from normal capture/retrieval.
+secret redaction, and use through local CLI JSON and stdio MCP.
 
 Keep `benchmarks/retrieval/cases.json` labels frozen when comparing runs. Track
 Top-1, Top-3, result precision, irrelevant citation rate, no-match correctness,

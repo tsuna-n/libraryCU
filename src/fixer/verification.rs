@@ -1,5 +1,5 @@
 //! Only the CLI user chooses the executable and arguments. No implicit shell,
-//! automatic project command discovery, or provider supplied command execution.
+//! or automatic project command discovery.
 use anyhow::{Context, Result, ensure};
 use serde::Serialize;
 use std::{path::Path, process::Stdio, time::Duration};

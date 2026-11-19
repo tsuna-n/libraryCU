@@ -203,7 +203,7 @@ def run(binary, destination, source_sha, baseline=None, dataset_path=None, tunin
         for name in ['backend', 'other']:
             (home / name).mkdir()
         for capture in memory['captures']:
-            args = ['learn', '--yes', '--id', capture['id'], '--problem', capture['problem'],
+            args = ['learn', '--yes', '--new', '--id', capture['id'], '--problem', capture['problem'],
                 '--solution', capture['solution'], '--verification', capture['verification'], '--json']
             args += ['--user'] if capture['destination'] == 'user' else ['--project', str(home / capture['destination'])]
             cli(*args)
@@ -246,7 +246,8 @@ def run(binary, destination, source_sha, baseline=None, dataset_path=None, tunin
         project_memory=dict(dataset_sha256=digest(memory_path), passed=sum(r['passed'] for r in memory_rows),
             total=len(memory_rows), cases=memory_rows),
         latency=dict(unit='milliseconds',scope='three repetitions, median of separate search + ask subprocesses; includes startup/store reads',
-            median=statistics.median(latencies),p95=latencies[max(0, (95*len(latencies)+99)//100-1)]),cases=rows)
+            median=statistics.median(latencies),p95=latencies[(95*len(latencies)+99)//100-1],
+            p99=latencies[(99*len(latencies)+99)//100-1]),cases=rows)
     destination.parent.mkdir(parents=True,exist_ok=True)
     destination.write_text(json.dumps(report,indent=2,ensure_ascii=False)+'\n')
     print(json.dumps({k:report[k] for k in ['source_sha','dataset_sha256','metrics','insufficient_behavior',

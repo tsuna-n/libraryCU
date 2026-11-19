@@ -140,10 +140,7 @@ fn search_index(
     };
     if diagnostics.is_empty() || (diagnostic.is_none() && index.has_explicit_identifier(query)) {
         validate_query(query)?;
-        return Ok(select_results(
-            query,
-            index.search_with_project(query, language, project),
-        ));
+        return Ok(index.search_with_project(query, language, project, select_results));
     }
     let mut combined = Vec::new();
     let mut seen = HashSet::new();
@@ -159,26 +156,29 @@ fn search_index(
             diagnostic.message
         );
         validate_query(&focused)?;
-        let mut results = index.search_with_project(&focused, language, project);
-        if let Some(code) = &diagnostic.code {
-            let code = if diagnostic.source.as_deref() == Some("python") {
-                code.rsplit('.').next().unwrap_or(code)
-            } else {
-                code.as_str()
-            };
-            // Removing log noise must not turn an unsupported exception into a known fix.
-            if !results.iter().any(|result| supports_code(result, code)) {
-                results.retain(|result| {
-                    result.match_reason == super::index::PYTHON_ERROR_FALLBACK_REASON
-                });
-            }
-        }
-        for result in &mut results {
-            result.ranking_reasons.push("diagnostic message".to_owned());
-        }
         combined.extend(
-            select_results(&focused, results)
+            index
+                .search_with_project(&focused, language, project, |normalized, mut results| {
+                    if let Some(code) = diagnostic.code.as_deref() {
+                        let code = if diagnostic.source.as_deref() == Some("python") {
+                            code.rsplit('.').next().unwrap_or(code)
+                        } else {
+                            code
+                        };
+                        // Removing log noise must not turn an unsupported exception into a known fix.
+                        if !results.iter().any(|result| supports_code(result, code)) {
+                            results.retain(|result| {
+                                result.match_reason == super::index::PYTHON_ERROR_FALLBACK_REASON
+                            });
+                        }
+                    }
+                    select_results(normalized, results)
+                })
                 .into_iter()
+                .map(|mut result| {
+                    result.ranking_reasons.push("diagnostic message".to_owned());
+                    result
+                })
                 .filter(|result| seen.insert(result.source_id.clone())),
         );
     }
@@ -212,8 +212,17 @@ pub fn is_adequate(result: &SearchResult) -> bool {
         ) || (result.query_terms > 0 && result.matched_terms * 3 >= result.query_terms * 2))
 }
 
-fn select_results(query: &str, mut results: Vec<SearchResult>) -> Vec<SearchResult> {
-    let normalized = query.trim().to_lowercase();
+pub(crate) fn supporting_results(results: &[SearchResult]) -> impl Iterator<Item = &SearchResult> {
+    let mut bodies = HashSet::new();
+    results.iter().filter(move |result| {
+        is_adequate(result)
+            && !result.excerpt.is_empty()
+            && (bodies.insert(result.document.body.as_str())
+                || result.match_reason == "exact identifier")
+    })
+}
+
+fn select_results(normalized: &str, mut results: Vec<SearchResult>) -> Vec<SearchResult> {
     let known_codes: Vec<_> = results
         .iter()
         .filter_map(|result| result.document.metadata.error_code.as_ref())
@@ -235,7 +244,7 @@ fn select_results(query: &str, mut results: Vec<SearchResult>) -> Vec<SearchResu
         })
         .collect();
     let matches_id = |result: &SearchResult| {
-        super::index::contains_identifier(&normalized, &result.source_id.to_lowercase())
+        super::index::contains_identifier(normalized, &result.source_id.to_lowercase())
             || normalized == result.document.metadata.id.to_lowercase()
     };
     let explicit_id = results.iter().any(&matches_id);
@@ -252,8 +261,6 @@ fn select_results(query: &str, mut results: Vec<SearchResult>) -> Vec<SearchResu
         if explicit_id {
             return matches_id(result);
         }
-        let title = result.document.title.to_lowercase();
-        let body = result.document.body.to_lowercase();
         is_adequate(result)
             && (result.match_reason == "exact error code"
                 || required_codes.is_empty()
@@ -263,9 +270,9 @@ fn select_results(query: &str, mut results: Vec<SearchResult>) -> Vec<SearchResu
             && (exact_codes.is_empty()
                 || result.match_reason == "exact error code"
                 || exact_codes.iter().any(|code| {
-                    super::index::contains_term(&title, code)
+                    super::index::contains_term(&result.document.title.to_lowercase(), code)
                         || (result.document.metadata.error_code.is_none()
-                            && super::index::contains_term(&body, code))
+                            && super::index::contains_term(&result.document.body.to_lowercase(), code))
                 })
                 // A broad exception class can have a more specific untyped symptom note.
                 || (result.document.metadata.error_code.is_none()
@@ -280,7 +287,7 @@ fn select_results(query: &str, mut results: Vec<SearchResult>) -> Vec<SearchResu
                         .chain(&result.document.metadata.tags)
                         .any(|phrase| {
                             phrase.split_whitespace().count() > 1
-                                && super::index::contains_term(&normalized, &phrase.to_lowercase())
+                                && super::index::contains_term(normalized, &phrase.to_lowercase())
                         })))
     });
     if !explicit_id && exact_codes.is_empty() {
@@ -301,7 +308,7 @@ fn select_results(query: &str, mut results: Vec<SearchResult>) -> Vec<SearchResu
                         .chars()
                         .any(|c| ('\u{0E00}'..='\u{0E7F}').contains(&c))
             })
-            .filter(|phrase| super::index::contains_term(&normalized, &phrase.to_lowercase()))
+            .filter(|phrase| super::index::contains_term(normalized, &phrase.to_lowercase()))
             .map(|phrase| phrase.to_lowercase())
             .collect();
         let longest_phrase = phrases
@@ -310,6 +317,29 @@ fn select_results(query: &str, mut results: Vec<SearchResult>) -> Vec<SearchResu
             .max()
             .unwrap_or(0);
         phrases.retain(|phrase| phrase.chars().count() == longest_phrase);
+        let tool_is_named =
+            |tool: &str| super::index::contains_term(normalized, &tool.to_lowercase());
+        let named_runtimes: HashSet<_> = results
+            .iter()
+            .filter(|result| longest_phrase == 0 && result.query_terms > 1 && is_adequate(result))
+            .filter_map(|result| {
+                let metadata = &result.document.metadata;
+                let tool = metadata.tool.as_deref()?;
+                let language = metadata.language.as_deref()?;
+                (language.eq_ignore_ascii_case(tool) && tool_is_named(tool))
+                    .then(|| language.to_lowercase())
+            })
+            .collect();
+        let tool_is_supported = |result: &SearchResult| {
+            let metadata = &result.document.metadata;
+            result.match_reason == "title match"
+                || named_runtimes.is_empty()
+                || !metadata
+                    .language
+                    .as_ref()
+                    .is_some_and(|language| named_runtimes.contains(&language.to_lowercase()))
+                || metadata.tool.as_deref().is_none_or(tool_is_named)
+        };
         let lexical_score = |result: &SearchResult| {
             result.score
                 - super::index::source_weight(&result.document.source)
@@ -317,7 +347,7 @@ fn select_results(query: &str, mut results: Vec<SearchResult>) -> Vec<SearchResu
         };
         let best_score = results
             .iter()
-            .filter(|r| is_adequate(r))
+            .filter(|result| is_adequate(result) && tool_is_supported(result))
             .map(&lexical_score)
             .max()
             .unwrap_or(0);
@@ -344,7 +374,9 @@ fn select_results(query: &str, mut results: Vec<SearchResult>) -> Vec<SearchResu
                             )
                     })
                 } else {
-                    result.kind == "concept" || lexical_score(result) * 3 >= best_score * 2
+                    // Broad runtime overlap alone does not support a tool-specific supplement.
+                    tool_is_supported(result)
+                        && (result.kind == "concept" || lexical_score(result) * 3 >= best_score * 2)
                 }
         });
     }
@@ -367,6 +399,52 @@ mod tests {
         )
     }
 
+    fn selected(index: &KnowledgeIndex, query: &str) -> Vec<SearchResult> {
+        index.search_with_project(query, "en", &Default::default(), select_results)
+    }
+
+    #[test]
+    fn citations_keep_the_highest_ranked_copy_of_identical_support() {
+        let notes = index(&[
+            (
+                "alpha.md",
+                "---\nid: alpha\nerror_code: E0308\n---\n# Alpha\n\nBorrow the value.",
+            ),
+            (
+                "beta.md",
+                "---\nid: beta\nerror_code: E0308\n---\n# Beta\n\nBorrow the value.",
+            ),
+            (
+                "gamma.md",
+                "---\nid: gamma\nerror_code: E0308\n---\n# Alpha\n\nBorrow the value.",
+            ),
+        ]);
+        let results = selected(&notes, "E0308");
+        assert_eq!(results.len(), 3);
+        let cited = supporting_results(&results).collect::<Vec<_>>();
+        assert_eq!(cited.len(), 2);
+        assert_eq!(cited[0].source_id, "unknown:alpha");
+        assert_eq!(cited[0].excerpt, "Borrow the value.");
+        assert_eq!(cited[1].source_id, "unknown:beta");
+    }
+
+    #[test]
+    fn same_problem_excerpt_can_support_distinct_recorded_solutions() {
+        let notes = index(&[
+            (
+                "first.md",
+                "---\nid: first\nerror_code: E0308\n---\n# First\n\n## Problem\n\nE0308 on argument conversion.\n\n## Solution\n\nBorrow the value.",
+            ),
+            (
+                "second.md",
+                "---\nid: second\nerror_code: E0308\n---\n# Second\n\n## Problem\n\nE0308 on argument conversion.\n\n## Solution\n\nUse the existing owned binding.",
+            ),
+        ]);
+        let results = selected(&notes, "E0308");
+        assert_eq!(results[0].excerpt, results[1].excerpt);
+        assert_eq!(supporting_results(&results).count(), 2);
+    }
+
     #[test]
     fn complete_symptom_phrase_excludes_broad_overlap() {
         let index = index(&[
@@ -380,7 +458,7 @@ mod tests {
             ),
         ]);
         let query = "cannot import name from partially initialized module";
-        let results = select_results(query, index.search(query));
+        let results = selected(&index, query);
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].document.metadata.id, "specific");
     }
@@ -398,10 +476,7 @@ mod tests {
             "EADDRINUSE_EXTRA cannot find package",
             "eaddrinuse_extra cannot find package",
         ] {
-            assert!(
-                select_results(query, index.search(query)).is_empty(),
-                "{query}"
-            );
+            assert!(selected(&index, query).is_empty(), "{query}");
         }
     }
 
@@ -422,10 +497,10 @@ mod tests {
             ),
         ]);
         let query = "E0308 E0382";
-        let results = select_results(query, index.search(query));
+        let results = selected(&index, query);
         assert_eq!(results.len(), 2);
         assert!(
-            select_results("E0308", index.search("E0308"))
+            selected(&index, "E0308")
                 .iter()
                 .any(|r| r.document.metadata.id == "local")
         );
@@ -444,13 +519,54 @@ mod tests {
             ),
         ]);
         let query = "cedar recovery";
-        let results = select_results(query, notes.search(query));
+        let results = selected(&notes, query);
         assert_eq!(results.len(), 1);
         let body_only = index(&[(
             "body.md",
             "---\nid: body\n---\n# Local note\n\nUse cedar recovery.",
         )]);
-        assert_eq!(select_results(query, body_only.search(query)).len(), 1);
+        assert_eq!(selected(&body_only, query).len(), 1);
+    }
+
+    #[test]
+    fn broad_language_queries_require_evidence_for_tool_specific_supplements() {
+        let notes = index(&[
+            (
+                "runtime.md",
+                "---\nid: runtime\nlanguage: javascript\ntool: javascript\ntags: [javascript, bundling]\n---\n# JavaScript module bundling\n\nBundling groups modules.",
+            ),
+            (
+                "webpack.md",
+                "---\nid: webpack\nlanguage: javascript\ntool: webpack\ntags: [javascript, bundling]\nkeywords: [chunk lookup]\n---\n# Webpack module bundling\n\nBundling JavaScript enables runtime chunk lookup.",
+            ),
+            (
+                "vite.md",
+                "---\nid: vite\nkind: concept\nlanguage: javascript\ntool: vite\ntags: [javascript, bundling]\n---\n# Vite development server\n\nIt includes a bundling example.",
+            ),
+            (
+                "local.md",
+                "---\nid: local\ntags: [javascript, bundling]\n---\n# Local bundling workflow\n\nBundling produces the deployment archive.",
+            ),
+        ]);
+        let query = "JavaScript bundling";
+        let results = selected(&notes, query);
+        let ids: HashSet<_> = results
+            .iter()
+            .map(|result| result.document.metadata.id.as_str())
+            .collect();
+        assert_eq!(ids, HashSet::from(["runtime", "local"]));
+
+        for query in [
+            "JavaScript webpack bundling",
+            "JavaScript bundling chunk lookup",
+        ] {
+            assert!(
+                selected(&notes, query)
+                    .iter()
+                    .any(|result| result.document.metadata.id == "webpack"),
+                "{query}"
+            );
+        }
     }
 
     #[test]
@@ -466,7 +582,7 @@ mod tests {
             ),
         ]);
         let query = "how to cedar recovery after crash";
-        let results = select_results(query, notes.search(query));
+        let results = selected(&notes, query);
         assert_eq!(results[0].document.metadata.id, "specific");
     }
 
@@ -483,7 +599,7 @@ mod tests {
             ),
         ]);
         let query = "unknown:first unknown:second E0308";
-        assert_eq!(select_results(query, notes.search(query)).len(), 2);
+        assert_eq!(selected(&notes, query).len(), 2);
     }
 
     #[test]
@@ -506,9 +622,9 @@ mod tests {
                 "---\nid: details\nkeywords: [ownership, borrow]\n---\n# Ownership and borrow\n\nUse ownership and borrow a value.",
             ),
         ]);
-        assert_eq!(select_results("E0308", notes.search("E0308")).len(), 2);
+        assert_eq!(selected(&notes, "E0308").len(), 2);
         assert!(
-            select_results("ownership borrow", notes.search("ownership borrow"))
+            selected(&notes, "ownership borrow")
                 .iter()
                 .any(|r| r.document.metadata.id == "concept")
         );
@@ -526,11 +642,7 @@ mod tests {
             "ERRORS: borrow of moved value",
             "E0382 in my_module.rs",
         ] {
-            assert_eq!(
-                select_results(query, notes.search(query)).len(),
-                1,
-                "{query}"
-            );
+            assert_eq!(selected(&notes, query).len(), 1, "{query}");
         }
     }
 
@@ -541,7 +653,7 @@ mod tests {
             "---\nid: name\nkeywords: [NameError, is not defined]\n---\n# Python NameError\n\nA name is not defined. Declare the name before using it.",
         )]);
         let query = "NameError python name 'missing_name' is not defined";
-        assert_eq!(select_results(query, notes.search(query)).len(), 1);
+        assert_eq!(selected(&notes, query).len(), 1);
     }
 
     #[test]
@@ -575,6 +687,18 @@ mod tests {
                 .unwrap()
                 .is_empty()
         );
+    }
+
+    #[test]
+    fn git_conflict_logs_retrieve_the_merge_guidance() {
+        let notes = index(&[(
+            "merge.md",
+            "---\nid: merge\nlanguage: git\ntool: git\nkeywords: [merge conflict]\n---\n# Git - Resolve a merge conflict\n\nResolve the conflict and stage the merge.",
+        )]);
+        let log = "Auto-merging checkout settings.toml\nCONFLICT (add/add): Merge conflict in checkout settings.toml\nAutomatic merge failed; fix conflicts and then commit the result.";
+        let results = search_index(&notes, log, "en", None, &Default::default()).unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].document.metadata.id, "merge");
     }
 
     #[test]

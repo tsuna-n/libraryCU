@@ -66,20 +66,17 @@ fn redact_line(line: &str) -> String {
             let query = query.split('#').next().unwrap_or_default();
             let mut pair_start = start + query_start + 1;
             for pair in query.split('&') {
-                if let Some((key, value)) = pair.split_once('=') {
-                    // URL parsing decodes percent escapes in credential names.
-                    if let Ok(parsed) =
-                        reqwest::Url::parse(&format!("https://redact.invalid/?{key}="))
-                        && let Some((key, _)) = parsed.query_pairs().next()
-                        && is_sensitive_key(&key.to_ascii_lowercase().replace('-', "_"))
-                        && !value.is_empty()
-                        && value != "[REDACTED]"
-                    {
-                        spans.push((
-                            pair_start + pair.len() - value.len(),
-                            pair_start + pair.len(),
-                        ));
-                    }
+                // Decode percent escapes in credential names.
+                if let Some((key, value)) = pair.split_once('=')
+                    && let Some((key, _)) = form_urlencoded::parse(key.as_bytes()).next()
+                    && is_sensitive_key(&key.to_ascii_lowercase().replace('-', "_"))
+                    && !value.is_empty()
+                    && value != "[REDACTED]"
+                {
+                    spans.push((
+                        pair_start + pair.len() - value.len(),
+                        pair_start + pair.len(),
+                    ));
                 }
                 pair_start += pair.len() + 1;
             }

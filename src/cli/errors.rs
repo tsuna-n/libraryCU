@@ -25,7 +25,6 @@ pub fn format_error(error: &Error, language: &str) -> String {
     let message = safe_message(error);
     let lower = message.to_ascii_lowercase();
     let (fix, fix_th, next) = if lower.contains("configuration")
-        || lower.starts_with("ai.")
         || lower.starts_with("output.language")
         || lower.starts_with("memory.mode")
         || lower.starts_with("scanner.")
@@ -35,23 +34,6 @@ pub fn format_error(error: &Error, language: &str) -> String {
             "Correct the named setting in your config file (LBC_CONFIG or the default config path).",
             "แก้การตั้งค่าที่ระบุในไฟล์ config (LBC_CONFIG หรือไฟล์เริ่มต้น)",
             "lbc config show; lbc doctor",
-        )
-    } else if lower.contains("api_key") && lower.contains("not set") {
-        (
-            "Set the named API key in your environment, or keep using local commands without --ai.",
-            "ตั้งค่า API key ที่ระบุใน environment หรือใช้คำสั่งภายในเครื่องโดยไม่ใส่ --ai",
-            "lbc doctor; lbc ask --help",
-        )
-    } else if lower.contains("provider")
-        || lower.contains("openrouter")
-        || lower.contains("endpoint")
-        || lower.contains("timed out")
-        || lower.contains("timeout")
-    {
-        (
-            "Check the provider URL, credentials, network and model; retry or omit --ai for local results.",
-            "ตรวจ URL, ข้อมูลรับรอง, เครือข่าย และโมเดลของผู้ให้บริการ แล้วลองใหม่หรือไม่ใส่ --ai",
-            "lbc doctor --connectivity; lbc config show",
         )
     } else if lower.contains("error log") || lower.contains("error input") {
         (
@@ -120,7 +102,7 @@ pub fn format_error(error: &Error, language: &str) -> String {
 
 pub(crate) fn safe_message(error: &Error) -> String {
     // TOML diagnostics include the original line and arbitrary invalid values.
-    let mut message = if error.downcast_ref::<toml::de::Error>().is_some() {
+    let message = if error.downcast_ref::<toml::de::Error>().is_some() {
         let outer = error.to_string();
         if outer.starts_with("invalid configuration") || outer.starts_with("invalid package.toml") {
             format!("{outer}: invalid TOML syntax or setting type")
@@ -130,25 +112,8 @@ pub(crate) fn safe_message(error: &Error) -> String {
     } else {
         format!("{error:#}")
     };
-    if message.starts_with("ai.provider must be") {
-        message.truncate(message.find(" (found ").unwrap_or(message.len()));
-    } else if message.starts_with("unsupported AI provider") {
-        message = "unsupported AI provider; choose a supported ai.provider".into();
-    } else if message.starts_with("unsupported setting") {
-        message = "unsupported setting; use output.language, scanner.max_file_size_kb, scanner.ignore_hidden, memory.mode, ai.provider, ai.model, or ai.base_url".into();
-    }
-    for name in [
-        "OPENAI_API_KEY",
-        "OPENROUTER_API_KEY",
-        "ZAI_API_KEY",
-        "GLM_API_KEY",
-        "OLLAMA_API_KEY",
-    ] {
-        if let Ok(value) = std::env::var(name)
-            && !value.trim().is_empty()
-        {
-            message = message.replace(&value, "[REDACTED]");
-        }
+    if message.starts_with("unsupported setting") {
+        return "unsupported setting; use output.language, scanner.max_file_size_kb, scanner.ignore_hidden, or memory.mode".into();
     }
     crate::security::redact_sensitive(&message)
 }
@@ -236,7 +201,7 @@ mod tests {
     #[test]
     fn runtime_errors_offer_localized_guidance_and_redact_credentials() {
         let error = anyhow::anyhow!(
-            "provider failed at https://user:private-password@example.invalid?api%5Fkey=private-query"
+            "failed to read https://user:private-password@example.invalid?api%5Fkey=private-query"
         );
         for (language, labels) in [
             ("en", ["Cause:", "Fix:", "Next:"]),
@@ -246,7 +211,7 @@ mod tests {
             for label in labels {
                 assert!(rendered.contains(label), "{rendered}");
             }
-            assert!(rendered.contains("lbc doctor --connectivity"));
+            assert!(rendered.contains("lbc doctor"));
             assert!(!rendered.contains("private-password"));
             assert!(!rendered.contains("private-query"));
         }
@@ -278,10 +243,7 @@ mod tests {
         for (args, expected) in [
             (vec!["lbc", "add", "--stdin"], "--title"),
             (vec!["lbc", "list", "--limit", "private-value"], "--limit"),
-            (
-                vec!["lbc", "setup", "--provider", "private-value"],
-                "openai",
-            ),
+            (vec!["lbc", "search", "--limit", "0", "query"], "--limit"),
         ] {
             let error = crate::cli::args::Cli::command()
                 .try_get_matches_from(args)

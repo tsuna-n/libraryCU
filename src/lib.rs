@@ -1,4 +1,3 @@
-pub mod ai;
 pub mod answer;
 pub mod cli;
 pub mod config;

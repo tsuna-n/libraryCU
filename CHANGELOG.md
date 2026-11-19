@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.7.1 — Offline retrieval
 
 ### Added
 
@@ -10,6 +10,20 @@
   plus `explain --text` for process-based editor tasks.
 - `--project-only` for search, ask, explain, and MCP; project stack metadata
   improves ranking while retaining historical evidence labels and isolation.
+
+### Changed
+
+- Improved lexical relevance and quoted evidence, recognized Git content
+  conflicts, and reused verified package contents to reduce retrieval latency.
+  See the [before-and-after measurements](docs/retrieval-offline-optimization.md).
+
+### Removed
+
+- In-process model inference, provider configuration, credentials lookup, and
+  connectivity checks. Remove `--ai` and provider options from scripts. See the
+  [CLI upgrade notes](docs/cli-reference.md#upgrading-to-the-offline-cli).
+- Patch generation in `fix`, which now provides local diagnostic guidance.
+  `apply-proposal` and `rollback` support existing authenticated records.
 
 ## 0.7.0 — Knowledge maintenance (2026-11-12)
 

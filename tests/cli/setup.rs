@@ -41,16 +41,14 @@ fn fresh_setup_supports_the_offline_knowledge_loop() {
     )
     .unwrap();
     let report = success(home.path(), &["setup", "--yes", "--json"]);
-    assert_eq!(report["provider"], "off");
     assert!(report["stack"].as_str().unwrap().contains("Rust"));
-    assert_eq!(report["connectivity"], "untested; no network requests made");
     assert!(home.path().join(".lbc/knowledge").is_dir());
     assert!(home.path().join("data/lbc/notes").is_dir());
     let config: toml::Value = std::fs::read_to_string(home.path().join("config/lbc/config.toml"))
         .unwrap()
         .parse()
         .unwrap();
-    assert_eq!(config["ai"]["provider"].as_str(), Some("off"));
+    assert!(config.get("ai").is_none());
     success(
         home.path(),
         &[
@@ -106,7 +104,7 @@ fn setup_preserves_existing_configuration_unknown_keys_and_knowledge() {
     );
     assert_eq!(config["memory"]["mode"].as_str(), Some("persistent"));
     assert_eq!(std::fs::read_to_string(&note).unwrap(), "existing bytes");
-    let output = interactive(home.path(), "\n\n\n\n");
+    let output = interactive(home.path(), "\n");
     assert!(
         output.status.success(),
         "{}",
@@ -117,61 +115,17 @@ fn setup_preserves_existing_configuration_unknown_keys_and_knowledge() {
 }
 
 #[test]
-fn setup_ai_is_environment_only_and_never_contacts_the_provider() {
-    let home = tempfile::tempdir().unwrap();
-    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-    listener.set_nonblocking(true).unwrap();
-    let url = format!("http://{}/v1", listener.local_addr().unwrap());
-    let output = isolated_lbc(home.path())
-        .args([
-            "setup",
-            "--yes",
-            "--provider",
-            "openai",
-            "--base-url",
-            &url,
-            "--json",
-        ])
-        .env("OPENAI_API_KEY", "sk-private-setup-secret-123456789")
-        .output()
-        .unwrap();
-    assert!(
-        output.status.success(),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert_eq!(report["environment_variables"][0], "OPENAI_API_KEY");
-    assert_eq!(report["credentials"], "detected; validity untested");
-    let stored = std::fs::read_to_string(home.path().join("config/lbc/config.toml")).unwrap();
-    for bytes in [&output.stdout[..], &output.stderr[..], stored.as_bytes()] {
-        assert!(!String::from_utf8_lossy(bytes).contains("private-setup-secret"));
-    }
-    assert!(
-        matches!(listener.accept(), Err(error) if error.kind() == std::io::ErrorKind::WouldBlock)
-    );
-    let report = success(home.path(), &["setup", "--yes", "--json"]);
-    assert_eq!(
-        report["credentials"],
-        "missing; offline knowledge remains available"
-    );
-}
-
-#[test]
 fn invalid_cancelled_and_incomplete_setup_never_mutates_stores() {
-    for input in ["", "\n", "\nn\n", "invalid\n", "\nmaybe\n"] {
+    for input in ["", "n\n", "invalid\n"] {
         let home = tempfile::tempdir().unwrap();
         let output = interactive(home.path(), input);
-        assert_eq!(output.status.success(), input == "\nn\n");
+        assert_eq!(output.status.success(), input == "n\n");
         assert!(!home.path().join("config/lbc/config.toml").exists());
         assert!(!home.path().join(".lbc").exists());
         assert!(!home.path().join("data/lbc/notes").exists());
     }
     for args in [
-        vec!["setup", "--yes", "--provider", "unknown"],
         vec!["setup", "--json"],
-        vec!["setup", "--yes", "--provider", "openai-compat"],
-        vec!["setup", "--yes", "--provider", "openrouter"],
         vec!["setup", "--yes", "--project", "missing"],
     ] {
         let home = tempfile::tempdir().unwrap();
@@ -179,42 +133,6 @@ fn invalid_cancelled_and_incomplete_setup_never_mutates_stores() {
         assert!(!home.path().join("config/lbc/config.toml").exists());
         assert!(!home.path().join(".lbc").exists());
         assert!(!home.path().join("data/lbc/notes").exists());
-    }
-}
-
-#[test]
-fn setup_rejects_secret_and_invalid_ai_inputs_without_echoing_or_storing_them() {
-    for (flag, value) in [
-        ("--model", "sk-private-setup-secret-123456789"),
-        ("--model", "API_KEY=fixture-setup-secret"),
-        (
-            "--model",
-            "https://user:fixture-setup-secret@example.invalid/model",
-        ),
-        (
-            "--base-url",
-            "https://user:fixture-setup-secret@example.invalid/v1",
-        ),
-        (
-            "--base-url",
-            "https://example.invalid/v1?api_key=fixture-setup-secret",
-        ),
-        (
-            "--base-url",
-            "https://example.invalid/v1?credential=fixture-setup-secret",
-        ),
-        ("--base-url", "not-a-url"),
-    ] {
-        let home = tempfile::tempdir().unwrap();
-        let output = run(
-            home.path(),
-            &["setup", "--yes", "--provider", "openai", flag, value],
-        );
-        assert!(!output.status.success(), "accepted {flag}");
-        assert!(!String::from_utf8_lossy(&output.stdout).contains("setup-secret"));
-        assert!(!String::from_utf8_lossy(&output.stderr).contains("setup-secret"));
-        assert!(!home.path().join("config/lbc/config.toml").exists());
-        assert!(!home.path().join(".lbc").exists());
     }
 }
 
@@ -247,51 +165,28 @@ fn setup_rejects_unsafe_paths_before_writing_anything() {
 }
 
 #[test]
-fn setup_uses_explicit_project_scope_and_supports_existing_providers() {
-    for provider in [
-        "off",
-        "openai",
-        "zai",
-        "glm",
-        "ollama",
-        "openrouter",
-        "openai-compat",
-    ] {
-        let home = tempfile::tempdir().unwrap();
-        let project = home.path().join("nested");
-        std::fs::create_dir(&project).unwrap();
-        std::fs::write(home.path().join("Cargo.toml"), "[package]").unwrap();
-        let report = success(
-            home.path(),
-            &[
-                "setup",
-                "--yes",
-                "--project",
-                "nested",
-                "--provider",
-                provider,
-                "--model",
-                "fixture-model",
-                "--base-url",
-                "http://127.0.0.1:9/v1",
-                "--json",
-            ],
-        );
-        assert_eq!(report["provider"], provider);
-        assert_eq!(report["stack"], "Unknown project");
-        assert_eq!(
-            Path::new(report["project"].as_str().unwrap()),
-            project.canonicalize().unwrap()
-        );
-        assert!(project.join(".lbc/knowledge").is_dir());
-        assert!(!home.path().join(".lbc").exists());
-    }
+fn setup_uses_explicit_project_scope() {
+    let home = tempfile::tempdir().unwrap();
+    let project = home.path().join("nested");
+    std::fs::create_dir(&project).unwrap();
+    std::fs::write(home.path().join("Cargo.toml"), "[package]").unwrap();
+    let report = success(
+        home.path(),
+        &["setup", "--yes", "--project", "nested", "--json"],
+    );
+    assert_eq!(report["stack"], "Unknown project");
+    assert_eq!(
+        Path::new(report["project"].as_str().unwrap()),
+        project.canonicalize().unwrap()
+    );
+    assert!(project.join(".lbc/knowledge").is_dir());
+    assert!(!home.path().join(".lbc").exists());
 }
 
 #[test]
 fn interactive_setup_defaults_offline_and_reports_destinations() {
     let home = tempfile::tempdir().unwrap();
-    let output = interactive(home.path(), "\n\n");
+    let output = interactive(home.path(), "\n");
     assert!(
         output.status.success(),
         "{}",
@@ -299,7 +194,6 @@ fn interactive_setup_defaults_offline_and_reports_destinations() {
     );
     let prompts = String::from_utf8_lossy(&output.stderr);
     let text = String::from_utf8_lossy(&output.stdout);
-    assert!(prompts.contains("AI provider:"));
     assert!(prompts.contains("Save configuration and initialize knowledge stores?"));
     for expected in [
         "OS:",
@@ -308,7 +202,6 @@ fn interactive_setup_defaults_offline_and_reports_destinations() {
         "Config:",
         "Project knowledge:",
         "Personal knowledge:",
-        "AI provider: off",
     ] {
         assert!(text.contains(expected), "missing {expected}");
     }

@@ -1,9 +1,9 @@
-use std::io::{self, IsTerminal, Read, Write};
+use std::io::{self, IsTerminal, Read};
 
 use anyhow::{Context, Result, bail};
 
 use crate::cli::args::ExplainArgs;
-use crate::{ai, config, diagnostics, output, security};
+use crate::{config, diagnostics, output, security};
 
 const MAX_ERROR_INPUT_BYTES: u64 = 2 * 1024 * 1024;
 
@@ -20,81 +20,14 @@ pub fn run(args: ExplainArgs) -> Result<()> {
     } else {
         crate::knowledge::retrieval::RetrievalScope::All
     };
-    let mut report =
+    let report =
         diagnostics::explain_with_scope(&input, &args.project, &loaded.config.scanner, scope)?;
 
     if args.json {
-        if args.ai
-            && let Err(error) =
-                ai::enhance_with_language(&mut report, &input, &loaded.config.ai, &language)
-        {
-            report.ai_error = Some(crate::cli::errors::format_error(&error, &language));
-        }
         println!("{}", serde_json::to_string_pretty(&report)?);
-        return Ok(());
-    }
-
-    if !args.ai {
+    } else {
         output::print_explanation_language(&report, args.verbose, &language);
-        return Ok(());
     }
-
-    let mut is_thinking = false;
-    let mut has_content = false;
-    let provider_name = loaded.config.ai.provider.clone();
-    let model_name = loaded.config.ai.effective_model().to_owned();
-
-    let mut on_event = |event: ai::StreamEvent| match event {
-        ai::StreamEvent::Thinking => {
-            if !is_thinking && !has_content {
-                is_thinking = output::progress(if language == "th" {
-                    "กำลังคิด..."
-                } else {
-                    "Thinking..."
-                });
-            }
-        }
-        ai::StreamEvent::Content(text) => {
-            if is_thinking {
-                output::clear_progress();
-                is_thinking = false;
-            }
-            if !has_content {
-                if language == "th" {
-                    println!("\nสิ่งที่ต้องแก้ ({provider_name} / {model_name})");
-                } else {
-                    println!("\nRequired changes ({provider_name} / {model_name})");
-                }
-                print!("  ");
-                has_content = true;
-            }
-            let formatted = text.replace('\n', "\n  ");
-            print!("{formatted}");
-            let _ = io::stdout().flush();
-        }
-    };
-
-    match ai::enhance_with_language_stream(
-        &mut report,
-        &input,
-        &loaded.config.ai,
-        &language,
-        Some(&mut on_event),
-    ) {
-        Ok(()) => {
-            if has_content {
-                println!();
-            }
-        }
-        Err(error) => {
-            if is_thinking {
-                output::clear_progress();
-            }
-            report.ai_error = Some(crate::cli::errors::format_error(&error, &language));
-            output::print_explanation_language(&report, args.verbose, &language);
-        }
-    }
-
     Ok(())
 }
 

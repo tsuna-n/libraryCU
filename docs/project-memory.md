@@ -48,5 +48,5 @@ stack from source code or scan the project automatically for new knowledge.
 Historical notes remain guidance. `user-reported` describes the author's report,
 and `recorded-check` describes a previously recorded check. Neither confirms a
 fix for the current problem. Answers label recorded verification as not rerun;
-retrieved explanations remain unverified against the current project. Optional
-AI receives the same distinction and treats notes as untrusted evidence.
+retrieved explanations remain unverified against the current project. External
+agents receive those status labels via CLI JSON and the [MCP tools](mcp.md).
